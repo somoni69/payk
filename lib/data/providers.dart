@@ -35,3 +35,9 @@ final friendsProvider = FutureProvider<FriendsInfo>((ref) async {
   }
   return ref.watch(loyaltyApiProvider).friends();
 });
+
+final messagesProvider = FutureProvider<List<LoyaltyMessageItem>>((ref) async {
+  final token = ref.watch(sessionProvider.select((session) => session.accessToken));
+  if (token == null || token.isEmpty) return const [];
+  return ref.watch(loyaltyApiProvider).messages();
+});

@@ -24,8 +24,8 @@ abstract final class PaykColors {
   static const navShadow = Color(0x14372CD2);
 
   static const tierStandard = [Color(0xFF3B4150), Color(0xFF4F5567), Color(0xFF60677A)];
-  static const tierSilver = [Color(0xFFF1F4F8), Color(0xFFD5DCE5), Color(0xFFB4BFCD)];
-  static const tierGold = [Color(0xFFE8B423), Color(0xFFF6D35A), Color(0xFFFFE9A8)];
+  static const tierSilver = [Color(0xFF5E6E84), Color(0xFF738399), Color(0xFF8EA0B5)];
+  static const tierGold = [Color(0xFF6B430A), Color(0xFF8A5A12), Color(0xFFC48A2A)];
   static const tierPlatinum = [Color(0xFF2C3844), Color(0xFF4C5B6A), Color(0xFF6E7C8C)];
   static const tierDiamond = [Color(0xFF261E9A), Color(0xFF372CD2), Color(0xFF6248EE)];
 }
@@ -49,51 +49,57 @@ class TierLook {
 }
 
 TierLook tierLook(int level) {
+  const commonInk = Colors.white;
+  final commonInkSoft = Colors.white.withValues(alpha: 0.90);
+  final commonBadge = Colors.black.withValues(alpha: 0.22);
+  const commonBadgeInk = Colors.white;
+  final commonBadgeBorder = Colors.white.withValues(alpha: 0.20);
+
   switch (level) {
     case 2:
       return TierLook(
         colors: PaykColors.tierSilver,
-        ink: const Color(0xFF1E2633),
-        inkSoft: const Color(0xFF3A4556),
-        badge: Colors.white.withValues(alpha: 0.70),
-        badgeInk: const Color(0xFF1E2633),
-        badgeBorder: const Color(0x1A1E2633),
+        ink: commonInk,
+        inkSoft: commonInkSoft,
+        badge: commonBadge,
+        badgeInk: commonBadgeInk,
+        badgeBorder: commonBadgeBorder,
       );
     case 3:
-      return const TierLook(
+      return TierLook(
         colors: PaykColors.tierGold,
-        ink: Color(0xFF3A2A08),
-        inkSoft: Color(0xFF5C4510),
-        badge: Color(0xB3FFFFFF),
-        badgeInk: Color(0xFF3A2A08),
-        badgeBorder: Color(0x333A2A08),
+        ink: commonInk,
+        inkSoft: commonInkSoft,
+        badge: commonBadge,
+        badgeInk: commonBadgeInk,
+        badgeBorder: commonBadgeBorder,
       );
     case 4:
       return TierLook(
         colors: PaykColors.tierPlatinum,
-        ink: Colors.white,
-        inkSoft: Colors.white.withValues(alpha: 0.90),
-        badge: Colors.black.withValues(alpha: 0.20),
-        badgeInk: Colors.white,
-        badgeBorder: Colors.white.withValues(alpha: 0.20),
+        ink: commonInk,
+        inkSoft: commonInkSoft,
+        badge: commonBadge,
+        badgeInk: commonBadgeInk,
+        badgeBorder: commonBadgeBorder,
       );
     case 5:
       return TierLook(
         colors: PaykColors.tierDiamond,
-        ink: Colors.white,
-        inkSoft: Colors.white.withValues(alpha: 0.90),
-        badge: Colors.black.withValues(alpha: 0.20),
-        badgeInk: Colors.white,
-        badgeBorder: Colors.white.withValues(alpha: 0.20),
+        ink: commonInk,
+        inkSoft: commonInkSoft,
+        badge: commonBadge,
+        badgeInk: commonBadgeInk,
+        badgeBorder: commonBadgeBorder,
       );
     default:
       return TierLook(
         colors: PaykColors.tierStandard,
-        ink: Colors.white,
-        inkSoft: Colors.white.withValues(alpha: 0.90),
-        badge: Colors.black.withValues(alpha: 0.20),
-        badgeInk: Colors.white,
-        badgeBorder: Colors.white.withValues(alpha: 0.20),
+        ink: commonInk,
+        inkSoft: commonInkSoft,
+        badge: commonBadge,
+        badgeInk: commonBadgeInk,
+        badgeBorder: commonBadgeBorder,
       );
   }
 }

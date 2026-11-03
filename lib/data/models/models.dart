@@ -13,6 +13,7 @@ class Member {
     this.email,
     this.messages = false,
     this.coinRounding = true,
+    this.telegram = false,
   });
 
   final String firstName;
@@ -25,6 +26,7 @@ class Member {
   final String referralCode;
   final String? email;
   final bool messages;
+  final bool telegram;
 
   factory Member.fromJson(Map<String, dynamic> json) {
     return Member(
@@ -38,6 +40,7 @@ class Member {
       email: asStringOrNull(json['email']),
       messages: json['messages'] == true,
       coinRounding: json['coin_rounding'] != false,
+      telegram: json['telegram'] == true,
     );
   }
 }
@@ -153,6 +156,7 @@ class Account {
     required this.store,
     required this.programEnabled,
     this.tierCount = 5,
+    this.messagesUnread = 0,
   });
 
   final Member member;
@@ -160,6 +164,7 @@ class Account {
   final String store;
   final bool programEnabled;
   final int tierCount;
+  final int messagesUnread;
 
   factory Account.fromJson(Map<String, dynamic> json) {
     final program = json['program'] is Map ? asMap(json['program']) : const <String, dynamic>{};
@@ -172,6 +177,7 @@ class Account {
       store: asString(program['store']),
       programEnabled: program['enabled'] == true,
       tierCount: thresholds is List && thresholds.isNotEmpty ? thresholds.length + 1 : 5,
+      messagesUnread: asInt(json['messages_unread']),
       wallet: Wallet(
         status: asInt(json['status']),
         balance: asMoney(json['balance']),
@@ -561,5 +567,57 @@ class RegisterInput {
       'consent_messages': consentMessages,
       'locale': 'ru',
     };
+  }
+}
+
+class LoyaltyMessageItem {
+  const LoyaltyMessageItem({
+    required this.id,
+    required this.kind,
+    required this.text,
+    required this.createdAt,
+    required this.read,
+  });
+
+  final int id;
+  final String kind;
+  final String text;
+  final DateTime createdAt;
+  final bool read;
+
+  factory LoyaltyMessageItem.fromJson(Map<String, dynamic> json) {
+    return LoyaltyMessageItem(
+      id: asInt(json['id']),
+      kind: asString(json['kind']),
+      text: asString(json['text']),
+      createdAt: asDate(json['created_at']),
+      read: json['read'] == true,
+    );
+  }
+}
+
+class TelegramLinks {
+  const TelegramLinks({
+    required this.bot,
+    required this.appLink,
+    required this.webLink,
+    required this.token,
+    required this.linked,
+  });
+
+  final String bot;
+  final String appLink;
+  final String webLink;
+  final String token;
+  final bool linked;
+
+  factory TelegramLinks.fromJson(Map<String, dynamic> json) {
+    return TelegramLinks(
+      bot: asString(json['bot']),
+      appLink: asString(json['app_link']),
+      webLink: asString(json['web_link']),
+      token: asString(json['token']),
+      linked: json['linked'] == true,
+    );
   }
 }

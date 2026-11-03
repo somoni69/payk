@@ -34,19 +34,36 @@ final routerProvider = Provider<GoRouter>((ref) {
       final logged = session.loggedIn;
       final auth = location.startsWith('/auth');
       final splash = location == '/splash';
+      final onboarding = location == '/onboarding';
       final introDone = ref.read(splashFinishedProvider);
+
+      // 1. Пока не завершился сплэш и чтение сессии — остаёмся на /splash
       if (!session.ready || !introDone) return splash ? null : '/splash';
-      if (!session.onboardingSeen && location != '/onboarding') return '/onboarding';
-      if (session.onboardingSeen && location == '/onboarding') return logged ? '/home' : '/auth/phone';
-      if (!logged && location == '/auth/code' && (session.pendingPhone == null || session.pendingPhone!.isEmpty)) {
-        return '/auth/phone';
+
+      // 2. Онбординг: если не просмотрен — остаёмся на /onboarding
+      if (!session.onboardingSeen) {
+        return onboarding ? null : '/onboarding';
       }
-      if (!logged && location == '/auth/profile' && (session.registrationToken == null || session.registrationToken!.isEmpty)) {
-        return '/auth/phone';
+      if (onboarding) {
+        return logged ? '/home' : '/auth/phone';
       }
-      if (!logged && splash) return '/auth/phone';
-      if (!logged && !auth) return '/auth/phone';
-      if (logged && (auth || splash)) return '/home';
+
+      // 3. Неавторизованный пользователь: разрешаем только экраны авторизации
+      if (!logged) {
+        if (location == '/auth/code' && (session.pendingPhone == null || session.pendingPhone!.isEmpty)) {
+          return '/auth/phone';
+        }
+        if (location == '/auth/profile' && (session.registrationToken == null || session.registrationToken!.isEmpty)) {
+          return '/auth/phone';
+        }
+        if (!auth) return '/auth/phone';
+        return null;
+      }
+
+      // 4. Авторизованный пользователь не должен попадать на экраны входа, сплэша или пустой корень
+      if (auth || splash || location == '/') {
+        return '/home';
+      }
       return null;
     },
     errorBuilder: (context, state) => Scaffold(
@@ -57,6 +74,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ),
     routes: [
+      GoRoute(path: '/', redirect: (context, state) => '/home'),
       GoRoute(path: '/splash', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingScreen()),
       GoRoute(path: '/auth/phone', builder: (context, state) => const PhoneScreen()),

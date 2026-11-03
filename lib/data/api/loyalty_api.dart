@@ -99,4 +99,32 @@ class LoyaltyApi {
     final json = await _client.send('/me/friends');
     return FriendsInfo.fromJson(asMap(json));
   }
+
+  Future<List<LoyaltyMessageItem>> messages({int? beforeId}) async {
+    final query = beforeId != null ? '?before_id=$beforeId' : '';
+    final json = asMap(await _client.send('/me/messages$query'));
+    final raw = json['items'];
+    if (raw is! List) return const [];
+    return [for (final item in raw) LoyaltyMessageItem.fromJson(asMap(item))];
+  }
+
+  Future<int> markMessagesRead({int? upToId}) async {
+    final json = asMap(
+      await _client.send(
+        '/me/messages/read',
+        method: 'POST',
+        body: {'up_to_id': upToId},
+      ),
+    );
+    return asInt(json['unread']);
+  }
+
+  Future<TelegramLinks> telegram() async {
+    final json = await _client.send('/me/telegram');
+    return TelegramLinks.fromJson(asMap(json));
+  }
+
+  Future<void> unlinkTelegram() async {
+    await _client.send('/me/telegram', method: 'DELETE');
+  }
 }

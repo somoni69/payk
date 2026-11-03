@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/countries.dart';
 import '../../core/format.dart';
@@ -97,6 +99,21 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
+                  title: Text(tr(locale, 'profile.telegram'), style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text(
+                    member.telegram ? tr(locale, 'profile.telegramConnected') : tr(locale, 'profile.telegramHint'),
+                    style: TextStyle(
+                      color: member.telegram ? PaykColors.good : PaykColors.muted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  trailing: member.telegram
+                      ? const Icon(Icons.check_circle_rounded, color: PaykColors.good)
+                      : const Icon(Icons.chevron_right_rounded),
+                  onTap: () => _handleTelegram(context, ref, member, locale),
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
                   title: Text(tr(locale, 'profile.rules'), style: const TextStyle(fontWeight: FontWeight.w700)),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () => context.push('/rules'),
@@ -179,4 +196,116 @@ Future<void> _edit(BuildContext context, WidgetRef ref, Member member, String lo
   first.dispose();
   last.dispose();
   email.dispose();
+}
+
+Future<void> _handleTelegram(BuildContext context, WidgetRef ref, Member member, String locale) async {
+  if (member.telegram) {
+    final disconnect = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr(locale, 'profile.telegram')),
+        content: Text(tr(locale, 'profile.telegramConnected')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('OK'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: PaykColors.orange),
+            child: Text(tr(locale, 'profile.telegramDisconnect')),
+          ),
+        ],
+      ),
+    );
+    if (disconnect == true) {
+      try {
+        await ref.read(loyaltyApiProvider).unlinkTelegram();
+        ref.invalidate(meProvider);
+        if (context.mounted) showPaykMessage(context, 'Telegram отключён');
+      } catch (error) {
+        if (context.mounted) showPaykMessage(context, errorText(error));
+      }
+    }
+    return;
+  }
+
+  try {
+    final links = await ref.read(loyaltyApiProvider).telegram();
+    if (!context.mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: PaykColors.sheet,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(color: PaykColors.line, borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(tr(locale, 'profile.telegramConnect'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            Text(tr(locale, 'profile.telegramHint'), style: const TextStyle(color: PaykColors.muted, fontSize: 14)),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: PaykColors.panel,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.send_rounded, color: PaykColors.violet),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      '@${links.bot}',
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: links.webLink));
+                      Navigator.pop(context);
+                      showPaykMessage(context, tr(locale, 'common.copied'));
+                    },
+                    child: const Text('Скопировать ссылку'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () {
+                      SharePlus.instance.share(ShareParams(text: links.webLink));
+                      Navigator.pop(context);
+                    },
+                    child: const Text('Открыть'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  } catch (error) {
+    if (context.mounted) showPaykMessage(context, errorText(error));
+  }
 }

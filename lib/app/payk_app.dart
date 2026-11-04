@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,12 +20,28 @@ class PaykApp extends ConsumerWidget {
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
+        final content = child ?? const SizedBox.shrink();
+        final textClamped = MediaQuery.withClampedTextScaling(
+          minScaleFactor: 0.85,
+          maxScaleFactor: 1.25,
+          child: content,
+        );
+        final wrapped = GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: textClamped,
+        );
+
+        if (!kIsWeb) {
+          return wrapped;
+        }
+
         return ColoredBox(
           color: PaykColors.frame,
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 430),
-              child: child ?? const SizedBox.shrink(),
+              child: wrapped,
             ),
           ),
         );

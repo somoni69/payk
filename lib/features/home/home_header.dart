@@ -40,96 +40,110 @@ class HomeHeader extends StatelessWidget {
     final rawName = member.firstName.trim();
     final firstName = rawName.isNotEmpty ? rawName : 'Фарзод';
 
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: PaykColors.headerGradient,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(PaykRadius.header)),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 12),
-            // Верхняя панель: Аватар + Приветствие + Кнопки действий
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: PaykPressable(
-                      scaleDown: PaykMotion.scaleSubtle,
-                      onTap: onProfileTap,
-                      child: Row(
-                        children: [
-                          PaykAvatar(member: member, size: 48, ring: true),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Привет, $firstName!',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontFamily: 'Manrope',
-                                    fontSize: 14.5,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: -0.1,
-                                    color: PaykColors.textOnHeader,
-                                  ),
-                                ),
-                                const SizedBox(height: 1.5),
-                                const Text(
-                                  'С возвращением!',
-                                  style: TextStyle(
-                                    fontFamily: 'Manrope',
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w500,
-                                    color: PaykColors.textOnHeaderSubtitle,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-
-                  // Кнопка уведомлений (колокольчик)
-                  _HeaderIconButton(
-                    icon: Icons.notifications_none_rounded,
-                    tooltip: 'Уведомления',
-                    onTap: onNotificationsTap,
-                    badgeCount: account.messagesUnread,
-                  ),
-                  const SizedBox(width: 8),
-
-                  // Кнопка QR-сканера
-                  _HeaderIconButton(
-                    icon: Icons.qr_code_scanner_rounded,
-                    tooltip: 'Сканер QR-кода',
-                    onTap: onScannerTap,
-                  ),
-                ],
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // Эластичная подложка шапки для iOS BouncingScrollPhysics (устраняет белую полосу сверху при pull-to-refresh / overscroll)
+        const Positioned(
+          top: -1000,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: PaykColors.headerGradient,
+              borderRadius: BorderRadius.vertical(
+                bottom: Radius.circular(PaykRadius.header),
               ),
             ),
-            const SizedBox(height: 16),
-
-            // Горизонтальные карточки быстрых действий
-            QuickActionCards(
-              account: account,
-              onOpenCode: onCodeTap,
-              onOpenCompanies: onCompaniesTap,
-              onOpenCertificates: onCertificatesTap,
-            ),
-            const SizedBox(height: 18),
-          ],
+          ),
         ),
-      ),
+        SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 12),
+              // Верхняя панель: Аватар + Приветствие + Кнопки действий
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: PaykPressable(
+                        scaleDown: PaykMotion.scaleSubtle,
+                        onTap: onProfileTap,
+                        child: Row(
+                          children: [
+                            PaykAvatar(member: member, size: 48, ring: true),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Привет, $firstName!',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontFamily: 'Manrope',
+                                      fontSize: 15.0,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.1,
+                                      color: PaykColors.textOnHeader,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 1.5),
+                                  const Text(
+                                    'С возвращением!',
+                                    style: TextStyle(
+                                      fontFamily: 'Manrope',
+                                      fontSize: 12.0,
+                                      fontWeight: FontWeight.w500,
+                                      color: PaykColors.textOnHeaderSubtitle,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Кнопка уведомлений (колокольчик)
+                    _HeaderIconButton(
+                      icon: Icons.notifications_none_rounded,
+                      tooltip: 'Уведомления',
+                      onTap: onNotificationsTap,
+                      badgeCount: account.messagesUnread,
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Кнопка QR-сканера
+                    _HeaderIconButton(
+                      icon: Icons.qr_code_scanner_rounded,
+                      tooltip: 'Сканер QR-кода',
+                      onTap: onScannerTap,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Горизонтальные карточки быстрых действий
+              QuickActionCards(
+                account: account,
+                onOpenCode: onCodeTap,
+                onOpenCompanies: onCompaniesTap,
+                onOpenCertificates: onCertificatesTap,
+              ),
+              const SizedBox(height: 18),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

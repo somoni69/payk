@@ -174,6 +174,9 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen> {
         top: false,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
           children: [
             if (_codeLoading && code == null)
               const CodeSkeleton()
@@ -280,7 +283,7 @@ class _CodeCard extends StatelessWidget {
             style: const TextStyle(
               fontFamily: 'Manrope',
               color: PaykColors.textSecondary,
-              fontSize: 13.5,
+              fontSize: 14.0,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -322,7 +325,7 @@ class _CodeCard extends StatelessWidget {
                         : tr(locale, 'code.expiresIn', {'s': '$secondsLeft'}),
                     style: const TextStyle(
                       fontFamily: 'Manrope',
-                      fontSize: 13.5,
+                      fontSize: 14.0,
                       fontWeight: FontWeight.w500,
                       color: PaykColors.textSecondary,
                       height: 1.3,
@@ -375,7 +378,7 @@ class _CountdownRing extends StatelessWidget {
           Text(
             '$secondsLeft',
             style: const TextStyle(
-              fontSize: 14.5,
+              fontSize: 15.0,
               fontWeight: FontWeight.w700,
               color: PaykColors.textPrimary,
               fontFamily: 'Manrope',
@@ -484,7 +487,7 @@ class _BottomCashierHint extends StatelessWidget {
                   tr(locale, 'code.hint'),
                   style: const TextStyle(
                     fontFamily: 'Manrope',
-                    fontSize: 15.5,
+                    fontSize: 16.0,
                     fontWeight: FontWeight.w700,
                     color: PaykColors.textPrimary,
                   ),

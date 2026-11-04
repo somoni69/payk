@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:payk/core/motion/payk_motion.dart';
+import 'package:payk/core/theme/payk_colors.dart';
+import 'package:payk/data/models/models.dart';
+import 'package:payk/data/providers.dart';
+import 'package:payk/features/friends/friends_screen.dart';
+import 'package:payk/features/home/home_header.dart';
+import 'package:payk/features/home/home_screen.dart';
 
 void main() {
   group('PaykMotion Design Tokens & Emil Kowalski Laws', () {
@@ -206,6 +213,122 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Fallback Screen'), findsOneWidget);
+    });
+  });
+
+  group('iOS BouncingScrollPhysics Overscroll Bleed Guard (App Store)', () {
+    const mockAccount = Account(
+      member: Member(
+        firstName: 'SOMONI',
+        lastName: 'SOMONI',
+        phone: '+992900000000',
+        referralCode: 'SO-4654',
+      ),
+      wallet: Wallet(
+        status: 1,
+        balance: 0,
+        onHold: 0,
+        debt: 0,
+        spendMonth: 0,
+        spendSupermarket: 0,
+        spendClothes: 0,
+        daysLeft: 20,
+        keep: null,
+        up: null,
+        nextMonthStatus: 1,
+        rates: ProgramRates(
+          supermarket: Rate(earn: 0.02, burnCap: 0.01),
+          clothes: Rate(earn: 0.05, burnCap: 0.10),
+        ),
+        todaySupermarket: 0,
+        todayClothes: 0,
+      ),
+      store: 'Payk',
+      programEnabled: true,
+    );
+
+    testWidgets('HomeHeader gradient bleed covers top of screen during 200px pull-down overscroll', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            meProvider.overrideWith((ref) => mockAccount),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(body: HomeScreen()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final gesture = await tester.startGesture(const Offset(200, 300));
+      await gesture.moveBy(const Offset(0, 200));
+      await tester.pump();
+
+      final bleedFinder = find.descendant(
+        of: find.byType(HomeHeader),
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w is DecoratedBox &&
+              w.decoration is BoxDecoration &&
+              (w.decoration as BoxDecoration).gradient == PaykColors.headerGradient &&
+              (w.decoration as BoxDecoration).shape == BoxShape.rectangle,
+        ),
+      );
+      expect(bleedFinder, findsOneWidget);
+      final rect = tester.getRect(bleedFinder);
+      expect(rect.top, lessThanOrEqualTo(0.0));
+      expect(rect.bottom, greaterThan(150.0));
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('FriendsScreen hero gradient bleed covers top of screen during 200px pull-down overscroll', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            meProvider.overrideWith((ref) => mockAccount),
+            friendsProvider.overrideWith(
+              (ref) => const FriendsInfo(
+                code: 'SO-4654',
+                link: 'https://payk.tj/r/SO-4654',
+                levels: [0.01, 0.01],
+                months: 12,
+                countL1: 0,
+                countL2: 0,
+                total: 0,
+                month: 0,
+                invitees: [],
+              ),
+            ),
+          ],
+          child: const MaterialApp(
+            home: FriendsScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final gesture = await tester.startGesture(const Offset(200, 300));
+      await gesture.moveBy(const Offset(0, 200));
+      await tester.pump();
+
+      final bleedFinder = find.descendant(
+        of: find.byType(FriendsScreen),
+        matching: find.byWidgetPredicate(
+          (w) =>
+              w is DecoratedBox &&
+              w.decoration is BoxDecoration &&
+              (w.decoration as BoxDecoration).gradient == PaykColors.headerGradient,
+        ),
+      );
+      expect(bleedFinder, findsOneWidget);
+      final rect = tester.getRect(bleedFinder);
+      expect(rect.top, lessThanOrEqualTo(0.0));
+      expect(rect.bottom, greaterThan(150.0));
+
+      await gesture.up();
+      await tester.pumpAndSettle();
     });
   });
 }

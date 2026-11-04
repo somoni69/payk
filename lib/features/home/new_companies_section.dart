@@ -244,7 +244,7 @@ class _CompanyCard extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                fontSize: 11.5,
+                                fontSize: 12.0,
                                 fontWeight: FontWeight.w500,
                                 color: PaykColors.textSecondary,
                               ),
@@ -260,7 +260,7 @@ class _CompanyCard extends StatelessWidget {
                             child: Text(
                               company.cashback,
                               style: const TextStyle(
-                                fontSize: 10,
+                                fontSize: 11.0,
                                 fontWeight: FontWeight.w700,
                                 color: PaykColors.primary,
                               ),

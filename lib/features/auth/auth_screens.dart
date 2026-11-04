@@ -408,6 +408,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 focusNode: _focusNode,
                 autofocus: true,
                 keyboardType: TextInputType.number,
+                autofillHints: const [AutofillHints.oneTimeCode],
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 28,

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../motion/payk_motion.dart';
 import 'payk_colors.dart';
+import 'payk_typography.dart';
 
 export '../motion/payk_motion.dart';
+export 'payk_typography.dart';
 
 abstract final class PaykTheme {
   static ThemeData get light {
@@ -29,11 +31,7 @@ abstract final class PaykTheme {
     );
 
     return base.copyWith(
-      textTheme: base.textTheme.apply(
-        fontFamily: 'Manrope',
-        bodyColor: PaykColors.textPrimary,
-        displayColor: PaykColors.textPrimary,
-      ),
+      textTheme: PaykTypography.buildTextTheme(),
       appBarTheme: const AppBarTheme(
         backgroundColor: PaykColors.sheet,
         foregroundColor: PaykColors.textPrimary,

@@ -104,7 +104,7 @@ class _CategoryPreviewCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 12.5,
+                    fontSize: 13.0,
                     fontWeight: FontWeight.w600,
                     color: PaykColors.textPrimary,
                     letterSpacing: -0.2,

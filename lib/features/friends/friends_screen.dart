@@ -30,17 +30,30 @@ class FriendsScreen extends ConsumerWidget {
     final store = ref.watch(meProvider).asData?.value.store ?? '';
     final canPop = Navigator.of(context).canPop();
 
-    return Scaffold(
-      backgroundColor: PaykColors.canvas,
-      body: AsyncView(
-        value: ref.watch(friendsProvider),
-        onRetry: () => ref.invalidate(friendsProvider),
-        loading: const FriendsSkeleton(),
-        data: (friends) => _FriendsBody(
-          friends: friends,
-          store: store,
-          locale: locale,
-          canPop: canPop,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: PaykColors.canvas,
+        body: AsyncView(
+          value: ref.watch(friendsProvider),
+          onRetry: () => ref.invalidate(friendsProvider),
+          loading: const FriendsSkeleton(),
+          data: (friends) => _FriendsBody(
+            friends: friends,
+            store: store,
+            locale: locale,
+            canPop: canPop,
+            onRefresh: () async {
+              ref.invalidate(friendsProvider);
+              try {
+                await ref.read(friendsProvider.future);
+              } catch (_) {}
+            },
+          ),
         ),
       ),
     );
@@ -53,12 +66,14 @@ class _FriendsBody extends StatelessWidget {
     required this.store,
     required this.locale,
     required this.canPop,
+    required this.onRefresh,
   });
 
   final FriendsInfo friends;
   final String store;
   final String locale;
   final bool canPop;
+  final Future<void> Function() onRefresh;
 
   Future<void> _share(BuildContext context) async {
     final where = store.isEmpty ? '' : ' в $store';
@@ -84,111 +99,122 @@ class _FriendsBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 104),
-      physics: const ClampingScrollPhysics(),
-      children: [
-        // 1. Баннер приглашения на всю ширину, на месте заголовка
-        Container(
-          decoration: const BoxDecoration(
-            color: PaykColors.sheet,
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Градиентная верхняя часть
-              Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      PaykColors.headerGradientStart,
-                      PaykColors.headerGradientEnd,
-                    ],
-                  ),
-                ),
-                child: SafeArea(
-                  bottom: false,
-                  child: Stack(
+    return RefreshIndicator(
+      color: PaykColors.violet,
+      backgroundColor: Colors.white,
+      edgeOffset: MediaQuery.paddingOf(context).top,
+      displacement: 28,
+      onRefresh: onRefresh,
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 104),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        children: [
+          // 1. Баннер приглашения на всю ширину, на месте заголовка
+          Container(
+            decoration: const BoxDecoration(
+              color: PaykColors.sheet,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Градиентная верхняя часть с эластичным фоном для iOS BouncingScrollPhysics
+                Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    Padding(
-                      padding: EdgeInsets.fromLTRB(24, canPop ? 0 : 16, 24, 28),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    const Positioned(
+                      top: -1000,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: PaykColors.headerGradient,
+                        ),
+                      ),
+                    ),
+                    SafeArea(
+                      bottom: false,
+                      child: Stack(
+                        clipBehavior: Clip.none,
                         children: [
-                          if (canPop)
-                            PaykPressable(
-                              scaleDown: PaykMotion.scaleIcon,
-                              child: IconButton(
-                                padding: EdgeInsets.zero,
-                                visualDensity: VisualDensity.compact,
-                                icon: const Icon(
-                                  Icons.arrow_back_ios_new_rounded,
-                                  color: Colors.white,
-                                  size: 20,
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(24, canPop ? 0 : 16, 24, 28),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (canPop)
+                                  PaykPressable(
+                                    scaleDown: PaykMotion.scaleIcon,
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      visualDensity: VisualDensity.compact,
+                                      icon: const Icon(
+                                        Icons.arrow_back_ios_new_rounded,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                      onPressed: () {
+                                        HapticFeedback.lightImpact();
+                                        Navigator.of(context).maybePop();
+                                      },
+                                    ),
+                                  ),
+                                ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxWidth: MediaQuery.sizeOf(context).width * 0.68,
+                                  ),
+                                  child: Text(
+                                    tr(locale, 'friends.heroTitle'),
+                                    style: const TextStyle(
+                                      fontFamily: 'Manrope',
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                      height: 1.15,
+                                      letterSpacing: -0.4,
+                                    ),
+                                  ),
                                 ),
-                                onPressed: () {
-                                  HapticFeedback.lightImpact();
-                                  Navigator.of(context).maybePop();
-                                },
-                              ),
-                            ),
-                          ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: MediaQuery.sizeOf(context).width * 0.68,
-                            ),
-                            child: Text(
-                              tr(locale, 'friends.heroTitle'),
-                              style: const TextStyle(
-                                fontFamily: 'Manrope',
-                                fontSize: 28,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                height: 1.15,
-                                letterSpacing: -0.4,
-                              ),
+                                const SizedBox(height: 10),
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 108),
+                                  child: Text(
+                                    tr(locale, 'friends.explain', {
+                                      'l1': formatPercent(friends.level1),
+                                      'l2': formatPercent(friends.level2),
+                                      'months': '${friends.months}',
+                                    }),
+                                    style: TextStyle(
+                                      fontFamily: 'Manrope',
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white.withValues(alpha: 0.92),
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          Padding(
-                            padding: const EdgeInsets.only(right: 108),
-                            child: Text(
-                              tr(locale, 'friends.explain', {
-                                'l1': formatPercent(friends.level1),
-                                'l2': formatPercent(friends.level2),
-                                'months': '${friends.months}',
-                              }),
-                              style: TextStyle(
-                                fontFamily: 'Manrope',
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white.withValues(alpha: 0.92),
-                                height: 1.4,
-                              ),
+                          Positioned(
+                            right: 16,
+                            bottom: 8,
+                            child: Image.asset(
+                              'assets/3d/gift.webp',
+                              width: 128,
+                              height: 128,
+                              fit: BoxFit.contain,
+                              filterQuality: FilterQuality.medium,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    Positioned(
-                      right: 16,
-                      bottom: 8,
-                      child: Image.asset(
-                        'assets/3d/gift.webp',
-                        width: 128,
-                        height: 128,
-                        fit: BoxFit.contain,
-                        filterQuality: FilterQuality.medium,
-                      ),
-                    ),
                   ],
-                  ),
                 ),
-              ),
 
               // Белая нижняя часть с кодом и кнопкой
               Padding(
@@ -381,6 +407,7 @@ class _FriendsBody extends StatelessWidget {
           ),
         ),
       ],
+      ),
     );
   }
 }

@@ -108,6 +108,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
             itemCount: items.length,
             separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) => _NotificationCard(item: items[index]),

@@ -201,10 +201,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             final isFiltered = _selectedCategory != HistoryCategory.all ||
                 _searchQuery.isNotEmpty;
 
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
-              physics: const ClampingScrollPhysics(),
-              children: [
+            return RefreshIndicator(
+              color: PaykColors.violet,
+              backgroundColor: Colors.white,
+              onRefresh: () async {
+                ref.invalidate(historyProvider);
+                try {
+                  await ref.read(historyProvider.future);
+                } catch (_) {}
+              },
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                children: [
                 // Секция категорий (Категорияҳо / Категории)
                 Text(
                   tr(locale, 'history.categories'),
@@ -329,7 +340,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         ),
                 ),
               ],
-            );
+            ),
+          );
           },
         ),
       ),
@@ -450,7 +462,7 @@ class _CategoryTile extends StatelessWidget {
                     title,
                     style: TextStyle(
                       fontFamily: 'Manrope',
-                      fontSize: 13.5,
+                      fontSize: 13.0,
                       fontWeight: FontWeight.w700,
                       color: isSelected
                           ? PaykColors.primary

@@ -26,6 +26,9 @@ class RulesScreen extends ConsumerWidget {
           final locale = ref.watch(localeProvider);
           return ListView(
           padding: PaykInsets.list(context, top: 8, bottom: 28),
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
           children: [
             Text(
               tr(locale, 'rules.tiersText'),

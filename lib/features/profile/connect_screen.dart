@@ -184,6 +184,9 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
 
           return ListView(
             padding: const EdgeInsets.all(16),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
             children: [
               // Карточка 1: SMS
               Container(
@@ -228,7 +231,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
                           Text(
                             tr(locale, 'connect.smsText', {'phone': formatPhone(member.phone)}),
                             style: const TextStyle(
-                              fontSize: 13.5,
+                              fontSize: 14.0,
                               color: PaykColors.textSecondary,
                               fontFamily: 'Manrope',
                             ),
@@ -289,7 +292,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
                                     ? tr(locale, 'connect.telegramOn')
                                     : tr(locale, 'connect.telegramOff'),
                                 style: const TextStyle(
-                                  fontSize: 13.5,
+                                  fontSize: 14.0,
                                   color: PaykColors.textSecondary,
                                   fontFamily: 'Manrope',
                                   height: 1.3,
@@ -422,7 +425,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
                               Text(
                                 tr(locale, 'connect.manual', {'bot': _link!.bot}),
                                 style: const TextStyle(
-                                  fontSize: 12.5,
+                                  fontSize: 13.0,
                                   color: PaykColors.textSecondary,
                                   fontFamily: 'Manrope',
                                   height: 1.35,

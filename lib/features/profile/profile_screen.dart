@@ -57,23 +57,32 @@ class ProfileScreen extends ConsumerWidget {
           data: (account) {
             final member = account.member;
 
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 104),
-              physics: const ClampingScrollPhysics(),
-              children: [
-                // 1. Верхний виджет: Карточка пользователя с аватаром, именем и переходом в ProfileDetailsScreen
-                _UserProfileHeaderCard(
-                  member: member,
-                  locale: locale,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    PaykMotion.push<void>(
-                      context,
-                      '/profile/details',
-                      fallback: () => const ProfileDetailsScreen(),
-                    );
-                  },
+            return RefreshIndicator(
+              color: PaykColors.violet,
+              backgroundColor: Colors.white,
+              onRefresh: () async {
+                ref.invalidate(meProvider);
+                try {
+                  await ref.read(meProvider.future);
+                } catch (_) {}
+              },
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 104),
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
                 ),
+                children: [
+                  // 1. Верхний виджет: Карточка пользователя с аватаром, именем и переходом в ProfileDetailsScreen
+                  _UserProfileHeaderCard(
+                    member: member,
+                    locale: locale,
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.of(context).push<void>(
+                        PaykMotion.route(const ProfileDetailsScreen()),
+                      );
+                    },
+                  ),
                 const SizedBox(height: 12),
 
                 // 2. Карточка «Тарзҳои воридшавӣ» / «Способы входа»
@@ -148,6 +157,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 20),
               ],
+              ),
             );
           },
         ),
@@ -630,7 +640,7 @@ class _ProfileMenuItem extends StatelessWidget {
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 15.5,
+                        fontSize: 16.0,
                         fontWeight: FontWeight.w700,
                         color: PaykColors.textPrimary,
                         fontFamily: 'Manrope',
@@ -719,7 +729,7 @@ class _ProfileNotificationToggleCardState
               tr(widget.locale, 'home.notificationsPrompt'),
               style: const TextStyle(
                 fontFamily: 'Manrope',
-                fontSize: 13.5,
+                fontSize: 14.0,
                 fontWeight: FontWeight.w600,
                 color: PaykColors.textPrimary,
                 height: 1.35,
@@ -1364,6 +1374,9 @@ class ProfileDetailsScreen extends ConsumerWidget {
 
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
             children: [
               // 1. Карточка аватара
               _ProfileAvatarCard(

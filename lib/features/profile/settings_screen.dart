@@ -93,7 +93,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
             return ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              physics: const ClampingScrollPhysics(),
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
               children: [
                 // 1. Карточка выбора языка
                 _SettingsCard(
@@ -233,7 +235,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   tr(locale, 'profile.messagesHint'),
                                   style: const TextStyle(
                                     fontFamily: 'Manrope',
-                                    fontSize: 12.5,
+                                    fontSize: 13.0,
                                     fontWeight: FontWeight.w500,
                                     color: PaykColors.textSecondary,
                                   ),
@@ -333,7 +335,7 @@ class _LanguageOption extends StatelessWidget {
               label,
               style: TextStyle(
                 fontFamily: 'Manrope',
-                fontSize: 14.5,
+                fontSize: 15.0,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                 color: isSelected ? PaykColors.primary : PaykColors.textSecondary,
               ),

@@ -108,7 +108,7 @@ void main() {
       expect(find.text('Дидан'), findsOneWidget);
 
       // Иконки SMS и Telegram
-      expect(find.byIcon(Icons.chat_bubble_outline_rounded), findsNWidgets(2));
+      expect(find.byIcon(Icons.chat_bubble_outline_rounded), findsOneWidget);
       expect(find.byIcon(Icons.send_rounded), findsOneWidget);
 
       // Галочка зеленая на SMS и плюс на Telegram (потому что telegram: false)

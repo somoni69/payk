@@ -34,15 +34,22 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ColoredBox(
-      color: PaykColors.canvas,
-      child: AsyncView(
-        value: ref.watch(meProvider),
-        onRetry: () => ref.invalidate(meProvider),
-        loading: const HomeSkeleton(),
-        data: (account) => _HomeBody(
-          account: account,
-          locale: ref.watch(localeProvider),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: ColoredBox(
+        color: PaykColors.canvas,
+        child: AsyncView(
+          value: ref.watch(meProvider),
+          onRetry: () => ref.invalidate(meProvider),
+          loading: const HomeSkeleton(),
+          data: (account) => _HomeBody(
+            account: account,
+            locale: ref.watch(localeProvider),
+          ),
         ),
       ),
     );
@@ -63,10 +70,23 @@ class _HomeBody extends ConsumerWidget {
     final member = account.member;
     final wallet = account.wallet;
 
-    return ListView(
-      padding: EdgeInsets.zero,
-      physics: const ClampingScrollPhysics(),
-      children: [
+    return RefreshIndicator(
+      color: PaykColors.violet,
+      backgroundColor: Colors.white,
+      edgeOffset: MediaQuery.paddingOf(context).top,
+      displacement: 28,
+      onRefresh: () async {
+        ref.invalidate(meProvider);
+        try {
+          await ref.read(meProvider.future);
+        } catch (_) {}
+      },
+      child: ListView(
+        padding: EdgeInsets.zero,
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        children: [
         // 1. Фиолетовая шапка UDC с аватаром, кнопками и быстрыми действиями
         HomeHeader(
           account: account,
@@ -169,8 +189,9 @@ class _HomeBody extends ConsumerWidget {
 
         const SizedBox(height: 96),
       ],
-    );
-  }
+    ),
+  );
+}
 }
 
 /// 2. Карточка «Дӯстонро даъват кунед»: приглашение друзей, реферальный код и шаринг
@@ -378,7 +399,7 @@ class _NotificationToggleCardState extends ConsumerState<_NotificationToggleCard
               tr(widget.locale, 'home.notificationsPrompt'),
               style: const TextStyle(
                 fontFamily: 'Manrope',
-                fontSize: 13.5,
+                fontSize: 14.0,
                 fontWeight: FontWeight.w600,
                 color: PaykColors.textPrimary,
                 height: 1.35,
@@ -591,7 +612,7 @@ class _StoreRateCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontFamily: 'Manrope',
-                        fontSize: 13.5,
+                        fontSize: 14.0,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 0.2,
                         color: PaykColors.textPrimary,
@@ -605,7 +626,7 @@ class _StoreRateCard extends StatelessWidget {
                             text: 'кэшбэк $cashbackPercent',
                             style: const TextStyle(
                               fontFamily: 'Manrope',
-                              fontSize: 11.5,
+                              fontSize: 12.0,
                               fontWeight: FontWeight.w700,
                               color: PaykColors.primary,
                             ),
@@ -613,7 +634,7 @@ class _StoreRateCard extends StatelessWidget {
                           const TextSpan(
                             text: ' · ',
                             style: TextStyle(
-                              fontSize: 11.5,
+                              fontSize: 12.0,
                               color: PaykColors.textSecondary,
                             ),
                           ),
@@ -621,7 +642,7 @@ class _StoreRateCard extends StatelessWidget {
                             text: 'бо бонус то $burnCapPercent',
                             style: const TextStyle(
                               fontFamily: 'Manrope',
-                              fontSize: 11.5,
+                              fontSize: 12.0,
                               fontWeight: FontWeight.w500,
                               color: PaykColors.textSecondary,
                             ),

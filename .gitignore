@@ -48,3 +48,8 @@ app.*.map.json
 .widget_preview/
 .nav-frames/
 .agents/
+
+# Android Keystore and Signing Secrets
+**/key.properties
+**/*.jks
+**/*.keystore

@@ -11,6 +11,8 @@ class Member {
     this.birthDate,
     this.country,
     this.email,
+    this.gender,
+    this.avatarUrl,
     this.messages = false,
     this.coinRounding = true,
     this.telegram = false,
@@ -25,6 +27,9 @@ class Member {
   final bool coinRounding;
   final String referralCode;
   final String? email;
+  /// `m` — мужской, `f` — женский.
+  final String? gender;
+  final String? avatarUrl;
   final bool messages;
   final bool telegram;
 
@@ -38,11 +43,18 @@ class Member {
       country: asStringOrNull(json['country']),
       referralCode: asString(json['referral_code']),
       email: asStringOrNull(json['email']),
+      gender: _memberGender(asStringOrNull(json['gender'])),
+      avatarUrl: asStringOrNull(json['avatar_url']),
       messages: json['messages'] == true,
       coinRounding: json['coin_rounding'] != false,
       telegram: json['telegram'] == true,
     );
   }
+}
+
+String? _memberGender(String? raw) {
+  if (raw == 'm' || raw == 'f') return raw;
+  return null;
 }
 
 class Rate {

@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../motion/payk_motion.dart';
 import '../theme/payk_colors.dart';
+
+export '../motion/payk_motion.dart';
 
 class PaykInsets {
   static EdgeInsets list(
     BuildContext context, {
     double top = 12,
-    double bottom = 20,
+    double bottom = 104,
     double horizontal = 20,
   }) {
     final pad = MediaQuery.paddingOf(context);
@@ -28,13 +32,47 @@ class PaykPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final canPop = Navigator.of(context).canPop();
     return Scaffold(
       backgroundColor: PaykColors.canvas,
       appBar: AppBar(
-        title: Text(title),
+        backgroundColor: PaykColors.canvas,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        titleSpacing: canPop ? 0 : 20,
+        leading: canPop
+            ? PaykPressable(
+                scaleDown: PaykMotion.scaleIcon,
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: PaykColors.textPrimary,
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.of(context).maybePop();
+                  },
+                ),
+              )
+            : null,
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontFamily: 'Manrope',
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.4,
+            color: PaykColors.textPrimary,
+          ),
+        ),
         actions: actions,
       ),
-      body: body,
+      body: SafeArea(
+        top: false,
+        child: body,
+      ),
     );
   }
 }
@@ -76,9 +114,10 @@ class SoftPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: PaykColors.sheet,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: PaykColors.border, width: 1.2),
         boxShadow: const [
-          BoxShadow(color: Color(0x0A1A1D29), blurRadius: 2, offset: Offset(0, 1)),
-          BoxShadow(color: Color(0x0F1A1D29), blurRadius: 18, offset: Offset(0, 8)),
+          BoxShadow(color: Color(0x061A1D29), blurRadius: 4, offset: Offset(0, 2)),
+          BoxShadow(color: Color(0x0A1A1D29), blurRadius: 18, offset: Offset(0, 8)),
         ],
       ),
       child: Padding(

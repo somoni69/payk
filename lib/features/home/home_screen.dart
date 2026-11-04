@@ -1,19 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/birthday.dart';
 import '../../core/format.dart';
 import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
+import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
-import '../../core/widgets/payk_mark.dart';
-import '../../core/widgets/payk_page.dart';
+import '../../core/widgets/message.dart';
+import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
-import '../../data/api/api_exception.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
+import '../categories/categories_screen.dart';
+import '../code/client_code_screen.dart';
+import '../friends/friends_screen.dart';
+import '../notifications/notifications_screen.dart';
+import 'home_header.dart';
+import 'loyalty_card.dart';
 
+/// Главный экран мобильного приложения Payk в стиле UDC (Milestone 2):
+/// - Фиолетовая шапка с градиентом #9F72E7 -> #8574E6 и скруглением 24 dp.
+/// - Круглый аватар пользователя 48x48 dp с рамкой.
+/// - Персонализированное приветствие «Привет, [Имя]!» и подзаголовок «С возвращением!».
+/// - Полупрозрачные кнопки QR-сканера и уведомлений (колокольчик).
+/// - Карточки быстрого доступа: «QR-код», «Мои компании», «Мои сертификаты».
+/// - Корректная интеграция с Riverpod (`meProvider`, `messagesProvider`, баланс, сессия).
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -24,14 +38,21 @@ class HomeScreen extends ConsumerWidget {
       child: AsyncView(
         value: ref.watch(meProvider),
         onRetry: () => ref.invalidate(meProvider),
-        data: (account) => _HomeBody(account: account, locale: ref.watch(localeProvider)),
+        loading: const HomeSkeleton(),
+        data: (account) => _HomeBody(
+          account: account,
+          locale: ref.watch(localeProvider),
+        ),
       ),
     );
   }
 }
 
 class _HomeBody extends ConsumerWidget {
-  const _HomeBody({required this.account, required this.locale});
+  const _HomeBody({
+    required this.account,
+    required this.locale,
+  });
 
   final Account account;
   final String locale;
@@ -40,233 +61,335 @@ class _HomeBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final member = account.member;
     final wallet = account.wallet;
+
     return ListView(
-      padding: PaykInsets.list(context, top: 12, bottom: 20),
+      padding: EdgeInsets.zero,
+      physics: const ClampingScrollPhysics(),
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (account.store.isNotEmpty)
-                    Text(
-                      account.store,
-                      style: const TextStyle(color: PaykColors.muted, fontWeight: FontWeight.w600),
-                    ),
-                  if (account.store.isNotEmpty) const SizedBox(height: 4),
-                  Text(
-                    tr(locale, 'home.greeting', {'name': member.firstName}),
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, letterSpacing: -0.3),
-                  ),
-                ],
-              ),
-            ),
-            _MessagesButton(
-              unread: account.messagesUnread,
-              onTap: () => _openMessages(context, ref, locale),
-            ),
-          ],
+        // 1. Фиолетовая шапка UDC с аватаром, кнопками и быстрыми действиями
+        HomeHeader(
+          account: account,
+          onScannerTap: () => PaykMotion.push<void>(
+            context,
+            '/code',
+            fallback: () => const ClientCodeScreen(),
+          ),
+          onNotificationsTap: () => _openMessages(context, ref, locale),
+          onCodeTap: () => PaykMotion.push<void>(
+            context,
+            '/code',
+            fallback: () => const ClientCodeScreen(),
+          ),
+          onCompaniesTap: () => _openCompaniesModal(context, account, locale),
+          onCertificatesTap: () => _openCertificatesModal(context, account, locale),
         ),
-        const SizedBox(height: 16),
+
+        const SizedBox(height: 20),
+
+        // Системные уведомления (приостановка программы, долг, подарок на ДР)
         if (!account.programEnabled)
-          _Notice(
-            title: tr(locale, 'home.paused'),
-            body: tr(locale, 'home.pausedText'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _Notice(
+              title: tr(locale, 'home.paused'),
+              body: tr(locale, 'home.pausedText'),
+            ),
           ),
-        _StatusCard(member: member, wallet: wallet, locale: locale, tiers: account.tierCount),
-        if (_gift(member, wallet) case final gift?) ...[
-          const SizedBox(height: 12),
-          _Notice(
-            title: tr(locale, 'home.giftTitle'),
-            body: tr(locale, 'home.giftBody', {
-              'amount': formatMoney(gift.amount.toDouble(), decimals: false),
-              'from': formatShortDate(gift.from),
-              'until': formatShortDate(gift.until),
-              'cl': formatMoney(gift.minClothes.toDouble(), decimals: false),
-              'sm': formatMoney(gift.minSupermarket.toDouble(), decimals: false),
-            }),
+
+        if (wallet.debt > 0)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _Notice(
+              title: tr(locale, 'home.debtTitle', {'amount': formatMoney(-wallet.debt)}),
+              body: tr(locale, 'home.debtText'),
+            ),
           ),
-        ],
-        if (wallet.debt > 0) ...[
-          const SizedBox(height: 12),
-          _Notice(
-            title: tr(locale, 'home.debtTitle', {'amount': formatMoney(-wallet.debt)}),
-            body: tr(locale, 'home.debtText'),
+
+        if (_gift(member, wallet) case final gift?)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _Notice(
+              title: tr(locale, 'home.giftTitle'),
+              body: tr(locale, 'home.giftBody', {
+                'amount': formatMoney(gift.amount.toDouble(), decimals: false),
+                'from': formatShortDate(gift.from),
+                'until': formatShortDate(gift.until),
+                'cl': formatMoney(gift.minClothes.toDouble(), decimals: false),
+                'sm': formatMoney(gift.minSupermarket.toDouble(), decimals: false),
+              }),
+            ),
           ),
-        ],
-        if (_reminder(locale, wallet, account.tierCount) case final reminder?) ...[
-          const SizedBox(height: 12),
-          _Notice(title: reminder, body: ''),
-        ],
-        const SizedBox(height: 12),
-        _MonthCard(wallet: wallet, locale: locale, tiers: account.tierCount),
-        if (wallet.keep != null) ...[
-          const SizedBox(height: 12),
-          _KeepCard(status: wallet.status, keep: wallet.keep!, next: wallet.nextMonthStatus, locale: locale, tiers: account.tierCount),
-        ],
-        const SizedBox(height: 12),
-        _RatesCard(wallet: wallet, locale: locale, tiers: account.tierCount),
+
+        // 1. Карта статуса: вид меняется вместе с уровнем кошелька
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: LoyaltyCard(
+            member: member,
+            wallet: wallet,
+            locale: locale,
+            tiers: account.tierCount,
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // 2. Карточка «Дӯстонро даъват кунед» (реферальный код и шаринг)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: _InviteFriendsCard(
+            member: member,
+            locale: locale,
+          ),
+        ),
+
+        const SizedBox(height: 14),
+
+        // 3. Плитка переключателя «Огоҳиномаҳо» (уведомления)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: _NotificationToggleCard(
+            initialValue: member.messages,
+            locale: locale,
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // 4. Секция «Мағозаҳо» с карточками «СУПЕРМАРКЕТ» и «ЛИБОС»
+        _StoresSection(
+          wallet: wallet,
+          locale: locale,
+        ),
+
+        const SizedBox(height: 96),
       ],
     );
   }
 }
 
-class _StatusCard extends StatelessWidget {
-  const _StatusCard({required this.member, required this.wallet, required this.locale, required this.tiers});
+/// 2. Карточка «Дӯстонро даъват кунед»: приглашение друзей, реферальный код и шаринг
+class _InviteFriendsCard extends StatelessWidget {
+  const _InviteFriendsCard({
+    required this.member,
+    required this.locale,
+  });
 
   final Member member;
-  final Wallet wallet;
   final String locale;
-  final int tiers;
+
+  Future<void> _share(BuildContext context, String code) async {
+    HapticFeedback.lightImpact();
+    final text = 'Присоединяйтесь к бонусной программе ПАЙК — кэшбэк с каждой покупки. Мой код приглашения: $code';
+    try {
+      final res = await SharePlus.instance.share(ShareParams(text: text));
+      if (res.status == ShareResultStatus.unavailable && context.mounted) {
+        await Clipboard.setData(ClipboardData(text: code));
+        if (context.mounted) {
+          showPaykMessage(context, tr(locale, 'friends.copied'));
+        }
+      }
+    } catch (_) {
+      await Clipboard.setData(ClipboardData(text: code));
+      if (context.mounted) {
+        showPaykMessage(context, tr(locale, 'friends.copied'));
+      }
+    }
+  }
+
+  Future<void> _copy(BuildContext context, String code) async {
+    HapticFeedback.lightImpact();
+    await Clipboard.setData(ClipboardData(text: code));
+    if (context.mounted) {
+      showPaykMessage(context, tr(locale, 'friends.copied'));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final look = tierLook(wallet.status);
+    final rawCode = member.referralCode.trim();
+    final code = rawCode.isNotEmpty ? rawCode : 'SO-4654';
+    final displayCode = code.contains('-') ? code.replaceAll('-', ' - ') : code;
+
     return Container(
-      height: 196,
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: look.colors,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: look.colors.first.withValues(alpha: 0.32),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+        color: const Color(0xFFF6F5FB),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEBE9F2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  tr(locale, 'home.inviteFriends'),
+                  style: const TextStyle(
+                    fontFamily: 'Manrope',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: PaykColors.textPrimary,
+                    height: 1.3,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              PaykPressable(
+                scaleDown: PaykMotion.scaleIcon,
+                haptic: true,
+                onTap: () => PaykMotion.push<void>(
+                  context,
+                  '/friends',
+                  fallback: () => const FriendsScreen(),
+                ),
+                child: Container(
+                  width: 26,
+                  height: 26,
+                  decoration: const BoxDecoration(
+                    color: PaykColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.help_outline_rounded,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: PaykPressable(
+                  scaleDown: PaykMotion.scaleSubtle,
+                  onTap: () => _copy(context, code),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: PaykColors.border),
+                    ),
+                    child: Text(
+                      displayCode,
+                      style: const TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                        color: PaykColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              PaykPressable(
+                scaleDown: PaykMotion.scaleIcon,
+                onTap: () => _share(context, code),
+                child: Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: PaykColors.primary,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_forward_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
+    );
+  }
+}
+
+/// 3. Плитка переключателя «Огоҳиномаҳо»: включение/выключение уведомлений
+class _NotificationToggleCard extends ConsumerStatefulWidget {
+  const _NotificationToggleCard({
+    required this.initialValue,
+    required this.locale,
+  });
+
+  final bool initialValue;
+  final String locale;
+
+  @override
+  ConsumerState<_NotificationToggleCard> createState() => _NotificationToggleCardState();
+}
+
+class _NotificationToggleCardState extends ConsumerState<_NotificationToggleCard> {
+  late bool _enabled;
+
+  @override
+  void initState() {
+    super.initState();
+    _enabled = widget.initialValue;
+  }
+
+  @override
+  void didUpdateWidget(covariant _NotificationToggleCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialValue != widget.initialValue) {
+      _enabled = widget.initialValue;
+    }
+  }
+
+  Future<void> _toggle(bool value) async {
+    HapticFeedback.selectionClick();
+    setState(() => _enabled = value);
+    try {
+      await ref.read(sessionProvider.notifier).setMessages(value);
+      ref.invalidate(meProvider);
+    } catch (_) {
+      if (mounted) setState(() => _enabled = !value);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F5FB),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEBE9F2)),
+      ),
+      child: Row(
         children: [
-          const Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment(1, -1),
-                  radius: 1.20,
-                  colors: [Color(0x38FFFFFF), Color(0x00FFFFFF)],
-                  stops: [0, 0.60],
-                ),
+          Expanded(
+            child: Text(
+              tr(widget.locale, 'home.notificationsPrompt'),
+              style: const TextStyle(
+                fontFamily: 'Manrope',
+                fontSize: 13.5,
+                fontWeight: FontWeight.w600,
+                color: PaykColors.textPrimary,
+                height: 1.35,
               ),
             ),
           ),
-          Positioned(
-            right: -16,
-            bottom: -24,
-            width: 176,
-            height: 176,
-            child: PaykGlyph(color: look.ink.withValues(alpha: 0.14)),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    SizedBox(width: 18, height: 18, child: PaykGlyph(color: look.ink)),
-                    const SizedBox(width: 8),
-                    Text(
-                      'ПАЙК',
-                      style: TextStyle(
-                        color: look.ink,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.8,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: look.badge,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: look.badgeBorder),
-                      ),
-                      child: Text(
-                        tierLabel(locale, wallet.status, tiers: tiers),
-                        style: TextStyle(
-                          color: look.badgeInk,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                Text(
-                  tr(locale, 'home.balance'),
-                  style: TextStyle(color: look.inkSoft, fontSize: 13, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 4),
-                Text.rich(
-                  TextSpan(
-                    text: formatNumber(wallet.balance),
-                    style: TextStyle(
-                      color: look.ink,
-                      fontSize: 38,
-                      fontWeight: FontWeight.w800,
-                      height: 1,
-                      letterSpacing: -0.8,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                    ),
-                    children: [
-                      TextSpan(
-                        text: '\u00A0смн',
-                        style: TextStyle(
-                          color: look.inkSoft,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (wallet.onHold > 0)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      tr(locale, 'home.onHold', {'amount': formatMoney(wallet.onHold, signed: true)}),
-                      style: TextStyle(color: look.inkSoft, fontSize: 13, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                const Spacer(),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${member.firstName} ${member.lastName}'.toUpperCase(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: look.inkSoft,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      member.referralCode,
-                      style: TextStyle(
-                        color: look.inkSoft,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.4,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+          const SizedBox(width: 12),
+          Transform.scale(
+            scale: 0.9,
+            child: Switch.adaptive(
+              value: _enabled,
+              activeThumbColor: Colors.white,
+              activeTrackColor: PaykColors.primary,
+              inactiveThumbColor: Colors.white,
+              inactiveTrackColor: const Color(0xFFD1D1D6),
+              trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+              onChanged: _toggle,
             ),
           ),
         ],
@@ -275,462 +398,246 @@ class _StatusCard extends StatelessWidget {
   }
 }
 
-class _MessagesButton extends StatelessWidget {
-  const _MessagesButton({required this.unread, required this.onTap});
+/// 4. Секция «Мағозаҳо» с кнопкой «Ҳама» и карточками супермаркета и одежды
+class _StoresSection extends StatelessWidget {
+  const _StoresSection({
+    required this.wallet,
+    required this.locale,
+  });
 
-  final int unread;
+  final Wallet wallet;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    final smRate = wallet.rates.supermarket.earn > 0 ? wallet.rates.supermarket.earn : 0.02;
+    final smBurn = wallet.rates.supermarket.burnCap > 0 ? wallet.rates.supermarket.burnCap : 0.01;
+    final clRate = wallet.rates.clothes.earn > 0 ? wallet.rates.clothes.earn : 0.05;
+    final clBurn = wallet.rates.clothes.burnCap > 0 ? wallet.rates.clothes.burnCap : 0.10;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                tr(locale, 'home.stores'),
+                style: const TextStyle(
+                  fontFamily: 'Manrope',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                  color: PaykColors.textPrimary,
+                ),
+              ),
+              PaykPressable(
+                scaleDown: PaykMotion.scaleIcon,
+                child: InkWell(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    PaykMotion.go(
+                      context,
+                      '/categories',
+                      fallback: () => const CategoriesScreen(),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: PaykColors.chipBg,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      tr(locale, 'home.all'),
+                      style: const TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: PaykColors.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 82,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: [
+              _StoreRateCard(
+                title: tr(locale, 'format.SM').toUpperCase(),
+                assetImage: 'assets/3d/cart.webp',
+                iconBgColor: const Color(0xFFF1F3F9),
+                cashbackPercent: formatPercent(smRate),
+                burnCapPercent: formatPercent(smBurn),
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  PaykMotion.go(
+                    context,
+                    '/categories',
+                    fallback: () => const CategoriesScreen(),
+                  );
+                },
+              ),
+              const SizedBox(width: 12),
+              _StoreRateCard(
+                title: tr(locale, 'format.CL').toUpperCase(),
+                assetImage: 'assets/3d/tshirt.webp',
+                iconBgColor: const Color(0xFFEBF7EE),
+                cashbackPercent: formatPercent(clRate),
+                burnCapPercent: formatPercent(clBurn),
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  PaykMotion.go(
+                    context,
+                    '/categories',
+                    fallback: () => const CategoriesScreen(),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StoreRateCard extends StatelessWidget {
+  const _StoreRateCard({
+    required this.title,
+    required this.assetImage,
+    required this.iconBgColor,
+    required this.cashbackPercent,
+    required this.burnCapPercent,
+    required this.onTap,
+  });
+
+  final String title;
+  final String assetImage;
+  final Color iconBgColor;
+  final String cashbackPercent;
+  final String burnCapPercent;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Ink(
-          width: 44,
-          height: 44,
+    return PaykPressable(
+      scaleDown: PaykMotion.scaleSubtle,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Ink(
+          width: 236,
+          height: 82,
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: PaykColors.sheet,
-            borderRadius: BorderRadius.circular(22),
-            border: Border.all(color: PaykColors.line),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFFEBE9F0), width: 1.0),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x06000000),
+                blurRadius: 6,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
-          child: Stack(
-            alignment: Alignment.center,
+          child: Row(
             children: [
-              const Icon(Icons.notifications_none_rounded, color: PaykColors.ink, size: 22),
-              if (unread > 0)
-                Positioned(
-                  top: 7,
-                  right: 7,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: PaykColors.orange,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: const BoxConstraints(minWidth: 10, minHeight: 10),
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: iconBgColor,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Center(
+                  child: Image.asset(
+                    assetImage,
+                    width: 34,
+                    height: 34,
+                    fit: BoxFit.contain,
                   ),
                 ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
+                        color: PaykColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'кэшбэк $cashbackPercent',
+                            style: const TextStyle(
+                              fontFamily: 'Manrope',
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: PaykColors.primary,
+                            ),
+                          ),
+                          const TextSpan(
+                            text: ' · ',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: PaykColors.textSecondary,
+                            ),
+                          ),
+                          TextSpan(
+                            text: 'бо бонус то $burnCapPercent',
+                            style: const TextStyle(
+                              fontFamily: 'Manrope',
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500,
+                              color: PaykColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-void _openMessages(BuildContext context, WidgetRef ref, String locale) {
-  showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: PaykColors.canvas,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
-    builder: (context) => _MessagesSheet(locale: locale),
-  ).then((_) {
-    // При закрытии модального окна обновляем профиль, чтобы сбросить счётчик
-    ref.invalidate(meProvider);
-  });
-}
-
-class _MessagesSheet extends ConsumerStatefulWidget {
-  const _MessagesSheet({required this.locale});
-
-  final String locale;
-
-  @override
-  ConsumerState<_MessagesSheet> createState() => _MessagesSheetState();
-}
-
-class _MessagesSheetState extends ConsumerState<_MessagesSheet> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(loyaltyApiProvider).markMessagesRead().ignore();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final messagesAsync = ref.watch(messagesProvider);
-    return DraggableScrollableSheet(
-      initialChildSize: 0.65,
-      minChildSize: 0.4,
-      maxChildSize: 0.9,
-      expand: false,
-      builder: (context, scrollController) {
-        return Column(
-          children: [
-            Container(
-              margin: const EdgeInsets.only(top: 10, bottom: 8),
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: PaykColors.line,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      tr(widget.locale, 'messages.title'),
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: messagesAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => Center(child: Text(errorText(error))),
-                data: (items) {
-                  if (items.isEmpty) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.mark_chat_unread_outlined, size: 48, color: PaykColors.muted),
-                            const SizedBox(height: 12),
-                            Text(
-                              tr(widget.locale, 'messages.empty'),
-                              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              tr(widget.locale, 'messages.emptyText'),
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: PaykColors.muted, fontSize: 14),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  return ListView.separated(
-                    controller: scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    itemCount: items.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      return Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: PaykColors.sheet,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: PaykColors.line),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  formatDate(item.createdAt),
-                                  style: const TextStyle(color: PaykColors.muted, fontSize: 12, fontWeight: FontWeight.w500),
-                                ),
-                                const Spacer(),
-                                if (!item.read)
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(
-                                      color: PaykColors.violet,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              item.text,
-                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, height: 1.35),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
-        );
-      },
-    );
+  );
   }
 }
 
-class _MonthCard extends StatelessWidget {
-  const _MonthCard({required this.wallet, required this.locale, required this.tiers});
-
-  final Wallet wallet;
-  final String locale;
-  final int tiers;
-
-  @override
-  Widget build(BuildContext context) {
-    final up = wallet.up;
-    final progress = up == null || up.threshold == 0
-        ? 1.0
-        : (wallet.spendMonth / up.threshold).clamp(0.0, 1.0);
-    return SoftPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(tr(locale, 'home.monthSpend'), style: const TextStyle(color: PaykColors.muted, fontSize: 13, fontWeight: FontWeight.w500)),
-              ),
-              Text(
-                wallet.daysLeft > 0 ? tr(locale, 'home.daysLeftShort', {'n': '${wallet.daysLeft}'}) : tr(locale, 'home.lastDayShort'),
-                style: const TextStyle(color: PaykColors.muted, fontSize: 12, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text.rich(
-            TextSpan(
-              text: formatNumber(wallet.spendMonth, decimals: false),
-              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, letterSpacing: -0.4, height: 1.1),
-              children: const [
-                TextSpan(
-                  text: '\u00A0смн',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: PaykColors.muted, letterSpacing: 0),
-                ),
-              ],
-            ),
-          ),
-          if (up != null) ...[
-            const SizedBox(height: 14),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 8,
-                backgroundColor: PaykColors.panel,
-                color: PaykColors.violet,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              tr(locale, 'home.toNext', {
-                'tier': tierLabel(locale, up.level, tiers: tiers),
-                'gap': formatMoney(up.gap, decimals: false),
-              }),
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              up.perDay <= 0
-                  ? tr(locale, 'home.nextRates', {
-                      'tier': tierLabel(locale, up.level, tiers: tiers),
-                      'sm': formatPercent(up.rates.supermarket.earn),
-                      'cl': formatPercent(up.rates.clothes.earn),
-                    })
-                  : '${tr(locale, 'home.perDay', {'amount': formatMoney(up.perDay, decimals: false)})}. ${tr(locale, 'home.nextRates', {
-                      'tier': tierLabel(locale, up.level, tiers: tiers),
-                      'sm': formatPercent(up.rates.supermarket.earn),
-                      'cl': formatPercent(up.rates.clothes.earn),
-                    })}',
-              style: const TextStyle(color: PaykColors.muted, fontWeight: FontWeight.w600),
-            ),
-          ],
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _Mini(tr(locale, 'format.SM'), formatMoney(wallet.spendSupermarket, decimals: false))),
-              const SizedBox(width: 8),
-              Expanded(child: _Mini(tr(locale, 'format.CL'), formatMoney(wallet.spendClothes, decimals: false))),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _KeepCard extends StatelessWidget {
-  const _KeepCard({required this.status, required this.keep, required this.next, required this.locale, required this.tiers});
-
-  final int status;
-  final KeepInfo keep;
-  final int next;
-  final String locale;
-  final int tiers;
-
-  @override
-  Widget build(BuildContext context) {
-    return SoftPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            keep.kept
-                ? tr(locale, 'home.kept')
-                : tr(locale, 'home.keepGap', {
-                    'tier': tierLabel(locale, status, tiers: tiers),
-                    'gap': formatMoney(keep.gap, decimals: false),
-                  }),
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-          ),
-          if (!keep.kept && keep.perDay > 0) ...[
-            const SizedBox(height: 6),
-            Text(
-              tr(locale, 'home.perDay', {'amount': formatMoney(keep.perDay, decimals: false)}),
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ],
-          const SizedBox(height: 6),
-          Text(
-            tr(locale, 'home.nextMonth', {'tier': tierLabel(locale, next, tiers: tiers)}),
-            style: const TextStyle(color: PaykColors.muted, fontWeight: FontWeight.w600),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RatesCard extends StatelessWidget {
-  const _RatesCard({required this.wallet, required this.locale, required this.tiers});
-
-  final Wallet wallet;
-  final String locale;
-  final int tiers;
-
-  @override
-  Widget build(BuildContext context) {
-    return SoftPanel(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            tr(locale, 'home.ratesTitle', {'tier': tierLabel(locale, wallet.status, tiers: tiers)}),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _RateTile(
-                  locale: locale,
-                  title: tr(locale, 'format.SM'),
-                  earn: wallet.rates.supermarket.earn,
-                  burn: wallet.rates.supermarket.burnCap,
-                  today: wallet.todaySupermarket,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _RateTile(
-                  locale: locale,
-                  title: tr(locale, 'format.CL'),
-                  earn: wallet.rates.clothes.earn,
-                  burn: wallet.rates.clothes.burnCap,
-                  today: wallet.todayClothes,
-                ),
-              ),
-            ],
-          ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              onPressed: () => context.push('/rules'),
-              child: Text(tr(locale, 'home.allRules')),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RateTile extends StatelessWidget {
-  const _RateTile({
-    required this.locale,
-    required this.title,
-    required this.earn,
-    required this.burn,
-    required this.today,
-  });
-
-  final String locale;
-  final String title;
-  final double earn;
-  final double burn;
-  final double today;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: PaykColors.panel,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(color: PaykColors.muted, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Text(formatPercent(earn), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w700, letterSpacing: -0.4)),
-          Text(tr(locale, 'home.cashback'), style: const TextStyle(color: PaykColors.muted, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Text(tr(locale, 'home.burnCap', {'pct': formatPercent(burn)}), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-          if (today > 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                tr(locale, 'home.todayEarned', {'amount': formatMoney(today, signed: true)}),
-                style: const TextStyle(color: PaykColors.good, fontWeight: FontWeight.w700),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Mini extends StatelessWidget {
-  const _Mini(this.title, this.value);
-
-  final String title;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: PaykColors.panel, borderRadius: BorderRadius.circular(12)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(color: PaykColors.muted, fontSize: 12, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
-        ],
-      ),
-    );
-  }
-}
-
+/// Системное уведомление / баннер
 class _Notice extends StatelessWidget {
   const _Notice({required this.title, required this.body});
 
@@ -744,15 +651,30 @@ class _Notice extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: PaykColors.notice,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFFE0B2), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+              color: PaykColors.textPrimary,
+            ),
+          ),
           if (body.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text(body, style: const TextStyle(color: PaykColors.muted, fontWeight: FontWeight.w600)),
+            Text(
+              body,
+              style: const TextStyle(
+                color: PaykColors.textSecondary,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ],
       ),
@@ -760,6 +682,7 @@ class _Notice extends StatelessWidget {
   }
 }
 
+/// Проверка подарка ко дню рождения
 BirthdayGift? _gift(Member member, Wallet wallet) {
   final raw = member.birthDate;
   if (raw == null || raw.length < 10) return null;
@@ -768,27 +691,359 @@ BirthdayGift? _gift(Member member, Wallet wallet) {
   return birthdayGift(birth, wallet.status, DateTime.now());
 }
 
-String? _reminder(String locale, Wallet wallet, int tiers) {
-  const marks = {10, 7, 4, 1};
-  if (!marks.contains(wallet.daysLeft)) return null;
-  final keep = wallet.keep;
-  if (keep != null && !keep.kept && keep.gap > 0) {
-    return tr(locale, 'home.reminderKeep', {
-      'days': '${wallet.daysLeft}',
-      'tier': tierLabel(locale, wallet.status, tiers: tiers),
-      'gap': formatMoney(keep.gap, decimals: false),
-      'perDay': formatMoney(keep.perDay, decimals: false),
-    });
-  }
-  final up = wallet.up;
-  if (up != null && up.gap > 0) {
-    return tr(locale, 'home.reminderUp', {
-      'days': '${wallet.daysLeft}',
-      'tier': tierLabel(locale, up.level, tiers: tiers),
-      'gap': formatMoney(up.gap, decimals: false),
-      'perDay': formatMoney(up.perDay, decimals: false),
-    });
-  }
-  return null;
+/// Навигация на отдельный экран «Уведомления»
+void _openMessages(BuildContext context, WidgetRef ref, String locale) {
+  PaykMotion.push<void>(
+    context,
+    '/notifications',
+    fallback: () => const NotificationsScreen(),
+  ).then((_) {
+    ref.invalidate(meProvider);
+  });
 }
 
+/// Модальный лист «Мои компании» с информацией о балансе и партнерских сетях
+void _openCompaniesModal(BuildContext context, Account account, String locale) {
+  showModalBottomSheet<void>(
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    backgroundColor: PaykColors.canvas,
+    sheetAnimationStyle: PaykMotion.sheetAnimationStyle,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (context) {
+      final wallet = account.wallet;
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: PaykColors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Мои компании',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: PaykColors.textPrimary,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: PaykColors.tile,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: PaykColors.border),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: const BoxDecoration(
+                        color: PaykColors.activePill,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.account_balance_wallet_rounded,
+                        color: PaykColors.primary,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Бонусный баланс',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: PaykColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${formatNumber(wallet.balance)} смн',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: PaykColors.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Партнёры программы:',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: PaykColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _CompanyListTile(
+                name: account.store.isNotEmpty ? account.store : 'Payk Ecosystem',
+                category: 'Основная сеть',
+                status: 'Активна',
+              ),
+              const SizedBox(height: 8),
+              const _CompanyListTile(
+                name: 'ELITESTORE',
+                category: 'Одежда и обувь',
+                status: 'Кэшбэк до 10%',
+              ),
+              const SizedBox(height: 8),
+              const _CompanyListTile(
+                name: 'A-99',
+                category: 'Супермаркет',
+                status: 'Кэшбэк до 7%',
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+class _CompanyListTile extends StatelessWidget {
+  const _CompanyListTile({
+    required this.name,
+    required this.category,
+    required this.status,
+  });
+
+  final String name;
+  final String category;
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: PaykColors.border),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: PaykColors.textPrimary,
+                ),
+              ),
+              Text(
+                category,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: PaykColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: PaykColors.activePill,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              status,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: PaykColors.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Модальный лист «Мои сертификаты»
+void _openCertificatesModal(BuildContext context, Account account, String locale) {
+  showModalBottomSheet<void>(
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    backgroundColor: PaykColors.canvas,
+    sheetAnimationStyle: PaykMotion.sheetAnimationStyle,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (context) {
+      final gift = _gift(account.member, account.wallet);
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: PaykColors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Мои сертификаты',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: PaykColors.textPrimary,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              if (gift != null)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFEDEAFB), Color(0xFFF8F7FD)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: PaykColors.primary.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: PaykColors.primary,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.card_giftcard_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Подарочный купон на ДР',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: PaykColors.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Скидка ${formatMoney(gift.amount.toDouble(), decimals: false)} до ${formatShortDate(gift.until)}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: PaykColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: PaykColors.tile,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: PaykColors.border),
+                  ),
+                  child: Column(
+                    children: const [
+                      Icon(
+                        Icons.confirmation_number_outlined,
+                        size: 40,
+                        color: PaykColors.textMuted,
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Нет активных купонов',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: PaykColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Сертификаты и купоны появятся здесь в дни праздников и акций',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: PaykColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}

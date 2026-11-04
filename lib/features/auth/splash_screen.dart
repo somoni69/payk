@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../data/providers.dart';
 
@@ -16,6 +17,12 @@ class SplashGate extends Notifier<bool> {
   void complete() {
     if (!state) state = true;
   }
+
+  void reset() {
+    state = false;
+  }
+
+  bool get introDone => state;
 }
 
 /// Первый кадр запуска: знак держится, затем уходит вниз, на его месте «PAYK».
@@ -27,7 +34,7 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerProviderStateMixin {
-  static const _ease = Cubic(0.23, 1, 0.32, 1);
+  static const _ease = PaykMotion.easeOut;
 
   late final AnimationController _motion;
   var _left = false;

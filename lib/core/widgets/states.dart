@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/api/api_exception.dart';
 import '../theme/payk_colors.dart';
-import 'payk_mark.dart';
+import 'shimmer.dart';
+
+export 'shimmer.dart' show SkeletonBox, ShimmerSweep;
 
 class AsyncView<T> extends StatelessWidget {
   const AsyncView({
@@ -25,7 +27,7 @@ class AsyncView<T> extends StatelessWidget {
     final inset = EdgeInsets.only(top: pad.top, bottom: pad.bottom);
     return value.when(
       skipLoadingOnReload: true,
-      loading: () => Padding(padding: inset, child: loading ?? const PaykLoading()),
+      loading: () => loading ?? Padding(padding: inset, child: const PaykLoading()),
       error: (error, stackTrace) => Padding(
         padding: inset,
         child: ErrorState(
@@ -48,73 +50,17 @@ class PaykLoading extends StatelessWidget {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SkeletonBox(height: 188, radius: 30, color: onColor),
-            const SizedBox(height: 16),
-            SkeletonBox(height: 54, radius: 16, color: onColor),
-          ],
+        child: ShimmerSweep(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SkeletonBox(height: 188, radius: 30, color: onColor),
+              const SizedBox(height: 16),
+              SkeletonBox(height: 54, radius: 16, color: onColor),
+            ],
+          ),
         ),
       ),
-    );
-  }
-}
-
-class SkeletonBox extends StatefulWidget {
-  const SkeletonBox({
-    super.key,
-    required this.height,
-    this.width,
-    this.radius = 18,
-    this.color,
-  });
-
-  final double height;
-  final double? width;
-  final double radius;
-  final Color? color;
-
-  @override
-  State<SkeletonBox> createState() => _SkeletonBoxState();
-}
-
-class _SkeletonBoxState extends State<SkeletonBox>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1200),
-  )..repeat();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final base = widget.color ?? PaykColors.skeleton;
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Container(
-          width: widget.width,
-          height: widget.height,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(widget.radius),
-            gradient: LinearGradient(
-              begin: Alignment(-1 + _controller.value * 2, 0),
-              end: Alignment(0 + _controller.value * 2, 0),
-              colors: [
-                base.withValues(alpha: 0.45),
-                Colors.white.withValues(alpha: 0.72),
-                base.withValues(alpha: 0.45),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }
@@ -124,12 +70,14 @@ class EmptyState extends StatelessWidget {
     super.key,
     required this.title,
     required this.body,
+    this.icon,
     this.actionLabel,
     this.onAction,
   });
 
   final String title;
   final String body;
+  final IconData? icon;
   final String? actionLabel;
   final VoidCallback? onAction;
 
@@ -137,41 +85,73 @@ class EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              height: 96,
-              width: double.infinity,
-              constraints: const BoxConstraints(maxWidth: 320),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(color: PaykColors.line),
+              width: 80,
+              height: 80,
+              decoration: const BoxDecoration(
+                color: PaykColors.activePill,
+                shape: BoxShape.circle,
               ),
-              child: const PaykMark(size: 48),
+              alignment: Alignment.center,
+              child: Icon(
+                icon ?? Icons.inbox_outlined,
+                size: 38,
+                color: PaykColors.primary,
+              ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 20),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              style: const TextStyle(
+                fontFamily: 'Manrope',
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+                color: PaykColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 8),
-            Text(
-              body,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: PaykColors.muted,
-                fontWeight: FontWeight.w500,
-                height: 1.35,
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 290),
+              child: Text(
+                body,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'Manrope',
+                  color: PaykColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                  height: 1.45,
+                ),
               ),
             ),
             if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: 18),
-              FilledButton(onPressed: onAction, child: Text(actionLabel!)),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: onAction,
+                style: FilledButton.styleFrom(
+                  backgroundColor: PaykColors.primary,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(180, 48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
+                child: Text(
+                  actionLabel!,
+                  style: const TextStyle(
+                    fontFamily: 'Manrope',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ],
           ],
         ),
@@ -200,15 +180,41 @@ class ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_rounded, color: PaykColors.violet, size: 36),
-            const SizedBox(height: 12),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: PaykColors.expenseSoft,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: PaykColors.bad.withValues(alpha: 0.20),
+                  width: 1.5,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(Icons.cloud_off_rounded, color: PaykColors.bad, size: 28),
+            ),
+            const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: PaykColors.ink,
+              ),
             ),
-            const SizedBox(height: 16),
-            FilledButton(onPressed: onRetry, child: Text(actionLabel)),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: onRetry,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(160, 46),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: Text(actionLabel),
+            ),
           ],
         ),
       ),

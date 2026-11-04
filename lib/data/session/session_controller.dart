@@ -8,7 +8,9 @@ import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../api/loyalty_api.dart';
 import '../models/models.dart';
+import '../../app/router.dart';
 import '../../core/i18n/locale_controller.dart';
+import '../../features/auth/splash_screen.dart';
 
 const _accessKey = 'payk.access';
 const _refreshKey = 'payk.refresh';
@@ -127,11 +129,15 @@ class SessionController extends Notifier<SessionState> {
     required String firstName,
     required String lastName,
     String? email,
+    String? birthDate,
+    String? gender,
   }) async {
     await _api.updateMe({
       'first_name': firstName,
       'last_name': lastName,
-      'email': (email == null || email.isEmpty) ? null : email,
+      if (email != null) 'email': email.isEmpty ? null : email,
+      'birth_date': ?birthDate,
+      'gender': ?gender,
     });
   }
 
@@ -145,7 +151,11 @@ class SessionController extends Notifier<SessionState> {
 
   void applyTokens(String accessToken, String refreshToken) {
     if (state.accessToken == accessToken && state.refreshToken == refreshToken) return;
-    state = SessionState(ready: true, accessToken: accessToken, refreshToken: refreshToken);
+    state = state.copyWith(
+      ready: true,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+    );
     unawaited(_write(accessToken, refreshToken));
   }
 
@@ -155,14 +165,24 @@ class SessionController extends Notifier<SessionState> {
   }
 
   Future<void> logout() async {
-    state = const SessionState(ready: true);
+    state = const SessionState(ready: true, onboardingSeen: false);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_accessKey);
     await prefs.remove(_refreshKey);
+    await prefs.remove(_onboardingKey);
+    ref.read(splashFinishedProvider.notifier).reset();
+    ref.read(routerProvider).go('/splash');
   }
 
   Future<void> _persistLogin(String accessToken, String refreshToken) async {
-    state = SessionState(ready: true, accessToken: accessToken, refreshToken: refreshToken);
+    state = state.copyWith(
+      ready: true,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
+      onboardingSeen: true,
+      clearPhone: true,
+      clearRegistration: true,
+    );
     await _write(accessToken, refreshToken);
   }
 
@@ -170,6 +190,7 @@ class SessionController extends Notifier<SessionState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_accessKey, accessToken);
     await prefs.setString(_refreshKey, refreshToken);
+    await prefs.setBool(_onboardingKey, true);
   }
 }
 

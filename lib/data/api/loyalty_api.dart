@@ -70,6 +70,10 @@ class LoyaltyApi {
     await _client.send('/me', method: 'PATCH', body: patch);
   }
 
+  Future<void> uploadAvatar(String filePath) async {
+    await _client.upload('/me/avatar', filePath);
+  }
+
   Future<CashierCode> code() async {
     final json = await _client.send('/me/code', method: 'POST');
     final parsed = CashierCode.fromJson(asMap(json));

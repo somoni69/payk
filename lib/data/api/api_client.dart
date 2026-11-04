@@ -117,6 +117,42 @@ class ApiClient {
     }
   }
 
+  Future<Object?> upload(String path, String filePath, {String field = 'file'}) async {
+    Future<http.Response> dispatch() async {
+      final request = http.MultipartRequest('POST', Uri.parse('${ApiConfig.base}$path'));
+      request.headers['Accept'] = 'application/json';
+      request.headers['X-Locale'] = readLocale();
+      final token = readTokens()?.accessToken;
+      if (token != null && token.isNotEmpty) {
+        request.headers['Authorization'] = 'Bearer $token';
+      }
+      request.files.add(await http.MultipartFile.fromPath(field, filePath));
+      final streamed = await _http.send(request).timeout(const Duration(seconds: 30));
+      return http.Response.fromStream(streamed);
+    }
+
+    http.Response response;
+    try {
+      response = await dispatch();
+    } catch (error) {
+      if (error is ApiException) rethrow;
+      throw ApiException(0, 'Нет связи с сервером');
+    }
+    if (response.statusCode == 401) {
+      await _refresh();
+      response = await dispatch();
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw ApiException(response.statusCode, _detail(response) ?? _fallback(response.statusCode));
+    }
+    if (response.body.isEmpty) return null;
+    try {
+      return jsonDecode(utf8.decode(response.bodyBytes));
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _refresh() {
     final pending = _refreshing;
     if (pending != null) return pending;

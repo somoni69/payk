@@ -8,9 +8,10 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/format.dart';
 import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
+import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/message.dart';
-import '../../core/widgets/payk_page.dart';
+import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
 import '../../data/api/api_exception.dart';
 import '../../data/models/models.dart';
@@ -29,6 +30,7 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen> {
   Timer? _poll;
   CashierCode? _code;
   DateTime? _deadline;
+  int _ttl = 40;
   String? _codeError;
   var _codeLoading = true;
   var _refreshing = false;
@@ -67,6 +69,7 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen> {
       final ttl = code.ttl < 5 ? 5 : code.ttl;
       setState(() {
         _code = code;
+        _ttl = ttl;
         _deadline = DateTime.now().add(Duration(seconds: ttl));
         _codeError = null;
         _codeLoading = false;
@@ -80,7 +83,7 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen> {
         _codeLoading = false;
       });
     } finally {
-      _refreshing = false;
+      if (mounted) setState(() => _refreshing = false);
     }
   }
 
@@ -130,39 +133,104 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen> {
     final locale = ref.watch(localeProvider);
     final code = _code;
     final left = _deadline == null ? 0 : _deadline!.difference(DateTime.now()).inSeconds.clamp(0, 999);
-    return ColoredBox(
-      color: PaykColors.canvas,
-      child: ListView(
-        padding: PaykInsets.list(context, top: 16),
-        children: [
-            Text(tr(locale, 'code.title'), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 6),
-            Text(
-              tr(locale, 'code.hint'),
-              style: TextStyle(color: PaykColors.muted, fontWeight: FontWeight.w600, height: 1.35),
-            ),
-            const SizedBox(height: 16),
+    final canPop = Navigator.of(context).canPop();
+
+    return Scaffold(
+      backgroundColor: PaykColors.canvas,
+      appBar: AppBar(
+        backgroundColor: PaykColors.canvas,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        titleSpacing: canPop ? 0 : 20,
+        leading: canPop
+            ? PaykPressable(
+                scaleDown: PaykMotion.scaleIcon,
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new_rounded,
+                    color: PaykColors.textPrimary,
+                    size: 20,
+                  ),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.of(context).maybePop();
+                  },
+                ),
+              )
+            : null,
+        title: Text(
+          tr(locale, 'code.title'),
+          style: const TextStyle(
+            fontFamily: 'Manrope',
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.4,
+            color: PaykColors.textPrimary,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        top: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 32),
+          children: [
             if (_codeLoading && code == null)
-              const Padding(padding: EdgeInsets.symmetric(vertical: 48), child: Center(child: CircularProgressIndicator()))
+              const CodeSkeleton()
             else if (_codeError != null || code == null)
-              ErrorState(message: _codeError ?? 'Не удалось получить код', onRetry: _loadCode)
-            else
-              _CodeCard(code: code, secondsLeft: left, locale: locale),
-            if (_pending != null) ...[
+              ErrorState(
+                message: _codeError ?? 'Не удалось получить код',
+                onRetry: _loadCode,
+              )
+            else ...[
+              _CodeCard(
+                code: code,
+                secondsLeft: left,
+                totalTtl: _ttl,
+                isUpdating: _refreshing,
+                onRefresh: _loadCode,
+                locale: locale,
+              ),
               const SizedBox(height: 12),
-              PaymentCard(check: _pending!, onChanged: _pollPending),
+              _BottomCashierHint(
+                totalTtl: _ttl,
+                locale: locale,
+              ),
             ],
-            ],
+            AnimatedSwitcher(
+              duration: PaykMotion.duration(context, PaykMotion.normal),
+              switchInCurve: PaykMotion.easeOut,
+              switchOutCurve: PaykMotion.easeOut,
+              child: _pending != null
+                  ? Padding(
+                      key: ValueKey('pending_${_pending!.id}'),
+                      padding: const EdgeInsets.only(top: 16),
+                      child: PaymentCard(check: _pending!, onChanged: _pollPending),
+                    )
+                  : const SizedBox.shrink(key: ValueKey('no_pending')),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _CodeCard extends StatelessWidget {
-  const _CodeCard({required this.code, required this.secondsLeft, required this.locale});
+  const _CodeCard({
+    required this.code,
+    required this.secondsLeft,
+    required this.totalTtl,
+    required this.isUpdating,
+    required this.onRefresh,
+    required this.locale,
+  });
 
   final CashierCode code;
   final int secondsLeft;
+  final int totalTtl;
+  final bool isUpdating;
+  final VoidCallback onRefresh;
   final String locale;
 
   @override
@@ -170,29 +238,281 @@ class _CodeCard extends StatelessWidget {
     final digits = code.code;
     final half = (digits.length / 2).ceil();
     final spaced = digits.length <= 4 ? digits : '${digits.substring(0, half)} ${digits.substring(half)}';
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28)),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+      decoration: BoxDecoration(
+        color: PaykColors.sheet,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: PaykColors.border, width: 1.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
       child: Column(
         children: [
-          QrImageView(
-            data: code.qr,
-            size: 220,
-            backgroundColor: Colors.white,
+          // Контейнер QR-кода
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFE5E5EB), width: 1.0),
+            ),
+            alignment: Alignment.center,
+            child: QrImageView(
+              data: code.qr,
+              size: 240,
+              backgroundColor: Colors.white,
+              padding: EdgeInsets.zero,
+            ),
           ),
-          const SizedBox(height: 12),
-          Text(tr(locale, 'code.digitsLabel'), style: const TextStyle(color: PaykColors.muted, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          Text(spaced, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, letterSpacing: 1)),
-          const SizedBox(height: 8),
-          Text(tr(locale, 'code.expiresIn', {'s': '$secondsLeft'}), style: const TextStyle(fontWeight: FontWeight.w700)),
-          TextButton(
-            onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: digits));
-              if (!context.mounted) return;
-              showPaykMessage(context, tr(locale, 'code.copied'));
-            },
-            child: Text(tr(locale, 'code.copy')),
+          const SizedBox(height: 20),
+
+          // Заголовок «Рамз барои ворид кардан»
+          Text(
+            tr(locale, 'code.digitsLabel'),
+            style: const TextStyle(
+              fontFamily: 'Manrope',
+              color: PaykColors.textSecondary,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+
+          // Крупные цифры кода «4244 7996»
+          Text(
+            spaced,
+            style: const TextStyle(
+              fontFamily: 'Manrope',
+              fontSize: 36,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 2.5,
+              color: PaykColors.textPrimary,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Плашка таймера и кнопки обновления
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: PaykColors.surfaceNested,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: PaykColors.border),
+            ),
+            child: Row(
+              children: [
+                _CountdownRing(
+                  secondsLeft: secondsLeft,
+                  totalSeconds: totalTtl,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    isUpdating
+                        ? tr(locale, 'code.updating')
+                        : tr(locale, 'code.expiresIn', {'s': '$secondsLeft'}),
+                    style: const TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                      color: PaykColors.textSecondary,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _RefreshButton(
+                  loading: isUpdating,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    onRefresh();
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CountdownRing extends StatelessWidget {
+  const _CountdownRing({
+    required this.secondsLeft,
+    required this.totalSeconds,
+  });
+
+  final int secondsLeft;
+  final int totalSeconds;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = totalSeconds > 0 ? (secondsLeft / totalSeconds).clamp(0.0, 1.0) : 0.0;
+
+    return SizedBox(
+      width: 46,
+      height: 46,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CircularProgressIndicator(
+            value: progress,
+            backgroundColor: PaykColors.border,
+            color: PaykColors.primary,
+            strokeWidth: 3.5,
+            strokeCap: StrokeCap.round,
+          ),
+          Text(
+            '$secondsLeft',
+            style: const TextStyle(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: PaykColors.textPrimary,
+              fontFamily: 'Manrope',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RefreshButton extends StatelessWidget {
+  const _RefreshButton({
+    required this.loading,
+    required this.onTap,
+  });
+
+  final bool loading;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return PaykPressable(
+      enabled: !loading,
+      scaleDown: PaykMotion.scaleIcon,
+      child: SizedBox(
+        width: 42,
+        height: 42,
+        child: Material(
+          color: Colors.white,
+          shape: const CircleBorder(
+            side: BorderSide(color: Color(0xFFE5E5EB)),
+          ),
+          elevation: 1,
+          shadowColor: Colors.black.withValues(alpha: 0.05),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: loading ? null : onTap,
+            child: Center(
+              child: AnimatedSwitcher(
+                duration: PaykMotion.duration(context, PaykMotion.micro),
+                switchInCurve: PaykMotion.easeOut,
+                switchOutCurve: PaykMotion.easeOut,
+                child: loading
+                    ? const SizedBox(
+                        key: ValueKey('loading'),
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(
+                        Icons.refresh_rounded,
+                        key: ValueKey('refresh'),
+                        size: 20,
+                        color: PaykColors.textPrimary,
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomCashierHint extends StatelessWidget {
+  const _BottomCashierHint({
+    required this.totalTtl,
+    required this.locale,
+  });
+
+  final int totalTtl;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: PaykColors.surfaceNested,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: PaykColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 56,
+            height: 56,
+            child: Image.asset(
+              'assets/3d/cart.webp',
+              fit: BoxFit.contain,
+              errorBuilder: (_, _, _) => const Icon(
+                Icons.shopping_cart_outlined,
+                size: 36,
+                color: PaykColors.primary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  tr(locale, 'code.hint'),
+                  style: const TextStyle(
+                    fontFamily: 'Manrope',
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w700,
+                    color: PaykColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  tr(locale, 'code.hintSub'),
+                  style: const TextStyle(
+                    fontFamily: 'Manrope',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: PaykColors.textSecondary,
+                    height: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  tr(locale, 'code.oneTime', {'ttl': '$totalTtl'}),
+                  style: const TextStyle(
+                    fontFamily: 'Manrope',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: PaykColors.textSecondary,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

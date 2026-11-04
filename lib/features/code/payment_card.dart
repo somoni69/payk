@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/check_quote.dart';
 import '../../core/format.dart';
+import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/message.dart';
 import '../../data/api/api_exception.dart';
@@ -204,9 +206,12 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
               Text(_error!, style: const TextStyle(color: PaykColors.orange, fontWeight: FontWeight.w700)),
             ],
             const SizedBox(height: 12),
-            FilledButton(
-              onPressed: _busy ? null : () => _confirm(quote),
-              child: Text(_busy ? 'Отправляем…' : 'Подтвердить'),
+            PaykPressable(
+              enabled: !_busy,
+              child: FilledButton(
+                onPressed: _busy ? null : () => _confirm(quote),
+                child: Text(_busy ? 'Отправляем…' : 'Подтвердить'),
+              ),
             ),
           ],
         ],
@@ -225,28 +230,39 @@ class _Choice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: selected ? PaykColors.violet : PaykColors.canvas,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-          child: Column(
-            children: [
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: selected ? Colors.white : PaykColors.ink, fontWeight: FontWeight.w800, fontSize: 12),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                hint,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: selected ? Colors.white : PaykColors.muted, fontWeight: FontWeight.w600, fontSize: 11),
-              ),
-            ],
+    return PaykPressable(
+      scaleDown: PaykMotion.scaleButton,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onTap();
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: AnimatedContainer(
+            duration: PaykMotion.duration(context, PaykMotion.fast),
+            curve: PaykMotion.easeOut,
+            decoration: BoxDecoration(
+              color: selected ? PaykColors.violet : PaykColors.canvas,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            child: Column(
+              children: [
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: selected ? Colors.white : PaykColors.ink, fontWeight: FontWeight.w800, fontSize: 12),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  hint,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: selected ? Colors.white : PaykColors.muted, fontWeight: FontWeight.w600, fontSize: 11),
+                ),
+              ],
+            ),
           ),
         ),
       ),

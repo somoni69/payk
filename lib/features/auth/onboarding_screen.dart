@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
+import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/payk_mark.dart';
 import '../../data/providers.dart';
@@ -19,7 +20,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with TickerProviderStateMixin {
   static const _pages = 5;
-  static const _ease = Cubic(0.22, 1, 0.36, 1);
+  static const _ease = PaykMotion.easeOut;
 
   static const _cards = <Widget>[
     _CashbackCard(),
@@ -171,19 +172,25 @@ class _TopBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Opacity(
+        AnimatedOpacity(
           opacity: canBack ? 1 : 0.35,
-          child: Material(
-            color: Colors.white,
-            shape: const CircleBorder(),
-            elevation: 0,
-            child: InkWell(
-              customBorder: const CircleBorder(),
-              onTap: canBack ? onBack : null,
-              child: const SizedBox(
-                width: 40,
-                height: 40,
-                child: Icon(Icons.arrow_back_rounded, size: 20),
+          duration: PaykMotion.duration(context, PaykMotion.micro),
+          curve: PaykMotion.easeOut,
+          child: PaykPressable(
+            enabled: canBack,
+            scaleDown: PaykMotion.scaleIcon,
+            child: Material(
+              color: Colors.white,
+              shape: const CircleBorder(),
+              elevation: 0,
+              child: InkWell(
+                customBorder: const CircleBorder(),
+                onTap: canBack ? onBack : null,
+                child: const SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: Icon(Icons.arrow_back_rounded, size: 20),
+                ),
               ),
             ),
           ),
@@ -316,7 +323,7 @@ class _StatusCard extends StatefulWidget {
 
 class _StatusCardState extends State<_StatusCard> {
   static const _hold = Duration(seconds: 4);
-  static const _ease = Cubic(0.23, 1, 0.32, 1);
+  static const _ease = PaykMotion.easeOut;
   static const _faces = <Widget>[
     _LoyaltyFace(
       key: ValueKey('silver'),
@@ -438,12 +445,15 @@ class _StatusCardState extends State<_StatusCard> {
             children: [
               for (var i = 0; i < _faces.length; i++) ...[
                 if (i > 0) const SizedBox(width: 6),
-                DecoratedBox(
+                AnimatedContainer(
+                  duration: reduce ? Duration.zero : PaykMotion.fast,
+                  curve: PaykMotion.easeOut,
+                  width: i == _index ? 18 : 6,
+                  height: 6,
                   decoration: BoxDecoration(
                     color: i == _index ? PaykColors.violet : const Color(0xFFD5D2DE),
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(3),
                   ),
-                  child: const SizedBox(width: 6, height: 6),
                 ),
               ],
             ],

@@ -21,13 +21,21 @@ class PaykShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      backgroundColor: PaykColors.canvas,
-      extendBody: true,
-      body: shell,
-      bottomNavigationBar: LiquidGlassBottomBar(
-        currentIndex: shell.currentIndex,
-        onTap: _go,
+    final atHome = shell.currentIndex == 0;
+    return PopScope(
+      canPop: atHome,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop || atHome) return;
+        shell.goBranch(0);
+      },
+      child: Scaffold(
+        backgroundColor: PaykColors.canvas,
+        extendBody: true,
+        body: shell,
+        bottomNavigationBar: LiquidGlassBottomBar(
+          currentIndex: shell.currentIndex,
+          onTap: _go,
+        ),
       ),
     );
   }

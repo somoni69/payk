@@ -18,6 +18,7 @@ import '../categories/categories_screen.dart';
 import '../code/client_code_screen.dart';
 import '../friends/friends_screen.dart';
 import '../notifications/notifications_screen.dart';
+import '../profile/profile_screen.dart';
 import 'home_header.dart';
 import 'loyalty_card.dart';
 
@@ -69,6 +70,11 @@ class _HomeBody extends ConsumerWidget {
         // 1. Фиолетовая шапка UDC с аватаром, кнопками и быстрыми действиями
         HomeHeader(
           account: account,
+          onProfileTap: () => PaykMotion.go(
+            context,
+            '/profile',
+            fallback: () => const ProfileScreen(),
+          ),
           onScannerTap: () => PaykMotion.push<void>(
             context,
             '/code',

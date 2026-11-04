@@ -18,8 +18,6 @@ import '../../data/api/api_exception.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
 import '../friends/friends_screen.dart';
-import '../history/history_screen.dart';
-import '../notifications/notifications_screen.dart';
 import '../rules/rules_screen.dart';
 import 'connect_screen.dart';
 import 'settings_screen.dart';
@@ -34,12 +32,9 @@ export 'settings_screen.dart';
 /// 1. Верхний виджет: карточка пользователя (Аватар + Имя + «Профиль/Профил» + «>»).
 /// 2. Карточка «Тарзҳои воридшавӣ» / «Способы входа» (Дидан) с бейджами SMS и Telegram.
 /// 3. Скроллящиеся баннеры-карусель под «Способами входа» («Статусҳои ПАЙК» / «Клуби дӯстон»).
-/// 4. Список из 8 пунктов меню:
+/// 4. Список пунктов меню:
 ///    - Мағозаи ман (MSX Алмоси)
-///    - Паёмҳо (/notifications)
-///    - Харидҳои ман (/history)
 ///    - Статусҳо ва қоидаҳо (/rules)
-///    - Таърихи амалиётҳо (/history)
 ///    - Алоқа бо мағоза (WhatsApp)
 ///    - Дар бораи барнома (About dialog)
 ///    - Танзимот (ProfileDetailsScreen)
@@ -72,8 +67,10 @@ class ProfileScreen extends ConsumerWidget {
                   locale: locale,
                   onTap: () {
                     HapticFeedback.lightImpact();
-                    Navigator.of(context).push<void>(
-                      PaykMotion.route(const ProfileDetailsScreen()),
+                    PaykMotion.push<void>(
+                      context,
+                      '/profile/details',
+                      fallback: () => const ProfileDetailsScreen(),
                     );
                   },
                 ),
@@ -98,36 +95,12 @@ class ProfileScreen extends ConsumerWidget {
                 _ProfileBannersCarousel(locale: locale),
                 const SizedBox(height: 16),
 
-                // 4. Список пунктов меню (8 пунктов как на макете)
+                // 4. Пункты меню без дублей покупок и сообщений
                 _ProfileMenuItem(
                   icon: Icons.location_on_outlined,
                   title: tr(locale, 'profile.myStore'),
                   subtitle: account.store.isNotEmpty ? account.store : 'MSX Алмоси',
                   onTap: () => _showStoreDialog(context, account),
-                ),
-                _ProfileMenuItem(
-                  icon: Icons.chat_bubble_outline_rounded,
-                  title: tr(locale, 'profile.menuMessages'),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    PaykMotion.push<void>(
-                      context,
-                      '/notifications',
-                      fallback: () => const NotificationsScreen(),
-                    );
-                  },
-                ),
-                _ProfileMenuItem(
-                  icon: Icons.assignment_outlined,
-                  title: tr(locale, 'profile.myPurchases'),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    PaykMotion.push<void>(
-                      context,
-                      '/history',
-                      fallback: () => const HistoryScreen(),
-                    );
-                  },
                 ),
                 _ProfileMenuItem(
                   icon: Icons.confirmation_number_outlined,
@@ -138,18 +111,6 @@ class ProfileScreen extends ConsumerWidget {
                       context,
                       '/rules',
                       fallback: () => const RulesScreen(),
-                    );
-                  },
-                ),
-                _ProfileMenuItem(
-                  icon: Icons.account_balance_wallet_outlined,
-                  title: tr(locale, 'profile.historyOfOperations'),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    PaykMotion.push<void>(
-                      context,
-                      '/history',
-                      fallback: () => const HistoryScreen(),
                     );
                   },
                 ),
@@ -1433,7 +1394,7 @@ class ProfileDetailsScreen extends ConsumerWidget {
               _DeleteAccountCard(
                 onDelete: () => _confirmDeleteAccount(context, ref),
               ),
-              const SizedBox(height: 96),
+              const SizedBox(height: 24),
             ],
           );
         },
@@ -1879,10 +1840,10 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
 
   Future<void> _pickBirth() async {
     final now = DateTime.now();
-    final lockedYear = widget.member.birthYear;
-    final first = lockedYear == null ? DateTime(1920) : DateTime(lockedYear);
-    final lastCandidate = lockedYear == null ? DateTime(now.year - 14, now.month, now.day) : DateTime(lockedYear, 12, 31);
-    final last = lastCandidate.isAfter(now) ? DateTime(now.year, now.month, now.day) : lastCandidate;
+    final first = DateTime(1920);
+    final year = now.year - 14;
+    final lastDay = DateTime(year, now.month + 1, 0).day;
+    final last = DateTime(year, now.month, now.day > lastDay ? lastDay : now.day);
     final initial = _clampDate(_birth ?? DateTime(last.year, 6, 15), first, last);
     final picked = await showDatePicker(
       context: context,
@@ -1901,11 +1862,6 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     final lastName = _last.text.trim();
     if (!_hasLetter(firstName) || !_hasLetter(lastName)) {
       setState(() => _error = 'Напишите имя и фамилию');
-      return;
-    }
-    final lockedYear = widget.member.birthYear;
-    if (_birth != null && lockedYear != null && _birth!.year != lockedYear) {
-      setState(() => _error = 'Год рождения изменить нельзя — обратитесь в магазин');
       return;
     }
     setState(() {
@@ -1991,7 +1947,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               _SheetTile(
                 icon: Icons.calendar_today_rounded,
                 title: _birth == null ? 'Не указана' : formatDate(_birth!),
-                subtitle: widget.member.birthYear == null ? 'День, месяц и год' : 'Год рождения зафиксирован',
+                subtitle: 'День, месяц и год',
                 onTap: _busy ? null : _pickBirth,
                 trailing: _birth == null
                     ? const Icon(Icons.chevron_right_rounded, color: PaykColors.textSecondary)

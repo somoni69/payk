@@ -20,6 +20,7 @@ class HomeHeader extends StatelessWidget {
     required this.account,
     required this.onScannerTap,
     required this.onNotificationsTap,
+    required this.onProfileTap,
     required this.onCodeTap,
     required this.onCompaniesTap,
     required this.onCertificatesTap,
@@ -28,6 +29,7 @@ class HomeHeader extends StatelessWidget {
   final Account account;
   final VoidCallback onScannerTap;
   final VoidCallback onNotificationsTap;
+  final VoidCallback onProfileTap;
   final VoidCallback onCodeTap;
   final VoidCallback onCompaniesTap;
   final VoidCallback onCertificatesTap;
@@ -54,37 +56,45 @@ class HomeHeader extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  PaykAvatar(member: member, size: 48, ring: true),
-                  const SizedBox(width: 12),
-
-                  // Текстовый блок: Приветствие
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Привет, $firstName!',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: 'Manrope',
-                            fontSize: 14.5,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.1,
-                            color: PaykColors.textOnHeader,
+                    child: PaykPressable(
+                      scaleDown: PaykMotion.scaleSubtle,
+                      onTap: onProfileTap,
+                      child: Row(
+                        children: [
+                          PaykAvatar(member: member, size: 48, ring: true),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Привет, $firstName!',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontFamily: 'Manrope',
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: -0.1,
+                                    color: PaykColors.textOnHeader,
+                                  ),
+                                ),
+                                const SizedBox(height: 1.5),
+                                const Text(
+                                  'С возвращением!',
+                                  style: TextStyle(
+                                    fontFamily: 'Manrope',
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: PaykColors.textOnHeaderSubtitle,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 1.5),
-                        const Text(
-                          'С возвращением!',
-                          style: TextStyle(
-                            fontFamily: 'Manrope',
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w500,
-                            color: PaykColors.textOnHeaderSubtitle,
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),

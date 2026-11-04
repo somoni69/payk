@@ -107,7 +107,7 @@ void main() {
       expect(find.text('Тарзҳои воридшавӣ'), findsOneWidget);
       expect(find.text('Дидан'), findsOneWidget);
 
-      // Иконки SMS и Telegram (SMS бейдж + пункт Паёмҳо в меню)
+      // Иконки SMS и Telegram
       expect(find.byIcon(Icons.chat_bubble_outline_rounded), findsNWidgets(2));
       expect(find.byIcon(Icons.send_rounded), findsOneWidget);
 
@@ -126,21 +126,17 @@ void main() {
       expect(find.text('Клуби дӯстон'), findsOneWidget);
       expect(find.text('Аз ҳар хариди дӯстони даъваткарда 1%'), findsOneWidget);
 
-      // 4. 8 пунктов меню
+      // 4. Пункты меню
       expect(find.text('Мағозаи ман'), findsOneWidget);
       expect(find.text('MSX Алмоси'), findsOneWidget);
       expect(find.byIcon(Icons.location_on_outlined), findsOneWidget);
 
-      expect(find.text('Паёмҳо'), findsOneWidget);
-
-      expect(find.text('Харидҳои ман'), findsOneWidget);
-      expect(find.byIcon(Icons.assignment_outlined), findsOneWidget);
+      expect(find.text('Паёмҳо'), findsNothing);
+      expect(find.text('Харидҳои ман'), findsNothing);
+      expect(find.text('Таърихи амалиётҳо'), findsNothing);
 
       expect(find.text('Статусҳо ва қоидаҳо'), findsOneWidget);
       expect(find.byIcon(Icons.confirmation_number_outlined), findsOneWidget);
-
-      expect(find.text('Таърихи амалиётҳо'), findsOneWidget);
-      expect(find.byIcon(Icons.account_balance_wallet_outlined), findsOneWidget);
 
       expect(find.text('Алоқа бо мағоза'), findsOneWidget);
       expect(find.text('WhatsApp'), findsOneWidget);

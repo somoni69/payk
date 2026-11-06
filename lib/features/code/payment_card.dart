@@ -93,6 +93,11 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
     final amount = check.amount;
     final quote = _quote();
     final ready = amount != null && quote != null;
+
+    final noApp = check.source == 'sms' || check.source == 'late';
+    final isWholesale = check.isWholesale;
+    final canBurn = (quote?.y ?? 0) >= 0.50 && !noApp && !isWholesale && (check.debt ?? 0) <= 0;
+    final excluded = check.excludedAmount ?? 0;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
@@ -111,6 +116,30 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
           else ...[
             Text(formatMoney(amount), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
+            if (isWholesale)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 6),
+                child: Text(
+                  'Оптовый чек: списание бонусов недоступно — только начисление.',
+                  style: TextStyle(color: PaykColors.orange, fontWeight: FontWeight.w700, fontSize: 13),
+                ),
+              )
+            else if (noApp)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 6),
+                child: Text(
+                  'Опознание по SMS: списание бонусов доступно только при показе кода из приложения.',
+                  style: TextStyle(color: PaykColors.orange, fontWeight: FontWeight.w700, fontSize: 13),
+                ),
+              )
+            else if (excluded > 0 && check.eligible != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  'В программе участвует ${formatMoney(check.eligible!)} из ${formatMoney(amount)}',
+                  style: const TextStyle(color: PaykColors.muted, fontWeight: FontWeight.w600, fontSize: 13),
+                ),
+              ),
             Text(
               'Без списания ${formatMoney(quote.x0, signed: true)} · до ${formatMoney(quote.a)} кешбэк сохраняется · до ${formatMoney(quote.y)}',
               style: const TextStyle(color: PaykColors.muted, fontWeight: FontWeight.w600, height: 1.35),
@@ -130,9 +159,11 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
                 Expanded(
                   child: _Choice(
                     label: 'ХАРҶ+ҶАМЪ',
-                    hint: quote.y < 0.50 ? 'недоступно' : 'до ${formatMoney(quote.a < quote.y ? quote.a : quote.y)}',
+                    hint: !canBurn || quote.y < 0.50
+                        ? 'недоступно'
+                        : 'до ${formatMoney(quote.a < quote.y ? quote.a : quote.y)}',
                     selected: _voluntary > 0 && quote.keepsCashback,
-                    onTap: _busy || quote.y < 0.50
+                    onTap: _busy || !canBurn || quote.y < 0.50
                         ? () {}
                         : () => setState(() {
                             final mark = quote.a < quote.y ? quote.a : quote.y;
@@ -144,16 +175,16 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
                 Expanded(
                   child: _Choice(
                     label: 'ХАРҶ',
-                    hint: quote.y <= quote.a ? 'недоступно' : 'до ${formatMoney(quote.y)}',
+                    hint: !canBurn || quote.y <= quote.a ? 'недоступно' : 'до ${formatMoney(quote.y)}',
                     selected: _voluntary > quote.a,
-                    onTap: _busy || quote.y <= quote.a
+                    onTap: _busy || !canBurn || quote.y <= quote.a
                         ? () {}
                         : () => setState(() => _voluntary = quote.y),
                   ),
                 ),
               ],
             ),
-            if (quote.y >= 0.50) ...[
+            if (canBurn && quote.y >= 0.50) ...[
               const SizedBox(height: 8),
               Slider(
                 value: _voluntary.clamp(0, quote.y).toDouble(),

@@ -11,6 +11,11 @@ class ApiConfig {
     defaultValue: 'almosi',
   );
 
+  static const supportWhatsApp = String.fromEnvironment(
+    'SUPPORT_WHATSAPP',
+    defaultValue: '992555518220',
+  );
+
   static String get base {
     final trimmed = root.replaceAll(RegExp(r'/+$'), '');
     return '$trimmed/loyalty-app';

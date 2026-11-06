@@ -16,6 +16,7 @@ import '../features/history/history_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../features/profile/connect_screen.dart';
+import '../features/profile/phone_change_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/rules/rules_screen.dart';
 
@@ -126,6 +127,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => PaykMotion.buildPage(
           state: state,
           child: const ProfileDetailsScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/profile/phone',
+        pageBuilder: (context, state) => PaykMotion.buildPage(
+          state: state,
+          child: const PhoneChangeScreen(),
         ),
       ),
       GoRoute(

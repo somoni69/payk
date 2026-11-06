@@ -14,12 +14,14 @@ import '../../core/widgets/message.dart';
 import '../../core/widgets/payk_avatar.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
+import '../../data/api/api_config.dart';
 import '../../data/api/api_exception.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
 import '../friends/friends_screen.dart';
 import '../rules/rules_screen.dart';
 import 'connect_screen.dart';
+import 'phone_change_screen.dart';
 import 'settings_screen.dart';
 
 export 'settings_screen.dart';
@@ -841,8 +843,9 @@ void _showStoreContactDialog(
   String storeName = 'MSX Алмоси',
   String locale = 'tj',
 }) {
-  const rawNumber = '+992555518220';
-  const formattedNumber = '+992 55 551 82 20';
+  final waDigits = ApiConfig.supportWhatsApp.replaceAll(RegExp(r'\D'), '');
+  final rawNumber = waDigits.isNotEmpty ? '+$waDigits' : '+992555518220';
+  final formattedNumber = formatPhone(rawNumber);
   final isTj = locale == 'tj';
 
   showModalBottomSheet<void>(
@@ -930,7 +933,7 @@ void _showStoreContactDialog(
                     ? '$formattedNumber · Чат дар WhatsApp'
                     : '$formattedNumber · Чат в WhatsApp',
                 onTap: () {
-                  Clipboard.setData(const ClipboardData(text: rawNumber));
+                  Clipboard.setData(ClipboardData(text: rawNumber));
                   HapticFeedback.lightImpact();
                   Navigator.pop(ctx);
                   showPaykMessage(
@@ -949,7 +952,7 @@ void _showStoreContactDialog(
                 title: isTj ? 'Занг ба мағоза' : 'Звонок в магазин',
                 subtitle: '$formattedNumber · Телефон',
                 onTap: () {
-                  Clipboard.setData(const ClipboardData(text: rawNumber));
+                  Clipboard.setData(ClipboardData(text: rawNumber));
                   HapticFeedback.lightImpact();
                   Navigator.pop(ctx);
                   showPaykMessage(
@@ -1623,7 +1626,32 @@ class _ContactsCard extends StatelessWidget {
             label: 'Номер телефона',
             value: formatPhone(member.phone),
           ),
-          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                PaykMotion.push<void>(
+                  context,
+                  '/profile/phone',
+                  fallback: () => const PhoneChangeScreen(),
+                );
+              },
+              child: const Padding(
+                padding: EdgeInsets.only(top: 2, bottom: 2),
+                child: Text(
+                  'Сменить номер',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: PaykColors.primary,
+                    fontFamily: 'Manrope',
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
           _InfoRow(
             label: 'Электронная почта',
             value: (member.email != null && member.email!.isNotEmpty) ? member.email! : 'Не указана',

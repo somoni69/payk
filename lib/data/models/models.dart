@@ -339,6 +339,10 @@ class PendingCheck {
     this.toTen = false,
     this.balance,
     this.debt,
+    this.eligible,
+    this.excludedAmount,
+    this.isWholesale = false,
+    this.source,
   });
 
   final int id;
@@ -361,6 +365,10 @@ class PendingCheck {
   final bool toTen;
   final double? balance;
   final double? debt;
+  final double? eligible;
+  final double? excludedAmount;
+  final bool isWholesale;
+  final String? source;
 
   factory PendingCheck.fromJson(Map<String, dynamic> json) {
     return PendingCheck(
@@ -384,6 +392,39 @@ class PendingCheck {
       toTen: json['to_ten'] == true,
       balance: asMoneyOrNull(json['balance']),
       debt: asMoneyOrNull(json['debt']),
+      eligible: asMoneyOrNull(json['eligible']),
+      excludedAmount: asMoneyOrNull(json['excluded_amount']),
+      isWholesale: json['is_wholesale'] == true,
+      source: asStringOrNull(json['source']),
+    );
+  }
+}
+
+class PhoneChangeStart {
+  const PhoneChangeStart({
+    required this.phone,
+    required this.oldPhone,
+    required this.resendIn,
+    required this.ttl,
+    this.debugOld,
+    this.debugNew,
+  });
+
+  final String phone;
+  final String oldPhone;
+  final int resendIn;
+  final int ttl;
+  final String? debugOld;
+  final String? debugNew;
+
+  factory PhoneChangeStart.fromJson(Map<String, dynamic> json) {
+    return PhoneChangeStart(
+      phone: asString(json['phone']),
+      oldPhone: asString(json['old_phone']),
+      resendIn: asInt(json['resend_in']),
+      ttl: asInt(json['ttl']),
+      debugOld: asStringOrNull(json['debug_old']),
+      debugNew: asStringOrNull(json['debug_new']),
     );
   }
 }

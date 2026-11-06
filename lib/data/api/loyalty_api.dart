@@ -131,4 +131,30 @@ class LoyaltyApi {
   Future<void> unlinkTelegram() async {
     await _client.send('/me/telegram', method: 'DELETE');
   }
+
+  Future<PhoneChangeStart> phoneStart(String phone) async {
+    final json = asMap(
+      await _client.send(
+        '/me/phone/start',
+        method: 'POST',
+        body: {'phone': phone},
+      ),
+    );
+    return PhoneChangeStart.fromJson(json);
+  }
+
+  Future<Member> phoneConfirm(String phone, String codeOld, String codeNew) async {
+    final json = asMap(
+      await _client.send(
+        '/me/phone/confirm',
+        method: 'POST',
+        body: {
+          'phone': phone,
+          'code_old': codeOld,
+          'code_new': codeNew,
+        },
+      ),
+    );
+    return Member.fromJson(json);
+  }
 }

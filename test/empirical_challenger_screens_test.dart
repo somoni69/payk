@@ -298,6 +298,7 @@ void main() {
           home: Scaffold(
             body: QuickActionCards(
               account: mockAccount,
+              locale: 'ru',
               onOpenCode: () => codeTapped = true,
               onOpenCompanies: () => companiesTapped = true,
               onOpenCertificates: () => certsTapped = true,

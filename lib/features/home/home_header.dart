@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/payk_avatar.dart';
@@ -18,6 +19,7 @@ class HomeHeader extends StatelessWidget {
   const HomeHeader({
     super.key,
     required this.account,
+    required this.locale,
     required this.onScannerTap,
     required this.onNotificationsTap,
     required this.onProfileTap,
@@ -27,6 +29,7 @@ class HomeHeader extends StatelessWidget {
   });
 
   final Account account;
+  final String locale;
   final VoidCallback onScannerTap;
   final VoidCallback onNotificationsTap;
   final VoidCallback onProfileTap;
@@ -82,7 +85,7 @@ class HomeHeader extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Привет, $firstName!',
+                                    tr(locale, 'home.hello', {'name': firstName}),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
@@ -94,9 +97,9 @@ class HomeHeader extends StatelessWidget {
                                     ),
                                   ),
                                   const SizedBox(height: 1.5),
-                                  const Text(
-                                    'С возвращением!',
-                                    style: TextStyle(
+                                  Text(
+                                    tr(locale, 'home.welcomeBack'),
+                                    style: const TextStyle(
                                       fontFamily: 'Manrope',
                                       fontSize: 12.0,
                                       fontWeight: FontWeight.w500,
@@ -115,7 +118,7 @@ class HomeHeader extends StatelessWidget {
                     // Кнопка уведомлений (колокольчик)
                     _HeaderIconButton(
                       icon: Icons.notifications_none_rounded,
-                      tooltip: 'Уведомления',
+                      tooltip: tr(locale, 'home.notifications'),
                       onTap: onNotificationsTap,
                       badgeCount: account.messagesUnread,
                     ),
@@ -124,7 +127,7 @@ class HomeHeader extends StatelessWidget {
                     // Кнопка QR-сканера
                     _HeaderIconButton(
                       icon: Icons.qr_code_scanner_rounded,
-                      tooltip: 'Сканер QR-кода',
+                      tooltip: tr(locale, 'home.qrScanner'),
                       onTap: onScannerTap,
                     ),
                   ],
@@ -135,6 +138,7 @@ class HomeHeader extends StatelessWidget {
               // Горизонтальные карточки быстрых действий
               QuickActionCards(
                 account: account,
+                locale: locale,
                 onOpenCode: onCodeTap,
                 onOpenCompanies: onCompaniesTap,
                 onOpenCertificates: onCertificatesTap,

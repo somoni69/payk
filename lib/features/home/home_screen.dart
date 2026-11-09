@@ -90,6 +90,7 @@ class _HomeBody extends ConsumerWidget {
         // 1. Фиолетовая шапка UDC с аватаром, кнопками и быстрыми действиями
         HomeHeader(
           account: account,
+          locale: locale,
           onProfileTap: () => PaykMotion.go(
             context,
             '/profile',
@@ -502,6 +503,7 @@ class _StoresSection extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             children: [
               _StoreRateCard(
+                locale: locale,
                 title: tr(locale, 'format.SM').toUpperCase(),
                 assetImage: 'assets/3d/cart.webp',
                 iconBgColor: const Color(0xFFF1F3F9),
@@ -518,6 +520,7 @@ class _StoresSection extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               _StoreRateCard(
+                locale: locale,
                 title: tr(locale, 'format.CL').toUpperCase(),
                 assetImage: 'assets/3d/tshirt.webp',
                 iconBgColor: const Color(0xFFEBF7EE),
@@ -542,6 +545,7 @@ class _StoresSection extends StatelessWidget {
 
 class _StoreRateCard extends StatelessWidget {
   const _StoreRateCard({
+    required this.locale,
     required this.title,
     required this.assetImage,
     required this.iconBgColor,
@@ -550,6 +554,7 @@ class _StoreRateCard extends StatelessWidget {
     required this.onTap,
   });
 
+  final String locale;
   final String title;
   final String assetImage;
   final Color iconBgColor;
@@ -623,7 +628,7 @@ class _StoreRateCard extends StatelessWidget {
                       TextSpan(
                         children: [
                           TextSpan(
-                            text: 'кэшбэк $cashbackPercent',
+                            text: tr(locale, 'home.cashbackLine', {'pct': cashbackPercent}),
                             style: const TextStyle(
                               fontFamily: 'Manrope',
                               fontSize: 12.0,
@@ -639,7 +644,7 @@ class _StoreRateCard extends StatelessWidget {
                             ),
                           ),
                           TextSpan(
-                            text: 'бо бонус то $burnCapPercent',
+                            text: tr(locale, 'home.burnLine', {'pct': burnCapPercent}),
                             style: const TextStyle(
                               fontFamily: 'Manrope',
                               fontSize: 12.0,
@@ -763,8 +768,8 @@ void _openCompaniesModal(BuildContext context, Account account, String locale) {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Мои компании',
+                  Text(
+                    tr(locale, 'home.companies'),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -805,8 +810,8 @@ void _openCompaniesModal(BuildContext context, Account account, String locale) {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Бонусный баланс',
+                          Text(
+                            tr(locale, 'home.bonusBalance'),
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
@@ -829,8 +834,8 @@ void _openCompaniesModal(BuildContext context, Account account, String locale) {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Партнёры программы:',
+              Text(
+                tr(locale, 'home.partners'),
                 style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
@@ -840,20 +845,20 @@ void _openCompaniesModal(BuildContext context, Account account, String locale) {
               const SizedBox(height: 8),
               _CompanyListTile(
                 name: account.store.isNotEmpty ? account.store : 'Payk Ecosystem',
-                category: 'Основная сеть',
-                status: 'Активна',
+                category: tr(locale, 'home.mainNetwork'),
+                status: tr(locale, 'home.networkActive'),
               ),
               const SizedBox(height: 8),
-              const _CompanyListTile(
+              _CompanyListTile(
                 name: 'ELITESTORE',
-                category: 'Одежда и обувь',
-                status: 'Кэшбэк до 10%',
+                category: tr(locale, 'home.clothesShoes'),
+                status: tr(locale, 'home.cashbackUpTo', {'pct': '10%'}),
               ),
               const SizedBox(height: 8),
-              const _CompanyListTile(
+              _CompanyListTile(
                 name: 'A-99',
-                category: 'Супермаркет',
-                status: 'Кэшбэк до 7%',
+                category: tr(locale, 'format.SM'),
+                status: tr(locale, 'home.cashbackUpTo', {'pct': '7%'}),
               ),
             ],
           ),
@@ -961,8 +966,8 @@ void _openCertificatesModal(BuildContext context, Account account, String locale
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Мои сертификаты',
+                  Text(
+                    tr(locale, 'home.certificates'),
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -1008,8 +1013,8 @@ void _openCertificatesModal(BuildContext context, Account account, String locale
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Подарочный купон на ДР',
+                            Text(
+                              tr(locale, 'home.giftCoupon'),
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -1018,7 +1023,10 @@ void _openCertificatesModal(BuildContext context, Account account, String locale
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Скидка ${formatMoney(gift.amount.toDouble(), decimals: false)} до ${formatShortDate(gift.until)}',
+                              tr(locale, 'home.discountUntil', {
+                                'amount': formatMoney(gift.amount.toDouble(), decimals: false),
+                                'date': formatShortDate(gift.until),
+                              }),
                               style: const TextStyle(
                                 fontSize: 13,
                                 color: PaykColors.textSecondary,
@@ -1040,26 +1048,26 @@ void _openCertificatesModal(BuildContext context, Account account, String locale
                     border: Border.all(color: PaykColors.border),
                   ),
                   child: Column(
-                    children: const [
-                      Icon(
+                    children: [
+                      const Icon(
                         Icons.confirmation_number_outlined,
                         size: 40,
                         color: PaykColors.textMuted,
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
-                        'Нет активных купонов',
-                        style: TextStyle(
+                        tr(locale, 'home.noCoupons'),
+                        style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: PaykColors.textPrimary,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Сертификаты и купоны появятся здесь в дни праздников и акций',
+                        tr(locale, 'home.noCouponsText'),
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 13,
                           color: PaykColors.textSecondary,
                         ),

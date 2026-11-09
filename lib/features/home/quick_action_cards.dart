@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/format.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../data/models/models.dart';
@@ -15,12 +16,14 @@ class QuickActionCards extends StatelessWidget {
   const QuickActionCards({
     super.key,
     required this.account,
+    required this.locale,
     required this.onOpenCode,
     required this.onOpenCompanies,
     required this.onOpenCertificates,
   });
 
   final Account account;
+  final String locale;
   final VoidCallback onOpenCode;
   final VoidCallback onOpenCompanies;
   final VoidCallback onOpenCertificates;
@@ -44,7 +47,7 @@ class QuickActionCards extends StatelessWidget {
             width: 108,
             height: 114,
             onTap: onOpenCode,
-            semanticsLabel: 'QR-код',
+            semanticsLabel: tr(locale, 'home.qrCode'),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
@@ -92,8 +95,8 @@ class QuickActionCards extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                const Text(
-                  'QR-код',
+                Text(
+                  tr(locale, 'home.qrCode'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -113,15 +116,15 @@ class QuickActionCards extends StatelessWidget {
             width: 138,
             height: 114,
             onTap: onOpenCompanies,
-            semanticsLabel: 'Мои компании',
+            semanticsLabel: tr(locale, 'home.companies'),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
                 const _CoinsIllustration(),
                 const SizedBox(height: 5),
-                const Text(
-                  'Мои компании',
+                Text(
+                  tr(locale, 'home.companies'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -152,15 +155,15 @@ class QuickActionCards extends StatelessWidget {
             width: 138,
             height: 114,
             onTap: onOpenCertificates,
-            semanticsLabel: 'Мои сертификаты',
+            semanticsLabel: tr(locale, 'home.certificates'),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
                 const _TicketIllustration(),
                 const SizedBox(height: 5),
-                const Text(
-                  'Мои сертификаты',
+                Text(
+                  tr(locale, 'home.certificates'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -172,7 +175,7 @@ class QuickActionCards extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  wallet.status > 1 ? 'Активен' : 'Купоны',
+                  wallet.status > 1 ? tr(locale, 'home.active') : tr(locale, 'home.coupons'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(

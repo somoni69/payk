@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
+import '../../core/i18n/locale_controller.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/message.dart';
@@ -57,12 +59,12 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
   Future<void> _requestCodes(String currentPhone) async {
     final rawDigits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
     if (rawDigits.length != 9) {
-      setState(() => _error = 'Введите 9 цифр номера');
+      setState(() => _error = tr(ref.read(localeProvider), 'phone.needDigits'));
       return;
     }
     final targetPhone = '+992$rawDigits';
     if (targetPhone == currentPhone) {
-      setState(() => _error = 'Этот номер уже привязан к вашему аккаунту');
+      setState(() => _error = tr(ref.read(localeProvider), 'phone.same'));
       return;
     }
 
@@ -97,7 +99,7 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
     final newCode = _newCodeController.text.trim();
 
     if (oldCode.length != 6 || newCode.length != 6) {
-      setState(() => _error = 'Введите 6 цифр обоих кодов');
+      setState(() => _error = tr(ref.read(localeProvider), 'phone.needCodes'));
       return;
     }
 
@@ -115,7 +117,7 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
       if (!mounted) return;
       ref.invalidate(meProvider);
       HapticFeedback.mediumImpact();
-      showPaykMessage(context, 'Номер изменён на ${formatPhone(updated.phone)}');
+      showPaykMessage(context, tr(ref.read(localeProvider), 'phone.done', {'phone': formatPhone(updated.phone)}));
       Navigator.of(context).pop();
     } catch (err) {
       if (!mounted) return;
@@ -127,6 +129,7 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final locale = ref.watch(localeProvider);
     final me = ref.watch(meProvider).asData?.value;
     final currentPhone = me?.member.phone ?? '';
     final sent = _sent;
@@ -148,8 +151,8 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
             },
           ),
         ),
-        title: const Text(
-          'Смена номера',
+        title: Text(
+          tr(locale, 'phone.title'),
           style: TextStyle(
             color: PaykColors.textPrimary,
             fontSize: 18,
@@ -187,7 +190,7 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Текущий номер: ${formatPhone(currentPhone)}',
+                          tr(locale, 'phone.current', {'phone': formatPhone(currentPhone)}),
                           style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
@@ -196,8 +199,8 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        const Text(
-                          'Для защиты аккаунта коды подтверждения отправляются и на текущий, и на новый номер.',
+                        Text(
+                          tr(locale, 'phone.hint'),
                           style: TextStyle(
                             fontSize: 13,
                             color: PaykColors.textSecondary,
@@ -223,8 +226,8 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Новый номер телефона',
+                    Text(
+                      tr(locale, 'phone.new'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -306,7 +309,7 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: Text(
-                          _busy ? 'Отправка...' : 'Получить коды',
+                          _busy ? tr(locale, 'phone.sending') : tr(locale, 'phone.send'),
                           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Manrope'),
                         ),
                       ),
@@ -326,7 +329,7 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Коды отправлены на ${sent.oldPhone} и ${formatPhone(sent.phone)}',
+                      tr(locale, 'phone.sent', {'old': sent.oldPhone, 'new': formatPhone(sent.phone)}),
                       style: const TextStyle(
                         fontSize: 14,
                         color: PaykColors.textSecondary,
@@ -334,8 +337,8 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    const Text(
-                      'Код со старого номера',
+                    Text(
+                      tr(locale, 'phone.oldCode'),
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: PaykColors.textSecondary),
                     ),
                     const SizedBox(height: 6),
@@ -363,8 +366,8 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                       ),
                     ),
                     const SizedBox(height: 14),
-                    const Text(
-                      'Код с нового номера',
+                    Text(
+                      tr(locale, 'phone.newCode'),
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: PaykColors.textSecondary),
                     ),
                     const SizedBox(height: 6),
@@ -408,7 +411,7 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: Text(
-                          _busy ? 'Проверка...' : 'Подтвердить смену',
+                          _busy ? tr(locale, 'phone.checking') : tr(locale, 'phone.confirm'),
                           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Manrope'),
                         ),
                       ),
@@ -421,8 +424,8 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                             : () => _requestCodes(currentPhone),
                         child: Text(
                           _secondsLeft > 0
-                              ? 'Повторный код через $_secondsLeft с'
-                              : 'Отправить коды ещё раз',
+                              ? tr(locale, 'phone.resendWait', {'s': '$_secondsLeft'})
+                              : tr(locale, 'phone.resend'),
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,

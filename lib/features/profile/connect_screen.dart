@@ -315,7 +315,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
                       const SizedBox(height: 8),
                       OutlinedButton(
                         onPressed: () => _load(announce: false),
-                        child: const Text('Повторить'),
+                        child: Text(tr(locale, 'common.retry')),
                       ),
                     ] else if (isLinked) ...[
                       const SizedBox(height: 16),

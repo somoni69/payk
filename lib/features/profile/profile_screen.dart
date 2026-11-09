@@ -111,7 +111,7 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.location_on_outlined,
                   title: tr(locale, 'profile.myStore'),
                   subtitle: account.store.isNotEmpty ? account.store : 'MSX Алмоси',
-                  onTap: () => _showStoreDialog(context, account),
+                  onTap: () => _showStoreDialog(context, account, locale),
                 ),
                 _ProfileMenuItem(
                   icon: Icons.confirmation_number_outlined,
@@ -138,7 +138,7 @@ class ProfileScreen extends ConsumerWidget {
                 _ProfileMenuItem(
                   icon: Icons.info_outline_rounded,
                   title: tr(locale, 'profile.aboutApp'),
-                  onTap: () => _showAboutDialog(context),
+                  onTap: () => _showAboutDialog(context, locale),
                 ),
                 _ProfileMenuItem(
                   icon: Icons.settings_outlined,
@@ -757,7 +757,7 @@ class _ProfileNotificationToggleCardState
   }
 }
 
-void _showStoreDialog(BuildContext context, Account account) {
+void _showStoreDialog(BuildContext context, Account account, String locale) {
   final storeName = account.store.isNotEmpty ? account.store : 'MSX Алмоси';
   showModalBottomSheet<void>(
     context: context,
@@ -808,8 +808,8 @@ void _showStoreDialog(BuildContext context, Account account) {
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Мағозаи асосии шумо дар экосистемаи ПАЙК.\nҲамаи кэшбэкҳо ва статусҳо дар ин ҷо фаъоланд.',
+            Text(
+              tr(locale, 'profile.storeAbout'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -829,7 +829,7 @@ void _showStoreDialog(BuildContext context, Account account) {
                   borderRadius: BorderRadius.circular(14),
                 ),
               ),
-              child: const Text('Фаҳмо'),
+              child: Text(tr(locale, 'profile.gotIt')),
             ),
           ],
         ),
@@ -976,7 +976,7 @@ void _showStoreContactDialog(
 // ДИАЛОГИ И МОДАЛКИ ДЛЯ ПУНКТОВ МЕНЮ
 // -----------------------------------------------------------------------------
 
-void _showAboutDialog(BuildContext context) {
+void _showAboutDialog(BuildContext context, String locale) {
   showModalBottomSheet<void>(
     context: context,
     useRootNavigator: true,
@@ -1060,8 +1060,8 @@ void _showAboutDialog(BuildContext context) {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Единая экосистема лояльности',
+                    Text(
+                      tr(locale, 'profile.aboutLead'),
                       style: TextStyle(
                         fontFamily: 'Manrope',
                         fontSize: 14,
@@ -1099,37 +1099,37 @@ void _showAboutDialog(BuildContext context) {
                 ),
                 child: Column(
                   children: [
-                    const _AboutInfoRow(
+                    _AboutInfoRow(
                       icon: Icons.verified_user_outlined,
-                      title: 'Разработчик',
-                      value: 'Экосистема Payk',
+                      title: tr(locale, 'profile.developer'),
+                      value: tr(locale, 'profile.developerValue'),
                     ),
                     const Divider(height: 1, indent: 52, color: PaykColors.border),
                     _AboutInfoRow(
                       icon: Icons.language_rounded,
-                      title: 'Официальный сайт',
+                      title: tr(locale, 'profile.site'),
                       value: 'payk.tj',
                       onTap: () {
                         Clipboard.setData(const ClipboardData(text: 'https://payk.tj'));
-                        showPaykMessage(context, 'Ссылка скопирована: https://payk.tj');
+                        showPaykMessage(context, tr(locale, 'profile.linkCopied', {'url': 'https://payk.tj'}));
                       },
                     ),
                     const Divider(height: 1, indent: 52, color: PaykColors.border),
                     _AboutInfoRow(
                       icon: Icons.description_outlined,
-                      title: 'Условия использования',
-                      value: 'Открыть',
+                      title: tr(locale, 'profile.terms'),
+                      value: tr(locale, 'profile.openLink'),
                       onTap: () {
-                        showPaykMessage(context, 'Пользовательское соглашение Payk');
+                        showPaykMessage(context, tr(locale, 'profile.termsHint'));
                       },
                     ),
                     const Divider(height: 1, indent: 52, color: PaykColors.border),
                     _AboutInfoRow(
                       icon: Icons.privacy_tip_outlined,
-                      title: 'Политика конфиденциальности',
-                      value: 'Открыть',
+                      title: tr(locale, 'profile.privacy'),
+                      value: tr(locale, 'profile.openLink'),
                       onTap: () {
-                        showPaykMessage(context, 'Политика обработки данных Payk');
+                        showPaykMessage(context, tr(locale, 'profile.privacyHint'));
                       },
                     ),
                   ],
@@ -1147,8 +1147,8 @@ void _showAboutDialog(BuildContext context) {
                   ),
                   elevation: 0,
                 ),
-                child: const Text(
-                  'Понятно',
+                child: Text(
+                  tr(locale, 'profile.gotIt'),
                   style: TextStyle(
                     fontFamily: 'Manrope',
                     fontSize: 15,
@@ -1341,11 +1341,11 @@ class ProfileDetailsScreen extends ConsumerWidget {
                 );
               }
             },
-            tooltip: 'Назад',
+            tooltip: tr(locale, 'common.back'),
           ),
         ),
-        title: const Text(
-          'Профиль',
+        title: Text(
+          tr(locale, 'profile.title'),
           style: TextStyle(
             color: PaykColors.textPrimary,
             fontSize: 18,
@@ -1358,7 +1358,7 @@ class ProfileDetailsScreen extends ConsumerWidget {
             scaleDown: PaykMotion.scaleIcon,
             child: IconButton(
               icon: const Icon(Icons.logout_rounded, color: PaykColors.textPrimary),
-              tooltip: 'Выйти',
+              tooltip: tr(locale, 'profile.logout'),
               onPressed: () {
                 HapticFeedback.lightImpact();
                 _confirmLogout(context, ref, locale);
@@ -1375,8 +1375,9 @@ class ProfileDetailsScreen extends ConsumerWidget {
         data: (account) {
           final member = account.member;
 
+          final bottomInset = MediaQuery.paddingOf(context).bottom;
           return ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            padding: EdgeInsets.fromLTRB(20, 12, 20, 96 + bottomInset),
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
@@ -1384,6 +1385,7 @@ class ProfileDetailsScreen extends ConsumerWidget {
               // 1. Карточка аватара
               _ProfileAvatarCard(
                 member: member,
+                locale: locale,
                 onAddImage: () => _pickAvatar(context, ref),
               ),
               const SizedBox(height: 14),
@@ -1391,6 +1393,7 @@ class ProfileDetailsScreen extends ConsumerWidget {
               // 2. Карточка «Пользователь»
               _UserInfoCard(
                 member: member,
+                locale: locale,
                 onEdit: () => _showEditProfileSheet(context, ref, member),
               ),
               const SizedBox(height: 14),
@@ -1398,7 +1401,8 @@ class ProfileDetailsScreen extends ConsumerWidget {
               // 3. Карточка «Контакты»
               _ContactsCard(
                 member: member,
-                onChangePassword: () => showPaykMessage(context, 'Вход осуществляется по коду из SMS'),
+                locale: locale,
+                onChangePassword: () => showPaykMessage(context, tr(locale, 'profile.passwordSms')),
               ),
               const SizedBox(height: 14),
 
@@ -1408,7 +1412,8 @@ class ProfileDetailsScreen extends ConsumerWidget {
 
               // 7. Карточка «Удаление аккаунта»
               _DeleteAccountCard(
-                onDelete: () => _confirmDeleteAccount(context, ref),
+                locale: locale,
+                onDelete: () => _confirmDeleteAccount(context, ref, locale),
               ),
               const SizedBox(height: 24),
             ],
@@ -1433,7 +1438,7 @@ Future<void> _pickAvatar(BuildContext context, WidgetRef ref) async {
     if (picked == null) return;
     await ref.read(loyaltyApiProvider).uploadAvatar(picked.path);
     ref.invalidate(meProvider);
-    if (context.mounted) showPaykMessage(context, 'Фото профиля обновлено');
+    if (context.mounted) showPaykMessage(context, tr(ref.read(localeProvider), 'profile.photoUpdated'));
   } catch (error) {
     if (context.mounted) showPaykMessage(context, errorText(error));
   }
@@ -1443,10 +1448,12 @@ Future<void> _pickAvatar(BuildContext context, WidgetRef ref) async {
 class _ProfileAvatarCard extends StatelessWidget {
   const _ProfileAvatarCard({
     required this.member,
+    required this.locale,
     required this.onAddImage,
   });
 
   final Member member;
+  final String locale;
   final VoidCallback onAddImage;
 
   @override
@@ -1466,8 +1473,8 @@ class _ProfileAvatarCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Изображение профиля',
+                Text(
+                  tr(locale, 'profile.image'),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -1477,8 +1484,8 @@ class _ProfileAvatarCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 GestureDetector(
                   onTap: onAddImage,
-                  child: const Text(
-                    'Добавить изображение',
+                  child: Text(
+                    tr(locale, 'profile.addImage'),
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -1499,16 +1506,18 @@ class _ProfileAvatarCard extends StatelessWidget {
 class _UserInfoCard extends StatelessWidget {
   const _UserInfoCard({
     required this.member,
+    required this.locale,
     required this.onEdit,
   });
 
   final Member member;
+  final String locale;
   final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
     final rawName = '${member.firstName} ${member.lastName}'.trim();
-    final fullName = rawName.isNotEmpty ? rawName : 'Не указано';
+    final fullName = rawName.isNotEmpty ? rawName : tr(locale, 'profile.notSet');
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1523,8 +1532,8 @@ class _UserInfoCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Пользователь',
+              Text(
+                tr(locale, 'profile.user'),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -1534,8 +1543,8 @@ class _UserInfoCard extends StatelessWidget {
               TextButton.icon(
                 onPressed: onEdit,
                 icon: const Icon(Icons.edit_outlined, size: 18, color: PaykColors.primary),
-                label: const Text(
-                  'Изменить',
+                label: Text(
+                  tr(locale, 'profile.change'),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -1552,18 +1561,18 @@ class _UserInfoCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _InfoRow(
-            label: 'Имя и фамилия',
+            label: tr(locale, 'profile.fullName'),
             value: fullName,
           ),
           const SizedBox(height: 8),
           _InfoRow(
-            label: 'Дата рождения',
-            value: _birthLabel(member.birthDate),
+            label: tr(locale, 'profile.birth'),
+            value: _birthLabel(member.birthDate, locale),
           ),
           const SizedBox(height: 8),
           _InfoRow(
-            label: 'Пол',
-            value: _genderLabel(member.gender),
+            label: tr(locale, 'profile.gender'),
+            value: _genderLabel(member.gender, locale),
           ),
         ],
       ),
@@ -1575,10 +1584,12 @@ class _UserInfoCard extends StatelessWidget {
 class _ContactsCard extends StatelessWidget {
   const _ContactsCard({
     required this.member,
+    required this.locale,
     required this.onChangePassword,
   });
 
   final Member member;
+  final String locale;
   final VoidCallback onChangePassword;
 
   @override
@@ -1596,8 +1607,8 @@ class _ContactsCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Контакты',
+              Text(
+                tr(locale, 'profile.contacts'),
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -1610,8 +1621,8 @@ class _ContactsCard extends StatelessWidget {
                   padding: EdgeInsets.zero,
                   visualDensity: VisualDensity.compact,
                 ),
-                child: const Text(
-                  'Сменить пароль',
+                child: Text(
+                  tr(locale, 'profile.changePassword'),
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -1623,7 +1634,7 @@ class _ContactsCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _InfoRow(
-            label: 'Номер телефона',
+            label: tr(locale, 'profile.phoneNumber'),
             value: formatPhone(member.phone),
           ),
           Align(
@@ -1637,10 +1648,10 @@ class _ContactsCard extends StatelessWidget {
                   fallback: () => const PhoneChangeScreen(),
                 );
               },
-              child: const Padding(
-                padding: EdgeInsets.only(top: 2, bottom: 2),
+              child: Padding(
+                padding: const EdgeInsets.only(top: 2, bottom: 2),
                 child: Text(
-                  'Сменить номер',
+                  tr(locale, 'profile.changePhone'),
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -1653,8 +1664,8 @@ class _ContactsCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           _InfoRow(
-            label: 'Электронная почта',
-            value: (member.email != null && member.email!.isNotEmpty) ? member.email! : 'Не указана',
+            label: tr(locale, 'profile.email'),
+            value: (member.email != null && member.email!.isNotEmpty) ? member.email! : tr(locale, 'profile.notSetDate'),
           ),
         ],
       ),
@@ -1707,6 +1718,7 @@ class _LoginMethodsCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
     final member = ref.watch(meProvider).asData?.value.member;
     final isTelegramLinked = member?.telegram ?? false;
 
@@ -1738,9 +1750,9 @@ class _LoginMethodsCard extends ConsumerWidget {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text(
-                        'Способы входа',
+                        tr(locale, 'profile.loginMethods'),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -1749,7 +1761,7 @@ class _LoginMethodsCard extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        'Посмотреть',
+                        tr(locale, 'profile.view'),
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -1782,8 +1794,9 @@ class _LoginMethodsCard extends ConsumerWidget {
 
 /// 7. Карточка «Удаление аккаунта»
 class _DeleteAccountCard extends StatelessWidget {
-  const _DeleteAccountCard({required this.onDelete});
+  const _DeleteAccountCard({required this.locale, required this.onDelete});
 
+  final String locale;
   final VoidCallback onDelete;
 
   @override
@@ -1798,8 +1811,8 @@ class _DeleteAccountCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Удаление аккаунта',
+          Text(
+            tr(locale, 'profile.deleteAccount'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -1807,8 +1820,8 @@ class _DeleteAccountCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Все бонусы будут удалены',
+          Text(
+            tr(locale, 'profile.deleteAccountHint'),
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w400,
@@ -1825,7 +1838,7 @@ class _DeleteAccountCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Text('Удалить'),
+            child: Text(tr(locale, 'profile.delete')),
           ),
         ],
       ),
@@ -1851,7 +1864,7 @@ Future<void> _showEditProfileSheet(BuildContext context, WidgetRef ref, Member m
   );
   if (saved == true && context.mounted) {
     ref.invalidate(meProvider);
-    showPaykMessage(context, 'Профиль обновлён');
+    showPaykMessage(context, tr(ref.read(localeProvider), 'profile.saved'));
   }
 }
 
@@ -1891,9 +1904,9 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
       initialDate: initial,
       firstDate: first,
       lastDate: last,
-      helpText: 'Дата рождения',
-      cancelText: 'Отмена',
-      confirmText: 'Готово',
+      helpText: tr(ref.read(localeProvider), 'profile.birth'),
+      cancelText: tr(ref.read(localeProvider), 'common.cancel'),
+      confirmText: tr(ref.read(localeProvider), 'common.done'),
     );
     if (picked != null && mounted) setState(() => _birth = picked);
   }
@@ -1902,7 +1915,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
     final firstName = _first.text.trim();
     final lastName = _last.text.trim();
     if (!_hasLetter(firstName) || !_hasLetter(lastName)) {
-      setState(() => _error = 'Напишите имя и фамилию');
+      setState(() => _error = tr(ref.read(localeProvider), 'profile.needName'));
       return;
     }
     setState(() {
@@ -1932,6 +1945,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final locale = ref.watch(localeProvider);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: bottom),
@@ -1954,13 +1968,13 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Изменить профиль',
+              Text(
+                tr(locale, 'profile.editTitle'),
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: PaykColors.textPrimary, letterSpacing: -0.3),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Имя, дата рождения и пол',
+              Text(
+                tr(locale, 'profile.editHint'),
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: PaykColors.textSecondary),
               ),
               const SizedBox(height: 18),
@@ -1969,7 +1983,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                 textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.next,
                 enabled: !_busy,
-                decoration: _fieldDecoration('Имя'),
+                decoration: _fieldDecoration(tr(locale, 'profile.firstName')),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -1977,30 +1991,30 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                 textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.done,
                 enabled: !_busy,
-                decoration: _fieldDecoration('Фамилия'),
+                decoration: _fieldDecoration(tr(locale, 'profile.lastName')),
               ),
               const SizedBox(height: 18),
-              const Text(
-                'Дата рождения',
+              Text(
+                tr(locale, 'profile.birth'),
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: PaykColors.textSecondary),
               ),
               const SizedBox(height: 8),
               _SheetTile(
                 icon: Icons.calendar_today_rounded,
-                title: _birth == null ? 'Не указана' : formatDate(_birth!),
-                subtitle: 'День, месяц и год',
+                title: _birth == null ? tr(locale, 'profile.notSetDate') : formatDate(_birth!),
+                subtitle: tr(locale, 'profile.birthHint'),
                 onTap: _busy ? null : _pickBirth,
                 trailing: _birth == null
                     ? const Icon(Icons.chevron_right_rounded, color: PaykColors.textSecondary)
                     : IconButton(
                         onPressed: _busy ? null : () => setState(() => _birth = null),
                         icon: const Icon(Icons.close_rounded, size: 18, color: PaykColors.textSecondary),
-                        tooltip: 'Убрать дату',
+                        tooltip: tr(locale, 'profile.clearDate'),
                       ),
               ),
               const SizedBox(height: 18),
-              const Text(
-                'Пол',
+              Text(
+                tr(locale, 'profile.gender'),
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: PaykColors.textSecondary),
               ),
               const SizedBox(height: 8),
@@ -2008,7 +2022,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                 children: [
                   Expanded(
                     child: _GenderChoice(
-                      label: 'Мужской',
+                      label: tr(locale, 'profile.male'),
                       selected: _gender == 'm',
                       onTap: _busy ? null : () => setState(() => _gender = _gender == 'm' ? '' : 'm'),
                     ),
@@ -2016,7 +2030,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: _GenderChoice(
-                      label: 'Женский',
+                      label: tr(locale, 'profile.female'),
                       selected: _gender == 'f',
                       onTap: _busy ? null : () => setState(() => _gender = _gender == 'f' ? '' : 'f'),
                     ),
@@ -2033,12 +2047,12 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: _busy ? null : _save,
-                child: Text(_busy ? 'Сохраняем…' : 'Сохранить'),
+                child: Text(_busy ? tr(locale, 'profile.saving') : tr(locale, 'profile.save')),
               ),
               Center(
                 child: TextButton(
                   onPressed: _busy ? null : () => Navigator.pop(context),
-                  child: const Text('Отмена'),
+                  child: Text(tr(locale, 'common.cancel')),
                 ),
               ),
             ],
@@ -2165,18 +2179,18 @@ DateTime _clampDate(DateTime value, DateTime first, DateTime last) {
   return value;
 }
 
-String _birthLabel(String? raw) {
-  if (raw == null || raw.isEmpty) return 'Не указана';
+String _birthLabel(String? raw, String locale) {
+  if (raw == null || raw.isEmpty) return tr(locale, 'profile.notSetDate');
   final parsed = DateTime.tryParse(raw);
   if (parsed == null) return raw;
   return formatDate(parsed);
 }
 
-String _genderLabel(String? raw) {
+String _genderLabel(String? raw, String locale) {
   return switch (raw) {
-    'm' => 'Мужской',
-    'f' => 'Женский',
-    _ => 'Не указан',
+    'm' => tr(locale, 'profile.male'),
+    'f' => tr(locale, 'profile.female'),
+    _ => tr(locale, 'profile.notSetGender'),
   };
 }
 
@@ -2184,17 +2198,17 @@ Future<void> _confirmLogout(BuildContext context, WidgetRef ref, String locale) 
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Выйти из аккаунта?'),
-      content: const Text('Вы будете перенаправлены на экраны заставки и авторизации.'),
+      title: Text(tr(locale, 'profile.logoutTitle')),
+      content: Text(tr(locale, 'profile.logoutText')),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Отмена'),
+          child: Text(tr(locale, 'common.cancel')),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, true),
           style: FilledButton.styleFrom(backgroundColor: PaykColors.bad),
-          child: const Text('Выйти'),
+          child: Text(tr(locale, 'profile.logout')),
         ),
       ],
     ),
@@ -2208,21 +2222,21 @@ Future<void> _confirmLogout(BuildContext context, WidgetRef ref, String locale) 
   }
 }
 
-Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
+Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref, String locale) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('Удалить аккаунт?'),
-      content: const Text('Все ваши накопленные бонусы, статус и история операций будут безвозвратно удалены. Вы уверены?'),
+      title: Text(tr(locale, 'profile.deleteTitle')),
+      content: Text(tr(locale, 'profile.deleteText')),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Отмена'),
+          child: Text(tr(locale, 'common.cancel')),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, true),
           style: FilledButton.styleFrom(backgroundColor: PaykColors.bad),
-          child: const Text('Удалить навсегда'),
+          child: Text(tr(locale, 'profile.deleteForever')),
         ),
       ],
     ),

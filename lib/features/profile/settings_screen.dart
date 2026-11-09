@@ -69,7 +69,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               HapticFeedback.lightImpact();
               Navigator.of(context).maybePop();
             },
-            tooltip: 'Назад',
+            tooltip: tr(locale, 'common.back'),
           ),
         ),
         title: Text(

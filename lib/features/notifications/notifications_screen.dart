@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
+import '../../core/i18n/locale_controller.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/screen_skeletons.dart';
@@ -29,6 +31,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final locale = ref.watch(localeProvider);
     final messagesAsync = ref.watch(messagesProvider);
 
     return Scaffold(
@@ -53,8 +56,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           ),
         ),
         centerTitle: true,
-        title: const Text(
-          'Уведомления',
+        title: Text(
+          tr(locale, 'home.notifications'),
           style: TextStyle(
             fontFamily: 'Manrope',
             fontSize: 18,

@@ -27,6 +27,7 @@ class Member {
   final bool coinRounding;
   final String referralCode;
   final String? email;
+
   /// `m` — мужской, `f` — женский.
   final String? gender;
   final String? avatarUrl;
@@ -179,8 +180,12 @@ class Account {
   final int messagesUnread;
 
   factory Account.fromJson(Map<String, dynamic> json) {
-    final program = json['program'] is Map ? asMap(json['program']) : const <String, dynamic>{};
-    final today = json['today'] is Map ? asMap(json['today']) : const <String, dynamic>{};
+    final program = json['program'] is Map
+        ? asMap(json['program'])
+        : const <String, dynamic>{};
+    final today = json['today'] is Map
+        ? asMap(json['today'])
+        : const <String, dynamic>{};
     final keep = json['keep'];
     final up = json['up'];
     final thresholds = json['thresholds'];
@@ -188,7 +193,9 @@ class Account {
       member: Member.fromJson(asMap(json['member'])),
       store: asString(program['store']),
       programEnabled: program['enabled'] == true,
-      tierCount: thresholds is List && thresholds.isNotEmpty ? thresholds.length + 1 : 5,
+      tierCount: thresholds is List && thresholds.isNotEmpty
+          ? thresholds.length + 1
+          : 5,
       messagesUnread: asInt(json['messages_unread']),
       wallet: Wallet(
         status: asInt(json['status']),
@@ -243,7 +250,9 @@ class HistoryEntry {
       createdAt: asDate(json['created_at']),
       billAmount: bill == null ? null : asMoneyOrNull(bill['amount']),
       mode: bill == null ? null : asStringOrNull(bill['mode']),
-      format: asStringOrNull(json['format']) ?? (bill == null ? null : asStringOrNull(bill['format'])),
+      format:
+          asStringOrNull(json['format']) ??
+          (bill == null ? null : asStringOrNull(bill['format'])),
       note: asStringOrNull(json['note']),
     );
   }
@@ -312,7 +321,9 @@ class FriendsInfo {
       countL2: asInt(json['count_l2']),
       total: asMoney(json['total']),
       month: asMoney(json['month']),
-      invitees: raw is List ? [for (final item in raw) Invitee.fromJson(asMap(item))] : const [],
+      invitees: raw is List
+          ? [for (final item in raw) Invitee.fromJson(asMap(item))]
+          : const [],
     );
   }
 }
@@ -430,7 +441,14 @@ class PhoneChangeStart {
 }
 
 class ClosedBill {
-  const ClosedBill({required this.id, required this.state, this.mode, this.earn, this.burn, this.amount});
+  const ClosedBill({
+    required this.id,
+    required this.state,
+    this.mode,
+    this.earn,
+    this.burn,
+    this.amount,
+  });
 
   final int id;
   final String state;
@@ -507,7 +525,11 @@ class ProgramInfo {
       title: asString(json['title']),
       store: asString(json['store']),
       enabled: json['enabled'] == true,
-      countries: countries is List ? [for (final item in countries) asString(item)].where((item) => item.isNotEmpty).toList() : const [],
+      countries: countries is List
+          ? [for (final item in countries) asString(item)]
+                .where((item) => item.isNotEmpty)
+                .toList()
+          : const [],
       birthYearMin: asInt(json['birth_year_min']),
       birthYearMax: asInt(json['birth_year_max']),
     );
@@ -521,7 +543,10 @@ class TierRule {
   final ProgramRates rates;
 
   factory TierRule.fromJson(Map<String, dynamic> json) {
-    return TierRule(level: asInt(json['status']), rates: ProgramRates.fromJson(json['rates']));
+    return TierRule(
+      level: asInt(json['status']),
+      rates: ProgramRates.fromJson(json['rates']),
+    );
   }
 }
 
@@ -547,10 +572,14 @@ class RulesInfo {
 
   factory RulesInfo.fromJson(Map<String, dynamic> json) {
     final statuses = json['statuses'];
-    final referral = json['referral'] is Map ? asMap(json['referral']) : const <String, dynamic>{};
+    final referral = json['referral'] is Map
+        ? asMap(json['referral'])
+        : const <String, dynamic>{};
     return RulesInfo(
       thresholds: asDoubleList(json['thresholds']),
-      statuses: statuses is List ? [for (final item in statuses) TierRule.fromJson(asMap(item))] : const [],
+      statuses: statuses is List
+          ? [for (final item in statuses) TierRule.fromJson(asMap(item))]
+          : const [],
       referralLevels: asDoubleList(referral['levels']),
       months: asInt(referral['months']),
       burnMin: asMoney(json['burn_min']),
@@ -570,9 +599,14 @@ class OtpChallenge {
 }
 
 class VerifyResult {
-  const VerifyResult.login(this.tokens) : registrationToken = null, phone = null;
+  const VerifyResult.login(this.tokens)
+    : registrationToken = null,
+      phone = null;
 
-  const VerifyResult.register({required this.registrationToken, required this.phone}) : tokens = null;
+  const VerifyResult.register({
+    required this.registrationToken,
+    required this.phone,
+  }) : tokens = null;
 
   final TokenPair? tokens;
   final String? registrationToken;
@@ -615,7 +649,9 @@ class RegisterInput {
       if (birthDate != null) 'birth_date': birthDate,
       'country': country,
       'email': (email == null || email!.isEmpty) ? null : email,
-      'referral_code': (referralCode == null || referralCode!.isEmpty) ? null : referralCode,
+      'referral_code': (referralCode == null || referralCode!.isEmpty)
+          ? null
+          : referralCode,
       'consent_pd': consentPd,
       'consent_messages': consentMessages,
       'locale': 'ru',
@@ -673,4 +709,123 @@ class TelegramLinks {
       linked: json['linked'] == true,
     );
   }
+}
+
+class ShowcaseContact {
+  const ShowcaseContact({required this.name, required this.phone});
+
+  final String name;
+  final String phone;
+
+  factory ShowcaseContact.fromJson(Map<String, dynamic> json) {
+    return ShowcaseContact(
+      name: asString(json['name']),
+      phone: asString(json['phone']),
+    );
+  }
+}
+
+/// Карточка рекламы PAYK: тексты на обоих языках, картинка владельца или 3D-иллюстрация.
+class ShowcaseCard {
+  const ShowcaseCard({
+    required this.id,
+    required this.titleTj,
+    required this.titleRu,
+    required this.textTj,
+    required this.textRu,
+    this.imageUrl,
+    this.imageW,
+    this.imageH,
+    required this.art,
+  });
+
+  final int id;
+  final String titleTj;
+  final String titleRu;
+  final String textTj;
+  final String textRu;
+  final String? imageUrl;
+  final int? imageW;
+  final int? imageH;
+  final String art;
+
+  String titleFor(String locale) => locale == 'ru' ? titleRu : titleTj;
+
+  String textFor(String locale) => locale == 'ru' ? textRu : textTj;
+
+  double get aspectRatio {
+    final w = imageW;
+    final h = imageH;
+    if (w == null || h == null || w <= 0 || h <= 0) return 2;
+    return w / h;
+  }
+
+  factory ShowcaseCard.fromJson(Map<String, dynamic> json) {
+    final art = asString(json['art']);
+    return ShowcaseCard(
+      id: asInt(json['id']),
+      titleTj: asString(json['title_tj']),
+      titleRu: asString(json['title_ru']),
+      textTj: asString(json['text_tj']),
+      textRu: asString(json['text_ru']),
+      imageUrl: asStringOrNull(json['image_url']),
+      imageW: _positiveInt(json['image_w']),
+      imageH: _positiveInt(json['image_h']),
+      art: art.isEmpty ? 'sparkles' : art,
+    );
+  }
+}
+
+class ShowcaseFeed {
+  const ShowcaseFeed({
+    required this.cards,
+    required this.leadSentToday,
+    required this.contact,
+  });
+
+  final List<ShowcaseCard> cards;
+  final bool leadSentToday;
+  final ShowcaseContact contact;
+
+  ShowcaseFeed copyWith({bool? leadSentToday}) {
+    return ShowcaseFeed(
+      cards: cards,
+      leadSentToday: leadSentToday ?? this.leadSentToday,
+      contact: contact,
+    );
+  }
+
+  factory ShowcaseFeed.fromJson(Map<String, dynamic> json) {
+    final raw = json['cards'];
+    final contact = json['contact'];
+    return ShowcaseFeed(
+      cards: raw is List
+          ? [for (final item in raw) ShowcaseCard.fromJson(asMap(item))]
+          : const [],
+      leadSentToday: json['lead_sent_today'] == true,
+      contact: contact is Map
+          ? ShowcaseContact.fromJson(asMap(contact))
+          : const ShowcaseContact(name: '', phone: ''),
+    );
+  }
+}
+
+class ShowcaseLeadResult {
+  const ShowcaseLeadResult(this.status);
+
+  final String status;
+
+  bool get sent => status == 'sent';
+
+  bool get already => status == 'already';
+
+  factory ShowcaseLeadResult.fromJson(Map<String, dynamic> json) {
+    return ShowcaseLeadResult(asString(json['status']));
+  }
+}
+
+int? _positiveInt(Object? value) {
+  final parsed = asIntOrNull(value);
+  if (parsed == null || parsed <= 0) return null;
+  return parsed;
 }

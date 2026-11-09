@@ -1,9 +1,11 @@
 import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../motion/payk_motion.dart';
 import '../theme/payk_colors.dart';
+import '../widgets/payk_mark.dart';
 import '../widgets/payk_nav_icons.dart';
 import 'liquid_glass_tokens.dart';
 
@@ -12,23 +14,25 @@ export '../widgets/payk_nav_icons.dart';
 /// Дескриптор вкладки Liquid Glass навигации
 class LiquidNavItem {
   const LiquidNavItem({
-    required this.type,
     required this.label,
+    this.type,
     this.icon,
-  });
+    this.center = false,
+  }) : assert(center || type != null);
 
-  final PaykNavIconType type;
+  final PaykNavIconType? type;
   final String label;
   final IconData? icon;
+  final bool center;
 }
 
 /// Суженная плавающая капсула навигации в архитектуре Liquid Glass (iOS 26+ / VisionOS).
 /// - Высота капсулы: 66.0 dp (прежний комфортный вертикальный размер).
-/// - Ширина капсулы: 300.0 dp (сужена по ширине с минимальными зазорами между иконками).
+/// - Ширина капсулы: 316.0 dp.
 /// - Скругление капсулы: 33.0 dp (stadium shape).
 /// - Зеркальная фаска: Specular Rim Border 1.2px.
 /// - Реальный оптический блур BackdropFilter (sigma 24.0).
-/// - Векторные иконки из Payk Ecosystem (House, TextSearch, HeartHandshake, Smile).
+/// - Векторные иконки из Payk Ecosystem и знак PAYK по центру («PAYK для бизнеса»).
 /// - Активная капля: pill 54x40 dp со скруглением 16 dp и зеркальным кантом.
 class LiquidGlassBottomBar extends StatelessWidget {
   const LiquidGlassBottomBar({
@@ -53,6 +57,7 @@ class LiquidGlassBottomBar extends StatelessWidget {
       icon: Icons.grid_view_rounded,
       label: 'Категории',
     ),
+    LiquidNavItem(center: true, label: 'PAYK для бизнеса'),
     LiquidNavItem(
       type: PaykNavIconType.friends,
       icon: Icons.people_alt_rounded,
@@ -66,7 +71,7 @@ class LiquidGlassBottomBar extends StatelessWidget {
   ];
 
   static const double barHeight = 66.0;
-  static const double barWidth = 300.0;
+  static const double barWidth = 316.0;
 
   void _handleTap(int index) {
     if (index != currentIndex) {
@@ -80,6 +85,8 @@ class LiquidGlassBottomBar extends StatelessWidget {
     final solid = LiquidGlassTokens.shouldReduceTransparency(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final bottomPadding = bottomInset > 0 ? bottomInset : 12.0;
+    final screen = MediaQuery.sizeOf(context).width;
+    final width = barWidth > screen - 16 ? screen - 16 : barWidth;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
@@ -93,7 +100,7 @@ class LiquidGlassBottomBar extends StatelessWidget {
         child: Padding(
           padding: EdgeInsets.only(bottom: bottomPadding),
           child: SizedBox(
-            width: barWidth,
+            width: width,
             height: barHeight,
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -192,40 +199,80 @@ class _LiquidBarItemWidget extends StatelessWidget {
                         color: Colors.white.withValues(alpha: 0.90),
                         width: 1.0,
                       )
-                    : Border.all(
-                        color: Colors.transparent,
-                        width: 1.0,
-                      ),
+                    : Border.all(color: Colors.transparent, width: 1.0),
               ),
               alignment: Alignment.center,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  AnimatedScale(
-                    scale: isSelected ? 1.0 : 0.94,
-                    duration: PaykMotion.duration(context, PaykMotion.fast),
-                    curve: PaykMotion.easeOut,
-                    child: PaykNavIcon(
-                      type: item.type,
-                      color: isSelected ? activeColor : inactiveColor,
-                      size: 26.0,
-                      strokeWidth: strokeWidth,
+              child: item.center
+                  ? const _PaykCenterMark()
+                  : Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        AnimatedScale(
+                          scale: isSelected ? 1.0 : 0.94,
+                          duration: PaykMotion.duration(
+                            context,
+                            PaykMotion.fast,
+                          ),
+                          curve: PaykMotion.easeOut,
+                          child: PaykNavIcon(
+                            type: item.type!,
+                            color: isSelected ? activeColor : inactiveColor,
+                            size: 26.0,
+                            strokeWidth: strokeWidth,
+                          ),
+                        ),
+                        if (item.icon != null)
+                          Opacity(
+                            opacity: 0.001,
+                            child: Icon(
+                              item.icon,
+                              size: 24,
+                              color: isSelected
+                                  ? PaykColors.primary
+                                  : PaykColors.textMuted,
+                            ),
+                          ),
+                      ],
                     ),
-                  ),
-                  if (item.icon != null)
-                    Opacity(
-                      opacity: 0.001,
-                      child: Icon(
-                        item.icon,
-                        size: 24,
-                        color: isSelected ? PaykColors.primary : PaykColors.textMuted,
-                      ),
-                    ),
-                ],
-              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PaykCenterMark extends StatelessWidget {
+  const _PaykCenterMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      width: 32,
+      height: 32,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 2,
+            top: 2,
+            child: ExcludeSemantics(child: PaykMark(size: 28)),
+          ),
+          Positioned(
+            right: -1,
+            top: -1,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Color(0xFF8B7FF8),
+                shape: BoxShape.circle,
+                border: Border.fromBorderSide(
+                  BorderSide(color: Colors.white, width: 1.6),
+                ),
+              ),
+              child: SizedBox(width: 8, height: 8),
+            ),
+          ),
+        ],
       ),
     );
   }

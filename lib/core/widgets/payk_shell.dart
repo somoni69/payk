@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../i18n/locale_controller.dart';
+import '../i18n/strings.dart';
 import '../liquid_glass/liquid_glass_bottom_bar.dart';
 import '../theme/payk_colors.dart';
 
@@ -22,6 +24,7 @@ class PaykShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final atHome = shell.currentIndex == 0;
+    final locale = ref.watch(localeProvider);
     return PopScope(
       canPop: atHome,
       onPopInvokedWithResult: (didPop, _) {
@@ -35,6 +38,29 @@ class PaykShell extends ConsumerWidget {
         bottomNavigationBar: LiquidGlassBottomBar(
           currentIndex: shell.currentIndex,
           onTap: _go,
+          items: [
+            LiquidNavItem(
+              type: PaykNavIconType.home,
+              icon: Icons.home_rounded,
+              label: tr(locale, 'nav.home'),
+            ),
+            LiquidNavItem(
+              type: PaykNavIconType.history,
+              icon: Icons.grid_view_rounded,
+              label: tr(locale, 'nav.categories'),
+            ),
+            LiquidNavItem(center: true, label: tr(locale, 'nav.payk')),
+            LiquidNavItem(
+              type: PaykNavIconType.friends,
+              icon: Icons.people_alt_rounded,
+              label: tr(locale, 'nav.friends'),
+            ),
+            LiquidNavItem(
+              type: PaykNavIconType.profile,
+              icon: Icons.person_rounded,
+              label: tr(locale, 'nav.profile'),
+            ),
+          ],
         ),
       ),
     );

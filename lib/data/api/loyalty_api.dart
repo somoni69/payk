@@ -38,7 +38,10 @@ class LoyaltyApi {
     if (json['status'] == 'register') {
       final token = asString(json['registration_token']);
       if (token.isEmpty) throw ApiException(0, 'Неожиданный ответ сервера');
-      return VerifyResult.register(registrationToken: token, phone: asStringOrNull(json['phone']));
+      return VerifyResult.register(
+        registrationToken: token,
+        phone: asStringOrNull(json['phone']),
+      );
     }
     return VerifyResult.login(TokenPair.fromJson(json));
   }
@@ -89,7 +92,11 @@ class LoyaltyApi {
   }
 
   Future<PendingCheck> choose(int id, Map<String, dynamic> body) async {
-    final json = await _client.send('/me/pending/$id', method: 'POST', body: body);
+    final json = await _client.send(
+      '/me/pending/$id',
+      method: 'POST',
+      body: body,
+    );
     return PendingCheck.fromJson(asMap(json));
   }
 
@@ -143,18 +150,36 @@ class LoyaltyApi {
     return PhoneChangeStart.fromJson(json);
   }
 
-  Future<Member> phoneConfirm(String phone, String codeOld, String codeNew) async {
+  Future<Member> phoneConfirm(
+    String phone,
+    String codeOld,
+    String codeNew,
+  ) async {
     final json = asMap(
       await _client.send(
         '/me/phone/confirm',
         method: 'POST',
-        body: {
-          'phone': phone,
-          'code_old': codeOld,
-          'code_new': codeNew,
-        },
+        body: {'phone': phone, 'code_old': codeOld, 'code_new': codeNew},
       ),
     );
     return Member.fromJson(json);
+  }
+
+  Future<ShowcaseFeed> showcase() async {
+    final json = await _client.send('/showcase');
+    return ShowcaseFeed.fromJson(asMap(json));
+  }
+
+  /// «Хочу PAYK»: sent — заявка ушла; already — сегодня с этого номера заявка уже есть.
+  Future<ShowcaseLeadResult> showcaseLead(int? cardId, String company) async {
+    final trimmed = company.trim();
+    final json = asMap(
+      await _client.send(
+        '/showcase/lead',
+        method: 'POST',
+        body: {'card_id': cardId, 'company': trimmed.isEmpty ? null : trimmed},
+      ),
+    );
+    return ShowcaseLeadResult.fromJson(json);
   }
 }

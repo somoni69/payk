@@ -50,7 +50,9 @@ class _HomeHeaderBones extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: PaykColors.headerGradient,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(PaykRadius.header)),
+        borderRadius: BorderRadius.vertical(
+          bottom: Radius.circular(PaykRadius.header),
+        ),
       ),
       child: const SafeArea(
         bottom: false,
@@ -60,22 +62,52 @@ class _HomeHeaderBones extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  SkeletonBox(width: 48, height: 48, circle: true, color: _headerBone, highlight: _headerShine),
+                  SkeletonBox(
+                    width: 48,
+                    height: 48,
+                    circle: true,
+                    color: _headerBone,
+                    highlight: _headerShine,
+                  ),
                   SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SkeletonBox(width: 148, height: 14, radius: 6, color: _headerBone, highlight: _headerShine),
+                        SkeletonBox(
+                          width: 148,
+                          height: 14,
+                          radius: 6,
+                          color: _headerBone,
+                          highlight: _headerShine,
+                        ),
                         SizedBox(height: 6),
-                        SkeletonBox(width: 96, height: 11, radius: 6, color: _headerBone, highlight: _headerShine),
+                        SkeletonBox(
+                          width: 96,
+                          height: 11,
+                          radius: 6,
+                          color: _headerBone,
+                          highlight: _headerShine,
+                        ),
                       ],
                     ),
                   ),
                   SizedBox(width: 8),
-                  SkeletonBox(width: 42, height: 42, radius: 14, color: _headerBone, highlight: _headerShine),
+                  SkeletonBox(
+                    width: 42,
+                    height: 42,
+                    radius: 14,
+                    color: _headerBone,
+                    highlight: _headerShine,
+                  ),
                   SizedBox(width: 8),
-                  SkeletonBox(width: 42, height: 42, radius: 14, color: _headerBone, highlight: _headerShine),
+                  SkeletonBox(
+                    width: 42,
+                    height: 42,
+                    radius: 14,
+                    color: _headerBone,
+                    highlight: _headerShine,
+                  ),
                 ],
               ),
               SizedBox(height: 16),
@@ -84,11 +116,29 @@ class _HomeHeaderBones extends StatelessWidget {
                 physics: NeverScrollableScrollPhysics(),
                 child: Row(
                   children: [
-                    SkeletonBox(width: 108, height: 114, radius: 18, color: _headerBone, highlight: _headerShine),
+                    SkeletonBox(
+                      width: 108,
+                      height: 114,
+                      radius: 18,
+                      color: _headerBone,
+                      highlight: _headerShine,
+                    ),
                     SizedBox(width: 10),
-                    SkeletonBox(width: 108, height: 114, radius: 18, color: _headerBone, highlight: _headerShine),
+                    SkeletonBox(
+                      width: 108,
+                      height: 114,
+                      radius: 18,
+                      color: _headerBone,
+                      highlight: _headerShine,
+                    ),
                     SizedBox(width: 10),
-                    SkeletonBox(width: 108, height: 114, radius: 18, color: _headerBone, highlight: _headerShine),
+                    SkeletonBox(
+                      width: 108,
+                      height: 114,
+                      radius: 18,
+                      color: _headerBone,
+                      highlight: _headerShine,
+                    ),
                   ],
                 ),
               ),
@@ -117,23 +167,65 @@ class _LoyaltyCardBones extends StatelessWidget {
         children: [
           Row(
             children: [
-              SkeletonBox(width: 18, height: 22, radius: 4, color: _headerBone, highlight: _headerShine),
+              SkeletonBox(
+                width: 18,
+                height: 22,
+                radius: 4,
+                color: _headerBone,
+                highlight: _headerShine,
+              ),
               SizedBox(width: 8),
-              SkeletonBox(width: 64, height: 14, radius: 6, color: _headerBone, highlight: _headerShine),
+              SkeletonBox(
+                width: 64,
+                height: 14,
+                radius: 6,
+                color: _headerBone,
+                highlight: _headerShine,
+              ),
               Spacer(),
-              SkeletonBox(width: 92, height: 30, radius: 16, color: _headerBone, highlight: _headerShine),
+              SkeletonBox(
+                width: 92,
+                height: 30,
+                radius: 16,
+                color: _headerBone,
+                highlight: _headerShine,
+              ),
             ],
           ),
           Spacer(),
-          SkeletonBox(width: 72, height: 12, radius: 6, color: _headerBone, highlight: _headerShine),
+          SkeletonBox(
+            width: 72,
+            height: 12,
+            radius: 6,
+            color: _headerBone,
+            highlight: _headerShine,
+          ),
           SizedBox(height: 8),
-          SkeletonBox(width: 168, height: 32, radius: 8, color: _headerBone, highlight: _headerShine),
+          SkeletonBox(
+            width: 168,
+            height: 32,
+            radius: 8,
+            color: _headerBone,
+            highlight: _headerShine,
+          ),
           Spacer(),
           Row(
             children: [
-              SkeletonBox(width: 132, height: 12, radius: 6, color: _headerBone, highlight: _headerShine),
+              SkeletonBox(
+                width: 132,
+                height: 12,
+                radius: 6,
+                color: _headerBone,
+                highlight: _headerShine,
+              ),
               Spacer(),
-              SkeletonBox(width: 72, height: 12, radius: 6, color: _headerBone, highlight: _headerShine),
+              SkeletonBox(
+                width: 72,
+                height: 12,
+                radius: 6,
+                color: _headerBone,
+                highlight: _headerShine,
+              ),
             ],
           ),
         ],
@@ -481,7 +573,11 @@ class HistorySkeleton extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 104),
         physics: const ClampingScrollPhysics(),
         children: [
-          const SkeletonBox(height: 52, radius: 16, color: PaykColors.surfaceNested),
+          const SkeletonBox(
+            height: 52,
+            radius: 16,
+            color: PaykColors.surfaceNested,
+          ),
           const SizedBox(height: 20),
           const SkeletonBox(width: 140, height: 18, radius: 6),
           const SizedBox(height: 12),
@@ -578,7 +674,7 @@ class _HistoryRowBone extends StatelessWidget {
   }
 }
 
-/// Друзья: баннер с кодом, сетка статистики, список.
+/// Друзья: шапка на всю ширину, код, сетка, список. Цвет шапки уходит выше экрана.
 class FriendsSkeleton extends StatelessWidget {
   const FriendsSkeleton({super.key});
 
@@ -586,88 +682,243 @@ class FriendsSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ShimmerSweep(
       child: ListView(
-        padding: EdgeInsets.fromLTRB(16, 4, 16, 104),
-        physics: ClampingScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 104),
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         children: [
-          SkeletonCard(
-            padding: EdgeInsets.zero,
-            radius: 20,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          _BannerBones(
+            lines: const [
+              _HeaderLine(widthFactor: 0.92, height: 26),
+              _HeaderLine(widthFactor: 0.62, height: 26, gap: 8),
+              _HeaderLine(widthFactor: 0.84, height: 13, gap: 12),
+              _HeaderLine(widthFactor: 0.7, height: 13, gap: 6),
+              _HeaderLine(widthFactor: 0.48, height: 13, gap: 6),
+            ],
+            footer: Padding(
+              padding: EdgeInsets.fromLTRB(20, 18, 20, 22),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonBox(width: 140, height: 13, radius: 6),
+                  SizedBox(height: 8),
+                  SkeletonBox(height: 52, radius: 14),
+                  SizedBox(height: 14),
+                  SkeletonBox(height: 50, radius: 14),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: 16),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
               children: [
-                ColoredBox(
-                  color: Color(0xFF4C40E6),
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(20, 20, 20, 20),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SkeletonBox(width: 160, height: 18, radius: 6, color: _headerBone, highlight: _headerShine),
-                              SizedBox(height: 10),
-                              SkeletonBox(height: 12, radius: 6, color: _headerBone, highlight: _headerShine),
-                              SizedBox(height: 6),
-                              SkeletonBox(width: 120, height: 12, radius: 6, color: _headerBone, highlight: _headerShine),
-                            ],
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        SkeletonBox(width: 72, height: 72, radius: 16, color: _headerBone, highlight: _headerShine),
-                      ],
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(20, 16, 20, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SkeletonBox(width: 110, height: 12, radius: 6),
-                      SizedBox(height: 8),
-                      SkeletonBox(height: 52, radius: 14),
-                      SizedBox(height: 14),
-                      SkeletonBox(height: 50, radius: 14),
-                    ],
-                  ),
-                ),
+                Expanded(child: _StatBone()),
+                SizedBox(width: 10),
+                Expanded(child: _StatBone()),
               ],
             ),
           ),
-          SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _StatBone()),
-              SizedBox(width: 10),
-              Expanded(child: _StatBone()),
-            ],
-          ),
           SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(child: _StatBone()),
-              SizedBox(width: 10),
-              Expanded(child: _StatBone()),
-            ],
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(child: _StatBone()),
+                SizedBox(width: 10),
+                Expanded(child: _StatBone()),
+              ],
+            ),
           ),
           SizedBox(height: 18),
-          SkeletonBox(width: 150, height: 18, radius: 6),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: SkeletonBox(width: 160, height: 18, radius: 6),
+          ),
           SizedBox(height: 10),
-          SkeletonCard(
-            padding: EdgeInsets.zero,
-            radius: 20,
-            child: Column(
-              children: [
-                _HistoryRowBone(),
-                Divider(height: 1, color: PaykColors.border),
-                _HistoryRowBone(),
-                Divider(height: 1, color: PaykColors.border),
-                _HistoryRowBone(),
-              ],
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: SkeletonCard(
+              padding: EdgeInsets.zero,
+              radius: 20,
+              child: Column(
+                children: [
+                  _HistoryRowBone(),
+                  Divider(height: 1, color: PaykColors.border),
+                  _HistoryRowBone(),
+                  Divider(height: 1, color: PaykColors.border),
+                  _HistoryRowBone(),
+                ],
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// PAYK для бизнеса: та же шапка, что у «Друзей», и две карточки предложений.
+class PaykBusinessSkeleton extends StatelessWidget {
+  const PaykBusinessSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ShimmerSweep(
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: 104),
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        children: [
+          _BannerBones(
+            showMark: false,
+            lines: const [
+              _HeaderLine(widthFactor: 0.72, height: 26),
+              _HeaderLine(widthFactor: 0.48, height: 26, gap: 8),
+              _HeaderLine(widthFactor: 0.92, height: 13, gap: 12),
+              _HeaderLine(widthFactor: 0.7, height: 13, gap: 6),
+            ],
+          ),
+          SizedBox(height: 16),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: _OfferBone(),
+          ),
+          SizedBox(height: 16),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: _OfferBone(),
+          ),
+          SizedBox(height: 16),
+          Center(child: SkeletonBox(width: 180, height: 12, radius: 6)),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderLine {
+  const _HeaderLine({
+    required this.widthFactor,
+    required this.height,
+    this.gap = 0,
+  });
+
+  final double widthFactor;
+  final double height;
+  final double gap;
+}
+
+/// Фиолетовая шапка на всю ширину. Полоса сверху держит цвет, когда список тянут вниз.
+class _BannerBones extends StatelessWidget {
+  const _BannerBones({required this.lines, this.footer, this.showMark = true});
+
+  final List<_HeaderLine> lines;
+  final Widget? footer;
+  final bool showMark;
+
+  @override
+  Widget build(BuildContext context) {
+    final header = Stack(
+      clipBehavior: Clip.none,
+      children: [
+        const Positioned(
+          top: -1000,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: DecoratedBox(
+            decoration: BoxDecoration(gradient: PaykColors.headerGradient),
+          ),
+        ),
+        SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 16, 16, 28),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final line in lines) ...[
+                        if (line.gap > 0) SizedBox(height: line.gap),
+                        FractionallySizedBox(
+                          widthFactor: line.widthFactor,
+                          alignment: Alignment.centerLeft,
+                          child: SkeletonBox(
+                            height: line.height,
+                            radius: 8,
+                            color: _headerBone,
+                            highlight: _headerShine,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (showMark) ...[
+                  const SizedBox(width: 12),
+                  const SkeletonBox(
+                    width: 104,
+                    height: 104,
+                    radius: 28,
+                    color: _headerBone,
+                    highlight: _headerShine,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final tail = footer;
+    if (tail == null) return header;
+    return Container(
+      decoration: const BoxDecoration(
+        color: PaykColors.sheet,
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [header, tail],
+      ),
+    );
+  }
+}
+
+class _OfferBone extends StatelessWidget {
+  const _OfferBone();
+
+  @override
+  Widget build(BuildContext context) {
+    return const ClipRRect(
+      borderRadius: BorderRadius.all(Radius.circular(20)),
+      child: SkeletonCard(
+        padding: EdgeInsets.zero,
+        radius: 20,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 168, child: SkeletonBox(height: 168, radius: 0)),
+            Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonBox(width: 190, height: 18, radius: 6),
+                  SizedBox(height: 8),
+                  SkeletonBox(height: 13, radius: 6),
+                  SizedBox(height: 6),
+                  SkeletonBox(width: 160, height: 13, radius: 6),
+                  SizedBox(height: 16),
+                  SkeletonBox(height: 50, radius: 14),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

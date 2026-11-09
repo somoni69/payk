@@ -20,4 +20,11 @@ class ApiConfig {
     final trimmed = root.replaceAll(RegExp(r'/+$'), '');
     return '$trimmed/loyalty-app';
   }
+
+  /// Путь от корня API (`/loyalty-app/...`) или уже полный адрес — в URL картинки.
+  static String url(String path) {
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    final trimmed = root.replaceAll(RegExp(r'/+$'), '');
+    return path.startsWith('/') ? '$trimmed$path' : '$trimmed/$path';
+  }
 }

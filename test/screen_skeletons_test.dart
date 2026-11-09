@@ -35,6 +35,7 @@ void main() {
     await pumpSkeleton(tester, const ProfileDetailsSkeleton());
     await pumpSkeleton(tester, const HistorySkeleton());
     await pumpSkeleton(tester, const FriendsSkeleton());
+    await pumpSkeleton(tester, const PaykBusinessSkeleton());
     await pumpSkeleton(tester, const NotificationsSkeleton());
     await pumpSkeleton(tester, const RulesSkeleton());
     await pumpSkeleton(tester, const SettingsSkeleton());
@@ -45,7 +46,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('home stays on its skeleton while the account loads', (tester) async {
+  testWidgets('home stays on its skeleton while the account loads', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -55,10 +58,7 @@ void main() {
         overrides: [
           meProvider.overrideWith((ref) => Completer<Account>().future),
         ],
-        child: MaterialApp(
-          theme: PaykTheme.light,
-          home: const HomeScreen(),
-        ),
+        child: MaterialApp(theme: PaykTheme.light, home: const HomeScreen()),
       ),
     );
     await tester.pump();

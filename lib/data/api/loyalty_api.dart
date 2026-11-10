@@ -69,6 +69,10 @@ class LoyaltyApi {
     return Account.fromJson(asMap(json));
   }
 
+  Future<void> deleteAccount() async {
+    await _client.send('/me', method: 'DELETE');
+  }
+
   Future<void> updateMe(Map<String, dynamic> patch) async {
     await _client.send('/me', method: 'PATCH', body: patch);
   }

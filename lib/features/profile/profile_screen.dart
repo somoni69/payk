@@ -2295,9 +2295,13 @@ Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref, String l
   );
 
   if (confirmed == true) {
-    await ref.read(sessionProvider.notifier).logout();
-    ref.invalidate(meProvider);
-    ref.invalidate(historyProvider);
-    ref.invalidate(friendsProvider);
+    try {
+      await ref.read(sessionProvider.notifier).deleteAccount();
+      ref.invalidate(meProvider);
+      ref.invalidate(historyProvider);
+      ref.invalidate(friendsProvider);
+    } catch (error) {
+      if (context.mounted) showPaykMessage(context, errorText(error));
+    }
   }
 }

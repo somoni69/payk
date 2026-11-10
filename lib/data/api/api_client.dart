@@ -65,6 +65,8 @@ class ApiClient {
           response = _http.post(uri, headers: headers, body: encoded);
         case 'PATCH':
           response = _http.patch(uri, headers: headers, body: encoded);
+        case 'DELETE':
+          response = _http.delete(uri, headers: headers, body: encoded);
         default:
           response = _http.get(uri, headers: headers);
       }

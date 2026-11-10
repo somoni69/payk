@@ -164,6 +164,11 @@ class SessionController extends Notifier<SessionState> {
     unawaited(logout());
   }
 
+  Future<void> deleteAccount() async {
+    await _api.deleteAccount();
+    await logout();
+  }
+
   Future<void> logout() async {
     state = const SessionState(ready: true, onboardingSeen: false);
     final prefs = await SharedPreferences.getInstance();

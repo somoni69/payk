@@ -19,6 +19,7 @@ import '../code/client_code_screen.dart';
 import '../friends/friends_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../profile/profile_screen.dart';
+import '../sizes/sizes_screen.dart';
 import 'home_header.dart';
 import 'loyalty_card.dart';
 
@@ -144,6 +145,20 @@ class _HomeBody extends ConsumerWidget {
                 'cl': formatMoney(gift.minClothes.toDouble(), decimals: false),
                 'sm': formatMoney(gift.minSupermarket.toDouble(), decimals: false),
               }),
+            ),
+          ),
+
+        if (!member.isSizesComplete)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _Notice(
+              title: tr(locale, 'sizes.bannerTitle'),
+              body: tr(locale, 'sizes.bannerBody'),
+              onTap: () => PaykMotion.push<void>(
+                context,
+                '/sizes',
+                fallback: () => const SizesScreen(),
+              ),
             ),
           ),
 
@@ -671,14 +686,15 @@ class _StoreRateCard extends StatelessWidget {
 
 /// Системное уведомление / баннер
 class _Notice extends StatelessWidget {
-  const _Notice({required this.title, required this.body});
+  const _Notice({required this.title, required this.body, this.onTap});
 
   final String title;
   final String body;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final card = Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -711,6 +727,9 @@ class _Notice extends StatelessWidget {
         ],
       ),
     );
+    final tap = onTap;
+    if (tap == null) return card;
+    return PaykPressable(onTap: tap, child: card);
   }
 }
 

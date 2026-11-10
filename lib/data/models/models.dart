@@ -16,6 +16,9 @@ class Member {
     this.messages = false,
     this.coinRounding = true,
     this.telegram = false,
+    this.shoeSize,
+    this.pantsSize,
+    this.topSize,
   });
 
   final String firstName;
@@ -34,6 +37,16 @@ class Member {
   final bool messages;
   final bool telegram;
 
+  /// Размер обуви, брюк и верха. Пусто — клиент ещё не указал.
+  final String? shoeSize;
+  final String? pantsSize;
+  final String? topSize;
+
+  bool get isSizesComplete {
+    bool filled(String? value) => value != null && value.trim().isNotEmpty;
+    return filled(shoeSize) && filled(pantsSize) && filled(topSize);
+  }
+
   factory Member.fromJson(Map<String, dynamic> json) {
     return Member(
       firstName: asString(json['first_name']),
@@ -49,6 +62,9 @@ class Member {
       messages: json['messages'] == true,
       coinRounding: json['coin_rounding'] != false,
       telegram: json['telegram'] == true,
+      shoeSize: asStringOrNull(json['shoe_size']),
+      pantsSize: asStringOrNull(json['pants_size']),
+      topSize: asStringOrNull(json['top_size']),
     );
   }
 }
@@ -822,6 +838,87 @@ class ShowcaseLeadResult {
   factory ShowcaseLeadResult.fromJson(Map<String, dynamic> json) {
     return ShowcaseLeadResult(asString(json['status']));
   }
+}
+
+/// Персональное предложение по размеру: остаток со сроком или новая партия.
+class SizeOffer {
+  SizeOffer({
+    required this.id,
+    required this.type,
+    required this.category,
+    required this.title,
+    required this.description,
+    required this.size,
+    this.imageUrl,
+    this.originalPrice,
+    this.discountPrice,
+    this.expiresAt,
+    this.serverNow,
+    this.promoCode,
+    this.claimed = false,
+    DateTime? fetchedAt,
+  }) : fetchedAt = fetchedAt ?? DateTime.now();
+
+  final int id;
+  final String type;
+  final String category;
+  final String title;
+  final String description;
+  final String size;
+  final String? imageUrl;
+  final double? originalPrice;
+  final double? discountPrice;
+  final DateTime? expiresAt;
+
+  /// Часы сервера в момент ответа. Обратный отсчёт считаем от них.
+  final DateTime? serverNow;
+  final String? promoCode;
+  final bool claimed;
+  final DateTime fetchedAt;
+
+  bool get flash => type == 'FLASH_SALE';
+
+  Duration remainingAt(DateTime now) {
+    final deadline = expiresAt;
+    if (deadline == null) return Duration.zero;
+    final base = serverNow ?? fetchedAt;
+    final left = deadline.difference(base.add(now.difference(fetchedAt)));
+    if (left.isNegative) return Duration.zero;
+    return left;
+  }
+
+  factory SizeOffer.fromJson(Map<String, dynamic> json) {
+    return SizeOffer(
+      id: asInt(json['id']),
+      type: asString(json['type']),
+      category: asString(json['category']),
+      title: asString(json['title']),
+      description: asString(json['description']),
+      size: asString(json['size']),
+      imageUrl: asStringOrNull(json['image_url']),
+      originalPrice: asMoneyOrNull(json['original_price']),
+      discountPrice: asMoneyOrNull(json['discount_price']),
+      expiresAt: _dateOrNull(json['expires_at']),
+      serverNow: _dateOrNull(json['server_now']),
+      promoCode: asStringOrNull(json['promo_code']),
+      claimed: json['claimed'] == true,
+    );
+  }
+}
+
+/// `47:59:12` — часы не сбрасываются после суток, срок акции доходит до двух дней.
+String formatOfferCountdown(Duration value) {
+  final seconds = value.inSeconds;
+  final hours = seconds ~/ 3600;
+  final minutes = (seconds % 3600) ~/ 60;
+  final rest = seconds % 60;
+  String two(int number) => number.toString().padLeft(2, '0');
+  return '${two(hours)}:${two(minutes)}:${two(rest)}';
+}
+
+DateTime? _dateOrNull(Object? value) {
+  if (value is! String || value.isEmpty) return null;
+  return DateTime.parse(value).toLocal();
 }
 
 int? _positiveInt(Object? value) {

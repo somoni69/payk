@@ -20,11 +20,22 @@ import '../../data/models/models.dart';
 import '../../data/providers.dart';
 import '../friends/friends_screen.dart';
 import '../rules/rules_screen.dart';
+import '../sizes/size_offers_screen.dart';
+import '../sizes/sizes_screen.dart';
 import 'connect_screen.dart';
 import 'phone_change_screen.dart';
 import 'settings_screen.dart';
 
 export 'settings_screen.dart';
+
+String _sizesLine(Member member, String locale) {
+  final parts = [member.shoeSize, member.pantsSize, member.topSize]
+      .whereType<String>()
+      .where((value) => value.trim().isNotEmpty)
+      .toList();
+  if (parts.isEmpty) return tr(locale, 'sizes.missing');
+  return parts.join(' · ');
+}
 
 // =============================================================================
 // 1. ОСНОВНОЙ ЭКРАН ПРОФИЛЯ ПАЙК
@@ -112,6 +123,31 @@ class ProfileScreen extends ConsumerWidget {
                   title: tr(locale, 'profile.myStore'),
                   subtitle: account.store.isNotEmpty ? account.store : 'MSX Алмоси',
                   onTap: () => _showStoreDialog(context, account, locale),
+                ),
+                _ProfileMenuItem(
+                  icon: Icons.straighten_rounded,
+                  title: tr(locale, 'sizes.title'),
+                  subtitle: _sizesLine(member, locale),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    PaykMotion.push<void>(
+                      context,
+                      '/sizes',
+                      fallback: () => const SizesScreen(),
+                    );
+                  },
+                ),
+                _ProfileMenuItem(
+                  icon: Icons.local_offer_outlined,
+                  title: tr(locale, 'sizes.offers'),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    PaykMotion.push<void>(
+                      context,
+                      '/size-offers',
+                      fallback: () => const SizeOffersScreen(),
+                    );
+                  },
                 ),
                 _ProfileMenuItem(
                   icon: Icons.confirmation_number_outlined,

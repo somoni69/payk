@@ -73,6 +73,35 @@ class LoyaltyApi {
     await _client.send('/me', method: 'PATCH', body: patch);
   }
 
+  /// Размеры обуви, брюк и верха. null снимает значение.
+  Future<void> updateSizes({
+    String? shoe,
+    String? pants,
+    String? top,
+  }) async {
+    await _client.send(
+      '/me/sizes',
+      method: 'PATCH',
+      body: {
+        'shoe_size': shoe,
+        'pants_size': pants,
+        'top_size': top,
+      },
+    );
+  }
+
+  Future<List<SizeOffer>> sizeOffers() async {
+    final json = asMap(await _client.send('/me/size-offers'));
+    final raw = json['items'];
+    if (raw is! List) return const [];
+    return [for (final item in raw) SizeOffer.fromJson(asMap(item))];
+  }
+
+  Future<SizeOffer> claimSizeOffer(int id) async {
+    final json = await _client.send('/me/size-offers/$id/claim', method: 'POST');
+    return SizeOffer.fromJson(asMap(json));
+  }
+
   Future<void> uploadAvatar(String filePath) async {
     await _client.upload('/me/avatar', filePath);
   }

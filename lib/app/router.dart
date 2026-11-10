@@ -20,6 +20,8 @@ import '../features/profile/phone_change_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/rules/rules_screen.dart';
 import '../features/showcase/payk_business_screen.dart';
+import '../features/sizes/size_offers_screen.dart';
+import '../features/sizes/sizes_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
@@ -157,6 +159,16 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/profile/settings',
         redirect: (context, state) => '/settings',
+      ),
+      GoRoute(
+        path: '/sizes',
+        pageBuilder: (context, state) =>
+            PaykMotion.buildPage(state: state, child: const SizesScreen()),
+      ),
+      GoRoute(
+        path: '/size-offers',
+        pageBuilder: (context, state) =>
+            PaykMotion.buildPage(state: state, child: const SizeOffersScreen()),
       ),
       GoRoute(
         path: '/notifications',

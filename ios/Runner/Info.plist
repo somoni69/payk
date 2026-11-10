@@ -68,6 +68,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>Камера используется для создания фото профиля и сканирования QR-кодов.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

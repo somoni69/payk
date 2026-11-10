@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "713617302599",
+    "project_id": "payk-app-loyalty",
+    "storage_bucket": "payk-app-loyalty.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:713617302599:android:d0a937d92c5e78a706bd62",
+        "android_client_info": {
+          "package_name": "app.payk.payk"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAp7DnTXTJVdLc1cNA9Pjy2nhQNaR2yzU4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

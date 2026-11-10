@@ -4,15 +4,59 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/i18n/locale_controller.dart';
+import '../core/notifications/push_notification_service.dart';
 import '../core/theme/payk_colors.dart';
 import '../core/theme/payk_theme.dart';
+import '../data/providers.dart';
 import 'router.dart';
 
-class PaykApp extends ConsumerWidget {
+class PaykApp extends ConsumerStatefulWidget {
   const PaykApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PaykApp> createState() => _PaykAppState();
+}
+
+class _PaykAppState extends ConsumerState<PaykApp> {
+  @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _initNotifications();
+      });
+    }
+  }
+
+  void _initNotifications() {
+    final router = ref.read(routerProvider);
+    ref.read(pushNotificationServiceProvider).initialize(
+      onNotificationTap: (route) {
+        if (mounted) {
+          router.push(route);
+        }
+      },
+      onTokenUpdate: (token) async {
+        try {
+          if (ref.read(sessionProvider).loggedIn) {
+            await ref.read(loyaltyApiProvider).updateMe({'fcm_token': token});
+          }
+        } catch (_) {}
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(sessionProvider, (prev, next) {
+      if ((prev == null || !prev.loggedIn) && next.loggedIn) {
+        final token = ref.read(pushNotificationServiceProvider).fcmToken;
+        if (token != null) {
+          ref.read(loyaltyApiProvider).updateMe({'fcm_token': token}).ignore();
+        }
+      }
+    });
+
     final router = ref.watch(routerProvider);
     return MaterialApp.router(
       title: 'Payk',

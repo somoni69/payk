@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-import '../../core/format.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
@@ -10,7 +9,7 @@ import '../../data/models/models.dart';
 
 /// Горизонтальный ряд карточек быстрого доступа в стиле UDC:
 /// 1. «QR-код» — интерактивный QR для кассы
-/// 2. «Мои компании» — стопка монет, баланс бонусов
+/// 2. «Мои размеры» — подсказка заполнить размеры и переход к ним
 /// 3. «Мои сертификаты» — билет со звездой, сертификаты
 class QuickActionCards extends StatelessWidget {
   const QuickActionCards({
@@ -18,14 +17,14 @@ class QuickActionCards extends StatelessWidget {
     required this.account,
     required this.locale,
     required this.onOpenCode,
-    required this.onOpenCompanies,
+    required this.onOpenSizes,
     required this.onOpenCertificates,
   });
 
   final Account account;
   final String locale;
   final VoidCallback onOpenCode;
-  final VoidCallback onOpenCompanies;
+  final VoidCallback onOpenSizes;
   final VoidCallback onOpenCertificates;
 
   @override
@@ -111,41 +110,49 @@ class QuickActionCards extends StatelessWidget {
           ),
           const SizedBox(width: 10),
 
-          // 2. Карточка «Мои компании»
+          // 2. Карточка «Мои размеры» — тот же размер, что у соседних.
+          // Подсказка только пока клиент не заполнил размеры.
           _QuickActionTile(
             width: 138,
             height: 114,
-            onTap: onOpenCompanies,
-            semanticsLabel: tr(locale, 'home.companies'),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const _CoinsIllustration(),
-                const SizedBox(height: 5),
-                Text(
-                  tr(locale, 'home.companies'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: PaykColors.textPrimary,
-                    letterSpacing: -0.2,
+            onTap: onOpenSizes,
+            semanticsLabel: tr(locale, 'sizes.title'),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const _CoinsIllustration(),
+                  const SizedBox(height: 5),
+                  Text(
+                    tr(locale, 'sizes.title'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: PaykColors.textPrimary,
+                      letterSpacing: -0.2,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${formatNumber(wallet.balance, decimals: false)} смн',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: PaykColors.textSecondary,
-                  ),
-                ),
-              ],
+                  if (member.isSizesComplete) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      _sizeLine(member),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: PaykColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 10),
@@ -191,6 +198,13 @@ class QuickActionCards extends StatelessWidget {
       ),
     );
   }
+}
+
+String _sizeLine(Member member) {
+  return [member.shoeSize, member.pantsSize, member.topSize]
+      .whereType<String>()
+      .where((value) => value.trim().isNotEmpty)
+      .join(' · ');
 }
 
 class _QuickActionTile extends StatelessWidget {

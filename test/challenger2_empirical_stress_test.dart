@@ -201,17 +201,15 @@ void main() {
       await tester.pumpWidget(wrapWithScope(const HomeScreen()));
       await tester.pumpAndSettle();
 
-      // 1. Tap "Мои компании" -> bottom sheet opens with balance and partners
-      await tester.tap(find.text('Мои компании'));
+      // 1. Tap "Мои размеры" -> экран размеров
+      await tester.tap(find.text('Мои размеры'));
       await tester.pumpAndSettle();
-      expect(find.text('Бонусный баланс'), findsOneWidget);
-      expect(find.text('750 смн'), findsOneWidget);
-      expect(find.text('Партнёры программы:'), findsOneWidget);
+      expect(find.text('Обувь'), findsOneWidget);
+      expect(find.text('Сохранить'), findsOneWidget);
 
-      // Close bottom sheet
-      await tester.tap(find.byIcon(Icons.close_rounded).last);
+      Navigator.of(tester.element(find.text('Обувь'))).pop();
       await tester.pumpAndSettle();
-      expect(find.text('Бонусный баланс'), findsNothing);
+      expect(find.text('Обувь'), findsNothing);
 
       // 2. Tap "Мои сертификаты" -> bottom sheet opens
       await tester.tap(find.text('Мои сертификаты'));

@@ -300,7 +300,7 @@ void main() {
               account: mockAccount,
               locale: 'ru',
               onOpenCode: () => codeTapped = true,
-              onOpenCompanies: () => companiesTapped = true,
+              onOpenSizes: () => companiesTapped = true,
               onOpenCertificates: () => certsTapped = true,
             ),
           ),
@@ -314,8 +314,8 @@ void main() {
       await tester.tap(qrCard);
       expect(codeTapped, isTrue);
 
-      // Tap Мои компании
-      final companiesCard = find.text('Мои компании');
+      // Tap Мои размеры
+      final companiesCard = find.text('Мои размеры');
       expect(companiesCard, findsOneWidget);
       await tester.tap(companiesCard);
       expect(companiesTapped, isTrue);
@@ -327,7 +327,7 @@ void main() {
       expect(certsTapped, isTrue);
     });
 
-    testWidgets('2.3 Full Home Screen modal interactivity: Мои компании & Мои сертификаты', (tester) async {
+    testWidgets('2.3 Full Home Screen modal interactivity: Мои размеры & Мои сертификаты', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -335,21 +335,17 @@ void main() {
       await tester.pumpWidget(wrapWithProviders(const HomeScreen()));
       await tester.pumpAndSettle();
 
-      // Tap Мои компании -> Modal bottom sheet appears
-      await tester.tap(find.text('Мои компании'));
+      // Tap Мои размеры -> экран размеров
+      await tester.tap(find.text('Мои размеры'));
       await tester.pumpAndSettle();
 
-      // Verify modal content
-      expect(find.text('Бонусный баланс'), findsOneWidget);
-      expect(find.text('Партнёры программы:'), findsOneWidget);
-      expect(find.text('750 смн'), findsOneWidget);
+      expect(find.text('Обувь'), findsOneWidget);
+      expect(find.text('Сохранить'), findsOneWidget);
 
-      // Close modal
-      await tester.tap(find.byIcon(Icons.close_rounded).last);
+      Navigator.of(tester.element(find.text('Обувь'))).pop();
       await tester.pumpAndSettle();
 
-      // Modal closed
-      expect(find.text('Бонусный баланс'), findsNothing);
+      expect(find.text('Обувь'), findsNothing);
 
       // Tap Мои сертификаты -> Modal bottom sheet appears
       await tester.tap(find.text('Мои сертификаты'));

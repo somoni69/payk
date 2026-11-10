@@ -28,7 +28,7 @@ import 'loyalty_card.dart';
 /// - Круглый аватар пользователя 48x48 dp с рамкой.
 /// - Персонализированное приветствие «Привет, [Имя]!» и подзаголовок «С возвращением!».
 /// - Полупрозрачные кнопки QR-сканера и уведомлений (колокольчик).
-/// - Карточки быстрого доступа: «QR-код», «Мои компании», «Мои сертификаты».
+/// - Карточки быстрого доступа: «QR-код», «Мои размеры», «Мои сертификаты».
 /// - Корректная интеграция с Riverpod (`meProvider`, `messagesProvider`, баланс, сессия).
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -92,10 +92,10 @@ class _HomeBody extends ConsumerWidget {
         HomeHeader(
           account: account,
           locale: locale,
-          onProfileTap: () => PaykMotion.go(
+          onProfileTap: () => PaykMotion.push<void>(
             context,
-            '/profile',
-            fallback: () => const ProfileScreen(),
+            '/profile/details',
+            fallback: () => const ProfileDetailsScreen(),
           ),
           onScannerTap: () => PaykMotion.push<void>(
             context,
@@ -108,7 +108,11 @@ class _HomeBody extends ConsumerWidget {
             '/code',
             fallback: () => const ClientCodeScreen(),
           ),
-          onCompaniesTap: () => _openCompaniesModal(context, account, locale),
+          onSizesTap: () => PaykMotion.push<void>(
+            context,
+            '/sizes',
+            fallback: () => const SizesScreen(),
+          ),
           onCertificatesTap: () => _openCertificatesModal(context, account, locale),
         ),
 
@@ -145,20 +149,6 @@ class _HomeBody extends ConsumerWidget {
                 'cl': formatMoney(gift.minClothes.toDouble(), decimals: false),
                 'sm': formatMoney(gift.minSupermarket.toDouble(), decimals: false),
               }),
-            ),
-          ),
-
-        if (!member.isSizesComplete)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _Notice(
-              title: tr(locale, 'sizes.bannerTitle'),
-              body: tr(locale, 'sizes.bannerBody'),
-              onTap: () => PaykMotion.push<void>(
-                context,
-                '/sizes',
-                fallback: () => const SizesScreen(),
-              ),
             ),
           ),
 
@@ -751,204 +741,6 @@ void _openMessages(BuildContext context, WidgetRef ref, String locale) {
   ).then((_) {
     ref.invalidate(meProvider);
   });
-}
-
-/// Модальный лист «Мои компании» с информацией о балансе и партнерских сетях
-void _openCompaniesModal(BuildContext context, Account account, String locale) {
-  showModalBottomSheet<void>(
-    context: context,
-    useRootNavigator: true,
-    isScrollControlled: true,
-    backgroundColor: PaykColors.canvas,
-    sheetAnimationStyle: PaykMotion.sheetAnimationStyle,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
-    builder: (context) {
-      final wallet = account.wallet;
-      return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: PaykColors.border,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    tr(locale, 'home.companies'),
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: PaykColors.textPrimary,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: PaykColors.tile,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: PaykColors.border),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: const BoxDecoration(
-                        color: PaykColors.activePill,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.account_balance_wallet_rounded,
-                        color: PaykColors.primary,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            tr(locale, 'home.bonusBalance'),
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: PaykColors.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${formatNumber(wallet.balance)} смн',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: PaykColors.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                tr(locale, 'home.partners'),
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: PaykColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              _CompanyListTile(
-                name: account.store.isNotEmpty ? account.store : 'Payk Ecosystem',
-                category: tr(locale, 'home.mainNetwork'),
-                status: tr(locale, 'home.networkActive'),
-              ),
-              const SizedBox(height: 8),
-              _CompanyListTile(
-                name: 'ELITESTORE',
-                category: tr(locale, 'home.clothesShoes'),
-                status: tr(locale, 'home.cashbackUpTo', {'pct': '10%'}),
-              ),
-              const SizedBox(height: 8),
-              _CompanyListTile(
-                name: 'A-99',
-                category: tr(locale, 'format.SM'),
-                status: tr(locale, 'home.cashbackUpTo', {'pct': '7%'}),
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
-
-class _CompanyListTile extends StatelessWidget {
-  const _CompanyListTile({
-    required this.name,
-    required this.category,
-    required this.status,
-  });
-
-  final String name;
-  final String category;
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: PaykColors.border),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                  color: PaykColors.textPrimary,
-                ),
-              ),
-              Text(
-                category,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: PaykColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: PaykColors.activePill,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Text(
-              status,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: PaykColors.primary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 /// Модальный лист «Мои сертификаты»

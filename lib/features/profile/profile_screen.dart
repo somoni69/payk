@@ -2235,18 +2235,34 @@ Future<void> _confirmLogout(BuildContext context, WidgetRef ref, String locale) 
     context: context,
     builder: (context) => AlertDialog(
       title: Text(tr(locale, 'profile.logoutTitle')),
-      content: Text(tr(locale, 'profile.logoutText')),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: Text(tr(locale, 'common.cancel')),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: FilledButton.styleFrom(backgroundColor: PaykColors.bad),
-          child: Text(tr(locale, 'profile.logout')),
-        ),
-      ],
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(tr(locale, 'profile.logoutText')),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, false),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(46),
+              backgroundColor: PaykColors.tile,
+              foregroundColor: PaykColors.textPrimary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text(tr(locale, 'common.cancel')),
+          ),
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(46),
+              backgroundColor: PaykColors.bad,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text(tr(locale, 'profile.logout')),
+          ),
+        ],
+      ),
     ),
   );
 

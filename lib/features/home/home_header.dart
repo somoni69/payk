@@ -24,7 +24,7 @@ class HomeHeader extends StatelessWidget {
     required this.onNotificationsTap,
     required this.onProfileTap,
     required this.onCodeTap,
-    required this.onCompaniesTap,
+    required this.onSizesTap,
     required this.onCertificatesTap,
   });
 
@@ -34,7 +34,7 @@ class HomeHeader extends StatelessWidget {
   final VoidCallback onNotificationsTap;
   final VoidCallback onProfileTap;
   final VoidCallback onCodeTap;
-  final VoidCallback onCompaniesTap;
+  final VoidCallback onSizesTap;
   final VoidCallback onCertificatesTap;
 
   @override
@@ -140,7 +140,7 @@ class HomeHeader extends StatelessWidget {
                 account: account,
                 locale: locale,
                 onOpenCode: onCodeTap,
-                onOpenCompanies: onCompaniesTap,
+                onOpenSizes: onSizesTap,
                 onOpenCertificates: onCertificatesTap,
               ),
               const SizedBox(height: 18),

@@ -377,7 +377,7 @@ void main() {
       expect(find.byType(AlertDialog), findsOneWidget);
       expect(find.text('Удалить аккаунт?'), findsOneWidget);
       expect(
-        find.text('Все ваши накопленные бонусы, статус и история операций будут безвозвратно удалены. Вы уверены?'),
+        find.text('Личные данные будут удалены, а бонусы списаны. Записи об операциях сохранятся. Продолжить?'),
         findsOneWidget,
       );
 
@@ -544,6 +544,11 @@ class _TestSessionController extends SessionController {
         accessToken: 'valid_access_token',
         refreshToken: 'valid_refresh_token',
       );
+
+  @override
+  Future<void> deleteAccount() async {
+    await logout();
+  }
 
   @override
   Future<void> logout() async {

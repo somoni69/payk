@@ -51,7 +51,9 @@ class SessionState {
       accessToken: accessToken ?? this.accessToken,
       refreshToken: refreshToken ?? this.refreshToken,
       pendingPhone: clearPhone ? null : (pendingPhone ?? this.pendingPhone),
-      registrationToken: clearRegistration ? null : (registrationToken ?? this.registrationToken),
+      registrationToken: clearRegistration
+          ? null
+          : (registrationToken ?? this.registrationToken),
       onboardingSeen: onboardingSeen ?? this.onboardingSeen,
       ready: ready ?? this.ready,
     );
@@ -101,13 +103,20 @@ class SessionController extends Notifier<SessionState> {
     var refresh = await _secureRead(_refreshKey);
     final legacyAccess = prefs.getString(_accessKey);
     final legacyRefresh = prefs.getString(_refreshKey);
-    if ((access == null || access.isEmpty) && legacyAccess != null && legacyAccess.isNotEmpty) {
+    if ((access == null || access.isEmpty) &&
+        legacyAccess != null &&
+        legacyAccess.isNotEmpty) {
       access = legacyAccess;
     }
-    if ((refresh == null || refresh.isEmpty) && legacyRefresh != null && legacyRefresh.isNotEmpty) {
+    if ((refresh == null || refresh.isEmpty) &&
+        legacyRefresh != null &&
+        legacyRefresh.isNotEmpty) {
       refresh = legacyRefresh;
     }
-    if (access == null || access.isEmpty || refresh == null || refresh.isEmpty) {
+    if (access == null ||
+        access.isEmpty ||
+        refresh == null ||
+        refresh.isEmpty) {
       return null;
     }
     if (legacyAccess != null || legacyRefresh != null) {
@@ -180,11 +189,16 @@ class SessionController extends Notifier<SessionState> {
   }
 
   Future<void> setCoinRounding(bool value) async {
-    await _api.updateMe({'coin_rounding': value});
+    await _api.updateMe({'auto_round': value});
+  }
+
+  Future<void> setPurchaseNotify(bool value) async {
+    await _api.updateMe({'purchase_notify': value});
   }
 
   void applyTokens(String accessToken, String refreshToken) {
-    if (state.accessToken == accessToken && state.refreshToken == refreshToken) return;
+    if (state.accessToken == accessToken && state.refreshToken == refreshToken)
+      return;
     state = state.copyWith(
       ready: true,
       accessToken: accessToken,
@@ -277,7 +291,9 @@ Future<void> _secureDelete(String key) async {
   } catch (_) {}
 }
 
-final sessionProvider = NotifierProvider<SessionController, SessionState>(SessionController.new);
+final sessionProvider = NotifierProvider<SessionController, SessionState>(
+  SessionController.new,
+);
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final client = ApiClient(
@@ -285,7 +301,11 @@ final apiClientProvider = Provider<ApiClient>((ref) {
       final session = ref.read(sessionProvider);
       final access = session.accessToken;
       final refresh = session.refreshToken;
-      if (access == null || access.isEmpty || refresh == null || refresh.isEmpty) return null;
+      if (access == null ||
+          access.isEmpty ||
+          refresh == null ||
+          refresh.isEmpty)
+        return null;
       return TokenPair(accessToken: access, refreshToken: refresh);
     },
     writeTokens: (accessToken, refreshToken) {
@@ -298,4 +318,6 @@ final apiClientProvider = Provider<ApiClient>((ref) {
   return client;
 });
 
-final loyaltyApiProvider = Provider<LoyaltyApi>((ref) => LoyaltyApi(ref.watch(apiClientProvider)));
+final loyaltyApiProvider = Provider<LoyaltyApi>(
+  (ref) => LoyaltyApi(ref.watch(apiClientProvider)),
+);

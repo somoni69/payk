@@ -75,117 +75,132 @@ void main() {
         meProvider.overrideWith((ref) => mockAccount),
         loyaltyApiProvider.overrideWithValue(_FakeLoyaltyApi()),
       ],
-      child: MaterialApp(
-        theme: PaykTheme.light,
-        home: const ProfileScreen(),
-      ),
+      child: MaterialApp(theme: PaykTheme.light, home: const ProfileScreen()),
     );
   }
 
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, (call) async {
-      return null;
-    });
+          return null;
+        });
   });
 
   group('Profile Screen Mockup Widgets (Tajik UI)', () {
-    testWidgets('Renders all requested widgets matching design screenshot and loyalty-app', (tester) async {
-      tester.view.physicalSize = const Size(1080, 4000);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'Renders all requested widgets matching design screenshot and loyalty-app',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 4000);
+        tester.view.devicePixelRatio = 2.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(createWidget(locale: 'tj'));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(createWidget(locale: 'tj'));
+        await tester.pumpAndSettle();
 
-      // 1. Верхний виджет профиля пользователя
-      expect(find.text('Фарзод Сомони'), findsOneWidget);
-      expect(find.text('Профил'), findsOneWidget);
-      expect(find.text('ФС'), findsOneWidget);
+        // 1. Верхний виджет профиля пользователя
+        expect(find.text('Фарзод Сомони'), findsOneWidget);
+        expect(find.text('Профил'), findsOneWidget);
+        expect(find.text('ФС'), findsOneWidget);
 
-      // 2. Карточка «Тарзҳои воридшавӣ» и «Дидан»
-      expect(find.text('Тарзҳои воридшавӣ'), findsOneWidget);
-      expect(find.text('Дидан'), findsOneWidget);
+        // 2. Карточка «Тарзҳои воридшавӣ» и «Дидан»
+        expect(find.text('Тарзҳои воридшавӣ'), findsOneWidget);
+        expect(find.text('Дидан'), findsOneWidget);
 
-      // Иконки SMS и Telegram
-      expect(find.byIcon(Icons.chat_bubble_outline_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.send_rounded), findsOneWidget);
+        // Иконки SMS и Telegram
+        expect(find.byIcon(Icons.chat_bubble_outline_rounded), findsOneWidget);
+        expect(find.byIcon(Icons.send_rounded), findsOneWidget);
 
-      // Галочка зеленая на SMS и плюс на Telegram (потому что telegram: false)
-      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.add_rounded), findsOneWidget);
+        // Галочка зеленая на SMS и плюс на Telegram (потому что telegram: false)
+        expect(find.byIcon(Icons.check_rounded), findsOneWidget);
+        expect(find.byIcon(Icons.add_rounded), findsOneWidget);
 
-      // 3. Баннер «Статусҳои ПАЙК» (первый слайд скроллящейся карусели)
-      expect(find.text('Статусҳои ПАЙК'), findsOneWidget);
-      expect(find.text('Бештар харид кунед — кэшбэк то 20%'), findsOneWidget);
+        // 3. Баннер «Статусҳои ПАЙК» (первый слайд скроллящейся карусели)
+        expect(find.text('Статусҳои ПАЙК'), findsOneWidget);
+        expect(find.text('Бештар харид кунед — кэшбэк то 20%'), findsOneWidget);
 
-      // Проверяем скролл ко второму слайду («Клуби дӯстон»)
-      await tester.drag(find.byType(PageView), const Offset(-400, 0));
-      await tester.pumpAndSettle();
+        // Проверяем скролл ко второму слайду («Клуби дӯстон»)
+        await tester.drag(find.byType(PageView), const Offset(-400, 0));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Клуби дӯстон'), findsOneWidget);
-      expect(find.text('Аз ҳар хариди дӯстони даъваткарда 1%'), findsOneWidget);
+        expect(find.text('Клуби дӯстон'), findsOneWidget);
+        expect(
+          find.text('Аз ҳар хариди дӯстони даъваткарда 1%'),
+          findsOneWidget,
+        );
 
-      // 4. Пункты меню
-      expect(find.text('Мағозаи ман'), findsOneWidget);
-      expect(find.text('MSX Алмоси'), findsOneWidget);
-      expect(find.byIcon(Icons.location_on_outlined), findsOneWidget);
+        // 4. Пункты меню
+        expect(find.text('Мағозаи ман'), findsOneWidget);
+        expect(find.text('MSX Алмоси'), findsOneWidget);
+        expect(find.byIcon(Icons.location_on_outlined), findsOneWidget);
 
-      expect(find.text('Паёмҳо'), findsNothing);
-      expect(find.text('Харидҳои ман'), findsNothing);
-      expect(find.text('Таърихи амалиётҳо'), findsNothing);
+        expect(find.text('Паёмҳо'), findsNothing);
+        expect(find.text('Харидҳои ман'), findsNothing);
+        expect(find.text('Таърихи амалиётҳо'), findsNothing);
 
-      expect(find.text('Статусҳо ва қоидаҳо'), findsOneWidget);
-      expect(find.byIcon(Icons.confirmation_number_outlined), findsOneWidget);
+        expect(find.text('Статусҳо ва қоидаҳо'), findsOneWidget);
+        expect(find.byIcon(Icons.confirmation_number_outlined), findsOneWidget);
 
-      expect(find.text('Алоқа бо мағоза'), findsOneWidget);
-      expect(find.text('WhatsApp'), findsOneWidget);
-      expect(find.byIcon(Icons.help_outline_rounded), findsOneWidget);
+        expect(find.text('Алоқа бо мағоза'), findsOneWidget);
+        expect(find.text('WhatsApp'), findsOneWidget);
+        expect(find.byIcon(Icons.help_outline_rounded), findsOneWidget);
 
-      expect(find.text('Дар бораи барнома'), findsOneWidget);
-      expect(find.byIcon(Icons.info_outline_rounded), findsOneWidget);
+        expect(find.text('Дар бораи барнома'), findsOneWidget);
+        expect(find.byIcon(Icons.info_outline_rounded), findsOneWidget);
 
-      expect(find.text('Танзимот'), findsOneWidget);
-      expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+        expect(find.text('Танзимот'), findsOneWidget);
+        expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
 
-      // 5. Нижняя плитка уведомлений (Switch)
-      expect(find.text('Кэшбэк ва статусро аз даст надиҳед — огоҳиномаҳоро фаъол кунед'), findsOneWidget);
-      expect(find.byType(Switch), findsOneWidget);
-    });
+        // 5. Нижняя плитка уведомлений (Switch)
+        expect(
+          find.text(
+            'Кэшбэк ва статусро аз даст надиҳед — огоҳиномаҳоро фаъол кунед',
+          ),
+          findsOneWidget,
+        );
+        expect(find.byType(Switch), findsOneWidget);
+      },
+    );
 
-    testWidgets('Tapping on top profile user card navigates to ProfileDetailsScreen', (tester) async {
-      tester.view.physicalSize = const Size(1080, 4000);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'Tapping on top profile user card navigates to ProfileDetailsScreen',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 4000);
+        tester.view.devicePixelRatio = 2.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(createWidget(locale: 'tj'));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(createWidget(locale: 'tj'));
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Фарзод Сомони'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Фарзод Сомони'));
+        await tester.pumpAndSettle();
 
-      expect(find.byType(ProfileDetailsScreen), findsOneWidget);
-    });
+        expect(find.byType(ProfileDetailsScreen), findsOneWidget);
+      },
+    );
 
-    testWidgets('Tapping on Танзимот navigates to SettingsScreen with language and notifications', (tester) async {
-      tester.view.physicalSize = const Size(1080, 4000);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'Tapping on Танзимот navigates to SettingsScreen with language and notifications',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 4000);
+        tester.view.devicePixelRatio = 2.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      await tester.pumpWidget(createWidget(locale: 'tj'));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(createWidget(locale: 'tj'));
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Танзимот'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Танзимот'));
+        await tester.pumpAndSettle();
 
-      expect(find.byType(SettingsScreen), findsOneWidget);
-      expect(find.text('Забон'), findsOneWidget);
-      expect(find.text('Огоҳиномаҳо'), findsOneWidget);
-      expect(find.byType(Switch), findsOneWidget);
-      expect(find.byIcon(Icons.logout_rounded), findsNothing);
-      expect(find.text('Баромадан'), findsNothing);
-      expect(find.text('Выйти'), findsNothing);
-    });
+        expect(find.byType(SettingsScreen), findsOneWidget);
+        expect(find.text('Забон'), findsOneWidget);
+        expect(find.text('Огоҳиномаҳо'), findsOneWidget);
+        expect(find.text('Харидҳо'), findsOneWidget);
+        expect(find.byType(Switch), findsNWidgets(3));
+        expect(find.byIcon(Icons.logout_rounded), findsNothing);
+        expect(find.text('Баромадан'), findsNothing);
+        expect(find.text('Выйти'), findsNothing);
+      },
+    );
 
     testWidgets('Tapping on Дидан navigates to ConnectScreen', (tester) async {
       tester.view.physicalSize = const Size(1080, 4000);
@@ -215,11 +230,16 @@ void main() {
       await tester.tap(find.text('Мағозаи ман'));
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Мағозаи асосии шумо дар экосистемаи ПАЙК'), findsOneWidget);
+      expect(
+        find.textContaining('Мағозаи асосии шумо дар экосистемаи ПАЙК'),
+        findsOneWidget,
+      );
       expect(find.text('Фаҳмо'), findsOneWidget);
     });
 
-    testWidgets('Tapping on Алоқа бо мағоза opens contact modal', (tester) async {
+    testWidgets('Tapping on Алоқа бо мағоза opens contact modal', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 4000);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -230,7 +250,10 @@ void main() {
       await tester.tap(find.text('Алоқа бо мағоза'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Алоқа бо мағоза'), findsNWidgets(2)); // Menu item + modal header
+      expect(
+        find.text('Алоқа бо мағоза'),
+        findsNWidgets(2),
+      ); // Menu item + modal header
       expect(find.text('WhatsApp · MSX Алмоси'), findsOneWidget);
       expect(find.textContaining('+992 55 551 82 20'), findsNWidgets(2));
     });

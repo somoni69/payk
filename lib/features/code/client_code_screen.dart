@@ -5,9 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-import '../../core/format.dart';
 import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
+import '../../core/payment_choice.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/message.dart';
@@ -37,6 +37,8 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen> {
   var _codeLoading = true;
   var _refreshing = false;
   PendingCheck? _pending;
+  DateTime _fetchedAt = DateTime.now();
+  var _paymentHidden = false;
   var _seenClosed = false;
   int? _closedId;
 
@@ -102,14 +104,20 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen> {
     try {
       final snapshot = await ref.read(loyaltyApiProvider).pending();
       if (!mounted) return;
-      setState(() => _pending = snapshot.pending);
-      _noteClosed(snapshot.lastClosed);
+      final previous = _pending;
+      setState(() {
+        final next = snapshot.pending;
+        if (next?.id != _pending?.id) _paymentHidden = false;
+        _pending = next;
+        _fetchedAt = DateTime.now();
+      });
+      _noteClosed(snapshot.lastClosed, previous);
     } catch (_) {
       // Следующий опрос повторит запрос. Код кассы при этом остаётся на экране.
     }
   }
 
-  void _noteClosed(ClosedBill? closed) {
+  void _noteClosed(ClosedBill? closed, PendingCheck? previous) {
     if (!_seenClosed) {
       _seenClosed = true;
       _closedId = closed?.id;
@@ -118,31 +126,74 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen> {
     if (closed == null || closed.id == _closedId) return;
     _closedId = closed.id;
     if (!mounted) return;
-    if (closed.state == 'cancelled') {
-      showPaykMessage(context, 'Чек отменён');
-      return;
-    }
-    final burn = closed.burn ?? 0;
-    final earn = closed.earn ?? 0;
-    if (burn > 0 && earn > 0) {
-      showPaykMessage(context, 'Покупка записана: ${formatMoney(burn)} бонусами, кешбэк +${formatMoney(earn)}');
-    } else if (burn > 0) {
-      showPaykMessage(context, 'Покупка записана: ${formatMoney(burn)} оплачено бонусами');
-    } else if (earn > 0) {
-      showPaykMessage(context, 'Покупка записана: +${formatMoney(earn)} кэшбэк');
-    } else {
-      showPaykMessage(context, 'Покупка записана');
-    }
+    if (!shouldAnnounceClose(closed: closed, previous: previous)) return;
+    showPaykMessage(context, closedCheckText(ref.read(localeProvider), closed));
     ref.invalidate(meProvider);
     ref.invalidate(historyProvider);
     ref.invalidate(friendsProvider);
+  }
+
+  Widget _paymentChild(String locale) {
+    final check = _pending;
+    if (check == null || !needsChoice(check)) {
+      return const SizedBox.shrink(key: ValueKey('no_pending'));
+    }
+    if (_paymentHidden) {
+      return Padding(
+        key: ValueKey('hidden_${check.id}'),
+        padding: const EdgeInsets.only(top: 16),
+        child: Material(
+          color: PaykColors.ink,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => setState(() => _paymentHidden = false),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      tr(locale, 'pay.open'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    tr(locale, 'pay.openAction'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    return Padding(
+      key: ValueKey('pending_${check.id}'),
+      padding: const EdgeInsets.only(top: 16),
+      child: PaymentCard(
+        check: check,
+        fetchedAt: _fetchedAt,
+        onChanged: _pollPending,
+        onHide: () => setState(() => _paymentHidden = true),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
     final code = _code;
-    final left = _deadline == null ? 0 : _deadline!.difference(DateTime.now()).inSeconds.clamp(0, 999);
+    final left = _deadline == null
+        ? 0
+        : _deadline!.difference(DateTime.now()).inSeconds.clamp(0, 999);
     final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
@@ -205,22 +256,13 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen> {
                 locale: locale,
               ),
               const SizedBox(height: 12),
-              _BottomCashierHint(
-                totalTtl: _ttl,
-                locale: locale,
-              ),
+              _BottomCashierHint(totalTtl: _ttl, locale: locale),
             ],
             AnimatedSwitcher(
               duration: PaykMotion.duration(context, PaykMotion.normal),
               switchInCurve: PaykMotion.easeOut,
               switchOutCurve: PaykMotion.easeOut,
-              child: _pending != null
-                  ? Padding(
-                      key: ValueKey('pending_${_pending!.id}'),
-                      padding: const EdgeInsets.only(top: 16),
-                      child: PaymentCard(check: _pending!, onChanged: _pollPending),
-                    )
-                  : const SizedBox.shrink(key: ValueKey('no_pending')),
+              child: _paymentChild(locale),
             ),
           ],
         ),
@@ -250,7 +292,9 @@ class _CodeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final digits = code.code;
     final half = (digits.length / 2).ceil();
-    final spaced = digits.length <= 4 ? digits : '${digits.substring(0, half)} ${digits.substring(half)}';
+    final spaced = digits.length <= 4
+        ? digits
+        : '${digits.substring(0, half)} ${digits.substring(half)}';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
@@ -360,17 +404,16 @@ class _CodeCard extends StatelessWidget {
 }
 
 class _CountdownRing extends StatelessWidget {
-  const _CountdownRing({
-    required this.secondsLeft,
-    required this.totalSeconds,
-  });
+  const _CountdownRing({required this.secondsLeft, required this.totalSeconds});
 
   final int secondsLeft;
   final int totalSeconds;
 
   @override
   Widget build(BuildContext context) {
-    final progress = totalSeconds > 0 ? (secondsLeft / totalSeconds).clamp(0.0, 1.0) : 0.0;
+    final progress = totalSeconds > 0
+        ? (secondsLeft / totalSeconds).clamp(0.0, 1.0)
+        : 0.0;
 
     return SizedBox(
       width: 46,
@@ -401,10 +444,7 @@ class _CountdownRing extends StatelessWidget {
 }
 
 class _RefreshButton extends StatelessWidget {
-  const _RefreshButton({
-    required this.loading,
-    required this.onTap,
-  });
+  const _RefreshButton({required this.loading, required this.onTap});
 
   final bool loading;
   final VoidCallback onTap;
@@ -419,9 +459,7 @@ class _RefreshButton extends StatelessWidget {
         height: 42,
         child: Material(
           color: Colors.white,
-          shape: const CircleBorder(
-            side: BorderSide(color: Color(0xFFE5E5EB)),
-          ),
+          shape: const CircleBorder(side: BorderSide(color: Color(0xFFE5E5EB))),
           elevation: 1,
           shadowColor: Colors.black.withValues(alpha: 0.05),
           child: InkWell(
@@ -455,10 +493,7 @@ class _RefreshButton extends StatelessWidget {
 }
 
 class _BottomCashierHint extends StatelessWidget {
-  const _BottomCashierHint({
-    required this.totalTtl,
-    required this.locale,
-  });
+  const _BottomCashierHint({required this.totalTtl, required this.locale});
 
   final int totalTtl;
   final String locale;

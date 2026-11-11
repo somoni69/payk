@@ -82,19 +82,11 @@ class LoyaltyApi {
   }
 
   /// Размеры обуви, брюк и верха. null снимает значение.
-  Future<void> updateSizes({
-    String? shoe,
-    String? pants,
-    String? top,
-  }) async {
+  Future<void> updateSizes({String? shoe, String? pants, String? top}) async {
     await _client.send(
       '/me/sizes',
       method: 'PATCH',
-      body: {
-        'shoe_size': shoe,
-        'pants_size': pants,
-        'top_size': top,
-      },
+      body: {'shoe_size': shoe, 'pants_size': pants, 'top_size': top},
     );
   }
 
@@ -106,7 +98,10 @@ class LoyaltyApi {
   }
 
   Future<SizeOffer> claimSizeOffer(int id) async {
-    final json = await _client.send('/me/size-offers/$id/claim', method: 'POST');
+    final json = await _client.send(
+      '/me/size-offers/$id/claim',
+      method: 'POST',
+    );
     return SizeOffer.fromJson(asMap(json));
   }
 
@@ -128,17 +123,59 @@ class LoyaltyApi {
     return PendingSnapshot.fromJson(asMap(json));
   }
 
-  Future<PendingCheck> choose(int id, Map<String, dynamic> body) async {
+  Future<PendingCheck> choose(
+    int id, {
+    required double burn,
+    required bool coin10,
+    required bool noCoin,
+  }) async {
     final json = await _client.send(
       '/me/pending/$id',
       method: 'POST',
-      body: body,
+      body: {
+        'burn_amount': burn.toStringAsFixed(2),
+        'coin10': coin10,
+        'no_coin': noCoin,
+      },
     );
     return PendingCheck.fromJson(asMap(json));
   }
 
-  Future<List<HistoryEntry>> history() async {
-    final json = await _client.send('/me/history');
+  /// Пробный расчёт выбора: ничего не сохраняет.
+  Future<QuoteResult> quote(
+    int id, {
+    required double burn,
+    required bool coin10,
+    required bool noCoin,
+  }) async {
+    final json = await _client.send(
+      '/me/pending/$id/quote',
+      method: 'POST',
+      body: {
+        'burn_amount': burn.toStringAsFixed(2),
+        'coin10': coin10,
+        'no_coin': noCoin,
+      },
+    );
+    return QuoteResult.fromJson(asMap(json));
+  }
+
+  Future<List<HistoryEntry>> history({
+    int? beforeId,
+    String? category,
+    String? query,
+  }) async {
+    final params = <String, String>{};
+    if (beforeId != null) params['before_id'] = '$beforeId';
+    if (category != null && category.isNotEmpty && category != 'all') {
+      params['cat'] = category;
+    }
+    final text = query?.trim();
+    if (text != null && text.isNotEmpty) params['q'] = text;
+    final suffix = params.isEmpty
+        ? ''
+        : '?${params.entries.map((entry) => '${entry.key}=${Uri.encodeQueryComponent(entry.value)}').join('&')}';
+    final json = await _client.send('/me/history$suffix');
     if (json is! List) throw ApiException(0, 'Неожиданный ответ сервера');
     return [for (final item in json) HistoryEntry.fromJson(asMap(item))];
   }

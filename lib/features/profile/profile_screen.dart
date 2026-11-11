@@ -10,6 +10,7 @@ import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
+import '../../core/widgets/birth_date_fields.dart';
 import '../../core/widgets/message.dart';
 import '../../core/widgets/payk_avatar.dart';
 import '../../core/widgets/screen_skeletons.dart';
@@ -1916,7 +1917,10 @@ class _EditProfileSheet extends ConsumerStatefulWidget {
 class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   late final TextEditingController _first = TextEditingController(text: widget.member.firstName);
   late final TextEditingController _last = TextEditingController(text: widget.member.lastName);
-  late DateTime? _birth = DateTime.tryParse(widget.member.birthDate ?? '');
+  late final DateTime? _storedBirth = DateTime.tryParse(widget.member.birthDate ?? '');
+  late final TextEditingController _day = TextEditingController(text: _storedBirth == null ? '' : '${_storedBirth!.day}');
+  late int? _month = _storedBirth?.month;
+  late final TextEditingController _year = TextEditingController(text: _storedBirth == null ? '' : '${_storedBirth!.year}');
   late String _gender = widget.member.gender == 'm' || widget.member.gender == 'f' ? widget.member.gender! : '';
   var _busy = false;
   String? _error;
@@ -1925,26 +1929,9 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   void dispose() {
     _first.dispose();
     _last.dispose();
+    _day.dispose();
+    _year.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickBirth() async {
-    final now = DateTime.now();
-    final first = DateTime(1920);
-    final year = now.year - 14;
-    final lastDay = DateTime(year, now.month + 1, 0).day;
-    final last = DateTime(year, now.month, now.day > lastDay ? lastDay : now.day);
-    final initial = _clampDate(_birth ?? DateTime(last.year, 6, 15), first, last);
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: initial,
-      firstDate: first,
-      lastDate: last,
-      helpText: tr(ref.read(localeProvider), 'profile.birth'),
-      cancelText: tr(ref.read(localeProvider), 'common.cancel'),
-      confirmText: tr(ref.read(localeProvider), 'common.done'),
-    );
-    if (picked != null && mounted) setState(() => _birth = picked);
   }
 
   Future<void> _save() async {
@@ -1954,13 +1941,20 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
       setState(() => _error = tr(ref.read(localeProvider), 'profile.needName'));
       return;
     }
+    final first = DateTime(1920);
+    final last = latestBirthDate(DateTime.now());
+    final birth = parseBirthDate(day: _day.text, month: _month == null ? '' : '$_month', year: _year.text, first: first, last: last);
+    if (!birth.isOk && !birth.isEmpty) {
+      setState(() => _error = birthDateError(ref.read(localeProvider), birth, first, last));
+      return;
+    }
     setState(() {
       _busy = true;
       _error = null;
     });
-    final birthDate = _birth == null
+    final birthDate = birth.date == null
         ? ''
-        : '${_birth!.year.toString().padLeft(4, '0')}-${_birth!.month.toString().padLeft(2, '0')}-${_birth!.day.toString().padLeft(2, '0')}';
+        : '${birth.date!.year.toString().padLeft(4, '0')}-${birth.date!.month.toString().padLeft(2, '0')}-${birth.date!.day.toString().padLeft(2, '0')}';
     try {
       await ref.read(sessionProvider.notifier).updateProfile(
             firstName: firstName,
@@ -2035,18 +2029,17 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: PaykColors.textSecondary),
               ),
               const SizedBox(height: 8),
-              _SheetTile(
-                icon: Icons.calendar_today_rounded,
-                title: _birth == null ? tr(locale, 'profile.notSetDate') : formatDate(_birth!),
-                subtitle: tr(locale, 'profile.birthHint'),
-                onTap: _busy ? null : _pickBirth,
-                trailing: _birth == null
-                    ? const Icon(Icons.chevron_right_rounded, color: PaykColors.textSecondary)
-                    : IconButton(
-                        onPressed: _busy ? null : () => setState(() => _birth = null),
-                        icon: const Icon(Icons.close_rounded, size: 18, color: PaykColors.textSecondary),
-                        tooltip: tr(locale, 'profile.clearDate'),
-                      ),
+              BirthDateFields(
+                day: _day,
+                month: _month,
+                year: _year,
+                locale: locale,
+                onMonth: (value) => setState(() => _month = value),
+                dayLabel: tr(locale, 'profile.birthDay'),
+                monthLabel: tr(locale, 'profile.birthMonth'),
+                yearLabel: tr(locale, 'profile.birthYear'),
+                enabled: !_busy,
+                decoration: _fieldDecoration,
               ),
               const SizedBox(height: 18),
               Text(
@@ -2091,60 +2084,6 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                   child: Text(tr(locale, 'common.cancel')),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SheetTile extends StatelessWidget {
-  const _SheetTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    required this.trailing,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback? onTap;
-  final Widget trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: PaykColors.tile,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
-          child: Row(
-            children: [
-              Icon(icon, size: 20, color: PaykColors.primary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: PaykColors.textPrimary),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: PaykColors.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-              trailing,
             ],
           ),
         ),
@@ -2208,12 +2147,6 @@ InputDecoration _fieldDecoration(String label) {
 }
 
 bool _hasLetter(String value) => value.runes.any((code) => String.fromCharCode(code).contains(RegExp(r'\p{L}', unicode: true)));
-
-DateTime _clampDate(DateTime value, DateTime first, DateTime last) {
-  if (value.isBefore(first)) return first;
-  if (value.isAfter(last)) return last;
-  return value;
-}
 
 String _birthLabel(String? raw, String locale) {
   if (raw == null || raw.isEmpty) return tr(locale, 'profile.notSetDate');

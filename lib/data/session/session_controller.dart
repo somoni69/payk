@@ -2,19 +2,21 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/api_client.dart';
 import '../api/api_exception.dart';
 import '../api/loyalty_api.dart';
 import '../models/models.dart';
-import '../../app/router.dart';
 import '../../core/i18n/locale_controller.dart';
 import '../../features/auth/splash_screen.dart';
 
 const _accessKey = 'payk.access';
 const _refreshKey = 'payk.refresh';
 const _onboardingKey = 'payk.onboarding';
+
+const _secure = FlutterSecureStorage();
 
 class SessionState {
   const SessionState({
@@ -58,6 +60,7 @@ class SessionState {
 
 class SessionController extends Notifier<SessionState> {
   var _restoreScheduled = false;
+  var _ending = false;
 
   @override
   SessionState build() {
@@ -76,15 +79,46 @@ class SessionController extends Notifier<SessionState> {
   Future<void> _restore() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final access = prefs.getString(_accessKey);
-      final refresh = prefs.getString(_refreshKey);
       final seen = prefs.getBool(_onboardingKey) ?? false;
+      final stored = await _readTokens(prefs);
       if (!ref.mounted) return;
-      state = SessionState(ready: true, accessToken: access, refreshToken: refresh, onboardingSeen: seen);
+      state = SessionState(
+        ready: true,
+        accessToken: stored?.accessToken,
+        refreshToken: stored?.refreshToken,
+        onboardingSeen: seen,
+      );
     } catch (_) {
       if (!ref.mounted) return;
       state = const SessionState(ready: true);
     }
+  }
+
+  /// Токены читаются из защищённого хранилища. Старая копия в SharedPreferences
+  /// переносится туда и сразу стирается.
+  Future<TokenPair?> _readTokens(SharedPreferences prefs) async {
+    var access = await _secureRead(_accessKey);
+    var refresh = await _secureRead(_refreshKey);
+    final legacyAccess = prefs.getString(_accessKey);
+    final legacyRefresh = prefs.getString(_refreshKey);
+    if ((access == null || access.isEmpty) && legacyAccess != null && legacyAccess.isNotEmpty) {
+      access = legacyAccess;
+    }
+    if ((refresh == null || refresh.isEmpty) && legacyRefresh != null && legacyRefresh.isNotEmpty) {
+      refresh = legacyRefresh;
+    }
+    if (access == null || access.isEmpty || refresh == null || refresh.isEmpty) {
+      return null;
+    }
+    if (legacyAccess != null || legacyRefresh != null) {
+      final savedAccess = await _secureWrite(_accessKey, access);
+      final savedRefresh = await _secureWrite(_refreshKey, refresh);
+      if (savedAccess && savedRefresh) {
+        await prefs.remove(_accessKey);
+        await prefs.remove(_refreshKey);
+      }
+    }
+    return TokenPair(accessToken: access, refreshToken: refresh);
   }
 
   Future<void> finishOnboarding() async {
@@ -160,23 +194,40 @@ class SessionController extends Notifier<SessionState> {
   }
 
   void expire() {
-    if (!state.loggedIn) return;
-    unawaited(logout());
+    if (!state.loggedIn || _ending) return;
+    unawaited(_clearLocal());
   }
 
   Future<void> deleteAccount() async {
     await _api.deleteAccount();
-    await logout();
+    await _clearLocal();
   }
 
   Future<void> logout() async {
-    state = const SessionState(ready: true, onboardingSeen: false);
+    if (_ending) return;
+    _ending = true;
+    try {
+      if (state.loggedIn) {
+        try {
+          await _api.logout();
+        } catch (_) {}
+      }
+      await _clearLocal();
+    } finally {
+      _ending = false;
+    }
+  }
+
+  Future<void> _clearLocal() async {
+    await _secureDelete(_accessKey);
+    await _secureDelete(_refreshKey);
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_accessKey);
     await prefs.remove(_refreshKey);
     await prefs.remove(_onboardingKey);
+    if (!ref.mounted) return;
     ref.read(splashFinishedProvider.notifier).reset();
-    ref.read(routerProvider).go('/splash');
+    state = const SessionState(ready: true, onboardingSeen: false);
   }
 
   Future<void> _persistLogin(String accessToken, String refreshToken) async {
@@ -192,11 +243,38 @@ class SessionController extends Notifier<SessionState> {
   }
 
   Future<void> _write(String accessToken, String refreshToken) async {
+    final savedAccess = await _secureWrite(_accessKey, accessToken);
+    final savedRefresh = await _secureWrite(_refreshKey, refreshToken);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_accessKey, accessToken);
-    await prefs.setString(_refreshKey, refreshToken);
+    if (savedAccess && savedRefresh) {
+      await prefs.remove(_accessKey);
+      await prefs.remove(_refreshKey);
+    }
     await prefs.setBool(_onboardingKey, true);
   }
+}
+
+Future<String?> _secureRead(String key) async {
+  try {
+    return await _secure.read(key: key);
+  } catch (_) {
+    return null;
+  }
+}
+
+Future<bool> _secureWrite(String key, String value) async {
+  try {
+    await _secure.write(key: key, value: value);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+Future<void> _secureDelete(String key) async {
+  try {
+    await _secure.delete(key: key);
+  } catch (_) {}
 }
 
 final sessionProvider = NotifierProvider<SessionController, SessionState>(SessionController.new);

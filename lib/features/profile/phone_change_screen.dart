@@ -10,6 +10,7 @@ import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/message.dart';
+import '../../core/widgets/tajik_phone_field.dart';
 import '../../data/api/api_exception.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
@@ -57,13 +58,13 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
   }
 
   Future<void> _requestCodes(String currentPhone) async {
-    final rawDigits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+    final rawDigits = tajikLocalDigits(_phoneController.text);
     if (rawDigits.length != 9) {
       setState(() => _error = tr(ref.read(localeProvider), 'phone.needDigits'));
       return;
     }
     final targetPhone = '+992$rawDigits';
-    if (targetPhone == currentPhone) {
+    if (_sameLocal(targetPhone, currentPhone)) {
       setState(() => _error = tr(ref.read(localeProvider), 'phone.same'));
       return;
     }
@@ -133,6 +134,8 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
     final me = ref.watch(meProvider).asData?.value;
     final currentPhone = me?.member.phone ?? '';
     final sent = _sent;
+    final typedDigits = tajikLocalDigits(_phoneController.text);
+    final currentShown = formatPhone(currentPhone);
 
     return Scaffold(
       backgroundColor: PaykColors.canvas,
@@ -190,18 +193,36 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          tr(locale, 'phone.current', {'phone': formatPhone(currentPhone)}),
+                          tr(locale, 'phone.current'),
                           style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: PaykColors.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: PaykColors.textSecondary,
                             fontFamily: 'Manrope',
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        if (currentShown.isNotEmpty) ...[
+                          const SizedBox(height: 2),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              currentShown,
+                              maxLines: 1,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: PaykColors.textPrimary,
+                                fontFamily: 'Manrope',
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 6),
                         Text(
                           tr(locale, 'phone.hint'),
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 13,
                             color: PaykColors.textSecondary,
                             fontFamily: 'Manrope',
@@ -237,13 +258,13 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                     ),
                     const SizedBox(height: 10),
                     Container(
-                      height: 52,
+                      height: 56,
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: PaykColors.border),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Row(
                         children: [
                           const Text('🇹🇯', style: TextStyle(fontSize: 20)),
@@ -252,12 +273,13 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                             '+992',
                             style: TextStyle(
                               fontSize: 16,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                               color: PaykColors.textPrimary,
+                              fontFamily: 'Manrope',
                             ),
                           ),
                           Container(
-                            height: 20,
+                            height: 22,
                             width: 1,
                             margin: const EdgeInsets.symmetric(horizontal: 10),
                             color: PaykColors.border,
@@ -266,27 +288,28 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                             child: TextField(
                               controller: _phoneController,
                               keyboardType: TextInputType.phone,
+                              textAlignVertical: TextAlignVertical.center,
                               style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
                                 color: PaykColors.textPrimary,
+                                fontFamily: 'Manrope',
+                                letterSpacing: 0.3,
                               ),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                                LengthLimitingTextInputFormatter(9),
-                              ],
+                              inputFormatters: const [TajikPhoneFormatter()],
                               decoration: const InputDecoration(
-                                isDense: true,
+                                isCollapsed: true,
                                 border: InputBorder.none,
                                 hintText: '90 123 45 67',
                                 hintStyle: TextStyle(
+                                  fontSize: 17,
                                   color: Color(0xFFB8B5C5),
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.w600,
+                                  fontFamily: 'Manrope',
+                                  letterSpacing: 0.3,
                                 ),
                               ),
-                              onChanged: (_) {
-                                if (_error != null) setState(() => _error = null);
-                              },
+                              onChanged: (_) => setState(() => _error = null),
                             ),
                           ),
                         ],
@@ -302,7 +325,7 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                     const SizedBox(height: 16),
                     PaykPressable(
                       child: FilledButton(
-                        onPressed: _busy ? null : () => _requestCodes(currentPhone),
+                        onPressed: _busy || typedDigits.length < 9 ? null : () => _requestCodes(currentPhone),
                         style: FilledButton.styleFrom(
                           minimumSize: const Size.fromHeight(50),
                           backgroundColor: PaykColors.primary,
@@ -363,6 +386,10 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(color: PaykColors.border),
                         ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: PaykColors.primary, width: 1.6),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 14),
@@ -391,6 +418,10 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(color: PaykColors.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: PaykColors.primary, width: 1.6),
                         ),
                       ),
                     ),
@@ -443,4 +474,16 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
       ),
     );
   }
+}
+
+bool _sameLocal(String left, String right) {
+  String local(String value) {
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('992') && digits.length > 9) return digits.substring(3);
+    return digits;
+  }
+
+  final a = local(left);
+  final b = local(right);
+  return a.isNotEmpty && a == b;
 }

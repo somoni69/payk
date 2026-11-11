@@ -25,6 +25,8 @@ class ClientCodeScreen extends ConsumerStatefulWidget {
   ConsumerState<ClientCodeScreen> createState() => _ClientCodeScreenState();
 }
 
+const _screenChannel = MethodChannel('app.payk.payk/screen');
+
 class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen> {
   Timer? _clock;
   Timer? _poll;
@@ -41,6 +43,7 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen> {
   @override
   void initState() {
     super.initState();
+    unawaited(_shield(true));
     _loadCode();
     _pollPending();
     _clock = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -54,9 +57,16 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen> {
 
   @override
   void dispose() {
+    unawaited(_shield(false));
     _clock?.cancel();
     _poll?.cancel();
     super.dispose();
+  }
+
+  Future<void> _shield(bool on) async {
+    try {
+      await _screenChannel.invokeMethod<void>('setSecure', on);
+    } catch (_) {}
   }
 
   Future<void> _loadCode() async {

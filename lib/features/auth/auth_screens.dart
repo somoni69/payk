@@ -1,11 +1,18 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:smart_auth/smart_auth.dart';
 
 import '../../core/countries.dart';
-import '../../core/format.dart';
+import '../../core/i18n/locale_controller.dart';
+import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
+import '../../core/widgets/birth_date_fields.dart';
+import '../../core/widgets/tajik_phone_field.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
@@ -155,10 +162,8 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
                         color: PaykColors.ink,
                         letterSpacing: 0.8,
                       ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(9),
-                        _TajikistanPhoneFormatter(),
+                      inputFormatters: const [
+                        TajikPhoneFormatter(),
                       ],
                       decoration: const InputDecoration(
                         isDense: true,
@@ -259,31 +264,6 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
   }
 }
 
-class _TajikistanPhoneFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
-    final limited = digits.length > 9 ? digits.substring(0, 9) : digits;
-
-    final buffer = StringBuffer();
-    for (var i = 0; i < limited.length; i++) {
-      if (i == 2 || i == 5 || i == 7) {
-        buffer.write(' ');
-      }
-      buffer.write(limited[i]);
-    }
-
-    final formatted = buffer.toString();
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
-    );
-  }
-}
-
 class OtpScreen extends ConsumerStatefulWidget {
   const OtpScreen({super.key});
 
@@ -294,6 +274,7 @@ class OtpScreen extends ConsumerStatefulWidget {
 class _OtpScreenState extends ConsumerState<OtpScreen> {
   final _code = TextEditingController();
   final _focusNode = FocusNode();
+  final _sms = SmartAuth.instance;
   String? _error;
   var _busy = false;
 
@@ -301,13 +282,39 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   void initState() {
     super.initState();
     _focusNode.addListener(() => setState(() {}));
+    unawaited(_listenForSms());
   }
 
   @override
   void dispose() {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      unawaited(_sms.removeUserConsentApiListener());
+    }
     _focusNode.dispose();
     _code.dispose();
     super.dispose();
+  }
+
+  /// Android показывает системное подтверждение и кладёт код в поле.
+  /// iOS отдаёт код через подсказку клавиатуры в то же поле.
+  Future<void> _listenForSms() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    final result = await _sms.getSmsWithUserConsentApi(matcher: r'\d{6}');
+    if (!mounted || !result.hasData) return;
+    final code = result.data?.code;
+    if (code == null) return;
+    _applyCode(code);
+  }
+
+  void _applyCode(String raw) {
+    final digits = raw.replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 6 || _busy) return;
+    _code.value = TextEditingValue(
+      text: digits,
+      selection: const TextSelection.collapsed(offset: 6),
+    );
+    setState(() => _error = null);
+    _submit();
   }
 
   Future<void> _submit() async {
@@ -346,7 +353,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
-      body: SafeArea(
+      body: AutofillGroup(
+        child: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
           children: [
@@ -486,6 +494,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             ),
           ],
         ),
+        ),
       ),
     );
   }
@@ -524,7 +533,9 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   final _lastName = TextEditingController();
   final _email = TextEditingController();
   final _referral = TextEditingController();
-  DateTime? _birthDate;
+  final _day = TextEditingController();
+  final _year = TextEditingController();
+  int? _month;
   late String _country;
   var _consent = false;
   var _messages = false;
@@ -546,19 +557,28 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     _lastName.dispose();
     _email.dispose();
     _referral.dispose();
+    _day.dispose();
+    _year.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     final name = _name.text.trim();
     final last = _lastName.text.trim();
-    final birth = _birthDate;
+    final locale = ref.read(localeProvider);
+    final birth = parseBirthDate(
+      day: _day.text,
+      month: _month == null ? '' : '$_month',
+      year: _year.text,
+      first: DateTime(minBirthYear),
+      last: DateTime(maxBirthYear, 12, 31),
+    );
     if (name.length < 2 || last.length < 2) {
       setState(() => _error = 'Напишите имя и фамилию');
       return;
     }
-    if (birth == null) {
-      setState(() => _error = 'Укажите дату рождения');
+    if (!birth.isOk) {
+      setState(() => _error = birthDateError(locale, birth, DateTime(minBirthYear), DateTime(maxBirthYear, 12, 31)));
       return;
     }
     if (!_consent) {
@@ -577,8 +597,8 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
           registrationToken: ref.read(sessionProvider).registrationToken ?? '',
           firstName: name,
           lastName: last,
-          birthYear: birth.year,
-          birthDate: '${birth.year.toString().padLeft(4, '0')}-${birth.month.toString().padLeft(2, '0')}-${birth.day.toString().padLeft(2, '0')}',
+          birthYear: birth.date!.year,
+          birthDate: '${birth.date!.year.toString().padLeft(4, '0')}-${birth.date!.month.toString().padLeft(2, '0')}-${birth.date!.day.toString().padLeft(2, '0')}',
           country: _country,
           consentPd: true,
           consentMessages: _messages,
@@ -596,11 +616,20 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     }
   }
 
+  int get minBirthYear {
+    final info = widget.info;
+    return info.birthYearMin <= info.birthYearMax ? info.birthYearMin : info.birthYearMax;
+  }
+
+  int get maxBirthYear {
+    final info = widget.info;
+    return info.birthYearMax >= info.birthYearMin ? info.birthYearMax : info.birthYearMin;
+  }
+
   @override
   Widget build(BuildContext context) {
     final info = widget.info;
-    final minYear = info.birthYearMin <= info.birthYearMax ? info.birthYearMin : info.birthYearMax;
-    final maxYear = info.birthYearMax >= info.birthYearMin ? info.birthYearMax : info.birthYearMin;
+    final locale = ref.watch(localeProvider);
     final countries = info.countries.isEmpty ? const ['TJ'] : info.countries;
     return Scaffold(
       backgroundColor: PaykColors.canvas,
@@ -636,22 +665,21 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             decoration: const InputDecoration(hintText: 'Фамилия'),
           ),
           const SizedBox(height: 12),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Дата рождения', style: TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text(_birthDate == null ? 'День, месяц и год' : formatShortDate(_birthDate!)),
-            trailing: const Icon(Icons.calendar_today_rounded),
-            onTap: () async {
-              final now = DateTime.now();
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: _birthDate ?? DateTime(maxYear, now.month, now.day),
-                firstDate: DateTime(minYear),
-                lastDate: DateTime(maxYear, 12, 31),
-                helpText: 'Дата рождения',
-              );
-              if (picked != null) setState(() => _birthDate = picked);
-            },
+          Text(
+            tr(locale, 'profile.birth'),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          BirthDateFields(
+            day: _day,
+            month: _month,
+            year: _year,
+            locale: locale,
+            onMonth: (value) => setState(() => _month = value),
+            dayLabel: tr(locale, 'profile.birthDay'),
+            monthLabel: tr(locale, 'profile.birthMonth'),
+            yearLabel: tr(locale, 'profile.birthYear'),
+            enabled: !_busy,
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(

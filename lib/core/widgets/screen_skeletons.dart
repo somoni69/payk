@@ -6,7 +6,7 @@ import 'shimmer.dart';
 const _headerBone = Color(0x38FFFFFF);
 const _headerShine = Color(0xA6FFFFFF);
 
-/// Главная: шапка, карта статуса, приглашение, переключатель, магазины.
+/// Главная: шапка, карта статуса, приглашение, переключатель.
 class HomeSkeleton extends StatelessWidget {
   const HomeSkeleton({super.key});
 
@@ -33,8 +33,6 @@ class HomeSkeleton extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: _ToggleBones(),
           ),
-          SizedBox(height: 20),
-          _StoresBones(),
           SizedBox(height: 96),
         ],
       ),
@@ -276,76 +274,6 @@ class _ToggleBones extends StatelessWidget {
           SkeletonBox(width: 48, height: 28, radius: 14),
         ],
       ),
-    );
-  }
-}
-
-class _StoresBones extends StatelessWidget {
-  const _StoresBones();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: [
-              SkeletonBox(width: 110, height: 18, radius: 6),
-              Spacer(),
-              SkeletonBox(width: 64, height: 28, radius: 10),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 82,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            physics: NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            children: [
-              SkeletonCard(
-                padding: EdgeInsets.all(12),
-                child: SizedBox(
-                  width: 212,
-                  child: Row(
-                    children: [
-                      SkeletonBox(width: 48, height: 48, radius: 14),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SkeletonBox(width: 96, height: 13, radius: 6),
-                            SizedBox(height: 8),
-                            SkeletonBox(height: 11, radius: 6),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SizedBox(width: 12),
-              SkeletonCard(
-                padding: EdgeInsets.all(12),
-                child: SizedBox(
-                  width: 180,
-                  child: Row(
-                    children: [
-                      SkeletonBox(width: 48, height: 48, radius: 14),
-                      SizedBox(width: 12),
-                      Expanded(child: SkeletonBox(height: 13, radius: 6)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
@@ -683,7 +611,9 @@ class FriendsSkeleton extends StatelessWidget {
     return ShimmerSweep(
       child: ListView(
         padding: const EdgeInsets.only(bottom: 104),
-        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
         children: [
           _BannerBones(
             lines: const [
@@ -766,7 +696,9 @@ class PaykBusinessSkeleton extends StatelessWidget {
     return ShimmerSweep(
       child: ListView(
         padding: const EdgeInsets.only(bottom: 104),
-        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
         children: [
           _BannerBones(
             showMark: false,

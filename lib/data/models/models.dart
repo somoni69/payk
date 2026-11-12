@@ -20,6 +20,8 @@ class Member {
     this.shoeSize,
     this.pantsSize,
     this.topSize,
+    this.dobBonus,
+    this.birthDateLocked = false,
   });
 
   final String firstName;
@@ -47,6 +49,12 @@ class Member {
   final String? shoeSize;
   final String? pantsSize;
   final String? topSize;
+
+  /// Сколько дадут за первую указанную дату. Пусто — дата уже есть или бонус уже выдан.
+  final double? dobBonus;
+
+  /// Дату меняет только магазин.
+  final bool birthDateLocked;
 
   bool get isSizesComplete {
     bool filled(String? value) => value != null && value.trim().isNotEmpty;
@@ -76,6 +84,10 @@ class Member {
       shoeSize: asStringOrNull(json['shoe_size']),
       pantsSize: asStringOrNull(json['pants_size']),
       topSize: asStringOrNull(json['top_size']),
+      dobBonus: asMoneyOrNull(json['dob_bonus']),
+      birthDateLocked:
+          json['birth_date_locked'] == true ||
+          (asStringOrNull(json['birth_date']) ?? '').isNotEmpty,
     );
   }
 }
@@ -197,6 +209,7 @@ class Account {
     required this.programEnabled,
     this.tierCount = 5,
     this.messagesUnread = 0,
+    this.coupon,
   });
 
   final Member member;
@@ -205,6 +218,7 @@ class Account {
   final bool programEnabled;
   final int tierCount;
   final int messagesUnread;
+  final BirthdayCoupon? coupon;
 
   factory Account.fromJson(Map<String, dynamic> json) {
     final program = json['program'] is Map
@@ -224,6 +238,9 @@ class Account {
           ? thresholds.length + 1
           : 5,
       messagesUnread: asInt(json['messages_unread']),
+      coupon: json['coupon'] is Map
+          ? BirthdayCoupon.fromJson(asMap(json['coupon']))
+          : null,
       wallet: Wallet(
         status: asInt(json['status']),
         balance: asMoney(json['balance']),
@@ -358,6 +375,58 @@ class FriendsInfo {
   }
 }
 
+class PendingCoupon {
+  const PendingCoupon({
+    required this.id,
+    required this.offer,
+    required this.minBill,
+    required this.usable,
+    required this.applied,
+    required this.amount,
+  });
+
+  final int id;
+  final double offer;
+  final double minBill;
+  final bool usable;
+  final bool applied;
+  final double amount;
+
+  factory PendingCoupon.fromJson(Map<String, dynamic> json) {
+    return PendingCoupon(
+      id: asInt(json['id']),
+      offer: asMoney(json['offer']),
+      minBill: asMoney(json['min_bill']),
+      usable: json['usable'] == true,
+      applied: json['applied'] == true,
+      amount: asMoney(json['amount']),
+    );
+  }
+}
+
+class BirthdayCoupon {
+  const BirthdayCoupon({
+    required this.amount,
+    required this.minBillSm,
+    required this.minBillCl,
+    required this.validTo,
+  });
+
+  final double amount;
+  final double minBillSm;
+  final double minBillCl;
+  final String validTo;
+
+  factory BirthdayCoupon.fromJson(Map<String, dynamic> json) {
+    return BirthdayCoupon(
+      amount: asMoney(json['amount']),
+      minBillSm: asMoney(json['min_bill_sm']),
+      minBillCl: asMoney(json['min_bill_cl']),
+      validTo: asString(json['valid_to']),
+    );
+  }
+}
+
 class PendingCheck {
   const PendingCheck({
     required this.id,
@@ -395,6 +464,8 @@ class PendingCheck {
     this.isWholesale = false,
     this.source,
     this.status,
+    this.amountBeforeCoupon,
+    this.coupon,
   });
 
   final int id;
@@ -436,6 +507,8 @@ class PendingCheck {
   final double? excludedAmount;
   final bool isWholesale;
   final String? source;
+  final double? amountBeforeCoupon;
+  final PendingCoupon? coupon;
 
   double get burnAmount => v;
   double? get earn => x;
@@ -485,6 +558,10 @@ class PendingCheck {
       excludedAmount: asMoneyOrNull(json['excluded_amount']),
       isWholesale: json['is_wholesale'] == true,
       source: asStringOrNull(json['source']),
+      amountBeforeCoupon: asMoneyOrNull(json['amount_before_coupon']),
+      coupon: json['coupon'] is Map
+          ? PendingCoupon.fromJson(asMap(json['coupon']))
+          : null,
     );
   }
 }
@@ -542,6 +619,7 @@ class ClosedBill {
     this.burn,
     this.round,
     this.amount,
+    this.coupon,
   });
 
   final int id;
@@ -551,6 +629,7 @@ class ClosedBill {
   final double? burn;
   final double? round;
   final double? amount;
+  final double? coupon;
 
   factory ClosedBill.fromJson(Map<String, dynamic> json) {
     final bill = json['bill'] is Map ? asMap(json['bill']) : null;
@@ -562,6 +641,7 @@ class ClosedBill {
       burn: bill == null ? null : asMoneyOrNull(bill['burn']),
       round: bill == null ? null : asMoneyOrNull(bill['round']),
       amount: bill == null ? null : asMoneyOrNull(bill['amount']),
+      coupon: bill == null ? null : asMoneyOrNull(bill['coupon']),
     );
   }
 }

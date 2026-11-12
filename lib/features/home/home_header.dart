@@ -24,7 +24,7 @@ class HomeHeader extends StatelessWidget {
     required this.onNotificationsTap,
     required this.onProfileTap,
     required this.onCodeTap,
-    required this.onSizesTap,
+    required this.onCompaniesTap,
     required this.onCertificatesTap,
   });
 
@@ -34,7 +34,7 @@ class HomeHeader extends StatelessWidget {
   final VoidCallback onNotificationsTap;
   final VoidCallback onProfileTap;
   final VoidCallback onCodeTap;
-  final VoidCallback onSizesTap;
+  final VoidCallback onCompaniesTap;
   final VoidCallback onCertificatesTap;
 
   @override
@@ -85,7 +85,9 @@ class HomeHeader extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    tr(locale, 'home.hello', {'name': firstName}),
+                                    tr(locale, 'home.hello', {
+                                      'name': firstName,
+                                    }),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
@@ -140,7 +142,7 @@ class HomeHeader extends StatelessWidget {
                 account: account,
                 locale: locale,
                 onOpenCode: onCodeTap,
-                onOpenSizes: onSizesTap,
+                onOpenCompanies: onCompaniesTap,
                 onOpenCertificates: onCertificatesTap,
               ),
               const SizedBox(height: 18),

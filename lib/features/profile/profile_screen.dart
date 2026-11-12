@@ -30,10 +30,11 @@ import 'settings_screen.dart';
 export 'settings_screen.dart';
 
 String _sizesLine(Member member, String locale) {
-  final parts = [member.shoeSize, member.pantsSize, member.topSize]
-      .whereType<String>()
-      .where((value) => value.trim().isNotEmpty)
-      .toList();
+  final parts = [
+    member.shoeSize,
+    member.pantsSize,
+    member.topSize,
+  ].whereType<String>().where((value) => value.trim().isNotEmpty).toList();
   if (parts.isEmpty) return tr(locale, 'sizes.missing');
   return parts.join(' · ');
 }
@@ -87,115 +88,127 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 children: [
                   // 1. Верхний виджет: Карточка пользователя с аватаром, именем и переходом в ProfileDetailsScreen
-                  _UserProfileHeaderCard(
-                    member: member,
-                    locale: locale,
+                  RepaintBoundary(
+                    child: _UserProfileHeaderCard(
+                      member: member,
+                      locale: locale,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        PaykMotion.push<void>(
+                          context,
+                          '/profile/details',
+                          fallback: () => const ProfileDetailsScreen(),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 2. Карточка «Тарзҳои воридшавӣ» / «Способы входа»
+                  RepaintBoundary(
+                    child: _LoginMethodsBanner(
+                      locale: locale,
+                      member: member,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        PaykMotion.push<void>(
+                          context,
+                          '/profile/connect',
+                          fallback: () => const ConnectScreen(),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 3. Баннеры, которые скролятся внизу «Способы входа» (перенесены из loyalty-app)
+                  RepaintBoundary(
+                    child: _ProfileBannersCarousel(locale: locale),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // 4. Пункты меню без дублей покупок и сообщений
+                  _ProfileMenuItem(
+                    icon: Icons.location_on_outlined,
+                    title: tr(locale, 'profile.myStore'),
+                    subtitle: account.store.isNotEmpty
+                        ? account.store
+                        : 'MSX Алмоси',
+                    onTap: () => _showStoreDialog(context, account, locale),
+                  ),
+                  _ProfileMenuItem(
+                    icon: Icons.straighten_rounded,
+                    title: tr(locale, 'sizes.title'),
+                    subtitle: _sizesLine(member, locale),
                     onTap: () {
                       HapticFeedback.lightImpact();
-                      Navigator.of(context).push<void>(
-                        PaykMotion.route(const ProfileDetailsScreen()),
+                      PaykMotion.push<void>(
+                        context,
+                        '/sizes',
+                        fallback: () => const SizesScreen(),
                       );
                     },
                   ),
-                const SizedBox(height: 12),
-
-                // 2. Карточка «Тарзҳои воридшавӣ» / «Способы входа»
-                _LoginMethodsBanner(
-                  locale: locale,
-                  member: member,
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    PaykMotion.push<void>(
+                  _ProfileMenuItem(
+                    icon: Icons.local_offer_outlined,
+                    title: tr(locale, 'sizes.offers'),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      PaykMotion.push<void>(
+                        context,
+                        '/size-offers',
+                        fallback: () => const SizeOffersScreen(),
+                      );
+                    },
+                  ),
+                  _ProfileMenuItem(
+                    icon: Icons.confirmation_number_outlined,
+                    title: tr(locale, 'profile.statusesAndRules'),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      PaykMotion.push<void>(
+                        context,
+                        '/rules',
+                        fallback: () => const RulesScreen(),
+                      );
+                    },
+                  ),
+                  _ProfileMenuItem(
+                    icon: Icons.help_outline_rounded,
+                    title: tr(locale, 'profile.contactStore'),
+                    subtitle: 'WhatsApp',
+                    onTap: () => _showStoreContactDialog(
                       context,
-                      '/profile/connect',
-                      fallback: () => const ConnectScreen(),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-
-                // 3. Баннеры, которые скролятся внизу «Способы входа» (перенесены из loyalty-app)
-                _ProfileBannersCarousel(locale: locale),
-                const SizedBox(height: 16),
-
-                // 4. Пункты меню без дублей покупок и сообщений
-                _ProfileMenuItem(
-                  icon: Icons.location_on_outlined,
-                  title: tr(locale, 'profile.myStore'),
-                  subtitle: account.store.isNotEmpty ? account.store : 'MSX Алмоси',
-                  onTap: () => _showStoreDialog(context, account, locale),
-                ),
-                _ProfileMenuItem(
-                  icon: Icons.straighten_rounded,
-                  title: tr(locale, 'sizes.title'),
-                  subtitle: _sizesLine(member, locale),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    PaykMotion.push<void>(
-                      context,
-                      '/sizes',
-                      fallback: () => const SizesScreen(),
-                    );
-                  },
-                ),
-                _ProfileMenuItem(
-                  icon: Icons.local_offer_outlined,
-                  title: tr(locale, 'sizes.offers'),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    PaykMotion.push<void>(
-                      context,
-                      '/size-offers',
-                      fallback: () => const SizeOffersScreen(),
-                    );
-                  },
-                ),
-                _ProfileMenuItem(
-                  icon: Icons.confirmation_number_outlined,
-                  title: tr(locale, 'profile.statusesAndRules'),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    PaykMotion.push<void>(
-                      context,
-                      '/rules',
-                      fallback: () => const RulesScreen(),
-                    );
-                  },
-                ),
-                _ProfileMenuItem(
-                  icon: Icons.help_outline_rounded,
-                  title: tr(locale, 'profile.contactStore'),
-                  subtitle: 'WhatsApp',
-                  onTap: () => _showStoreContactDialog(
-                    context,
-                    storeName: account.store.isNotEmpty ? account.store : 'MSX Алмоси',
+                      storeName: account.store.isNotEmpty
+                          ? account.store
+                          : 'MSX Алмоси',
+                      locale: locale,
+                    ),
+                  ),
+                  _ProfileMenuItem(
+                    icon: Icons.info_outline_rounded,
+                    title: tr(locale, 'profile.aboutApp'),
+                    onTap: () => _showAboutDialog(context, locale),
+                  ),
+                  _ProfileMenuItem(
+                    icon: Icons.settings_outlined,
+                    title: tr(locale, 'profile.menuSettings'),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      PaykMotion.push<void>(
+                        context,
+                        '/settings',
+                        fallback: () => const SettingsScreen(),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _ProfileNotificationToggleCard(
+                    initialValue: member.messages,
                     locale: locale,
                   ),
-                ),
-                _ProfileMenuItem(
-                  icon: Icons.info_outline_rounded,
-                  title: tr(locale, 'profile.aboutApp'),
-                  onTap: () => _showAboutDialog(context, locale),
-                ),
-                _ProfileMenuItem(
-                  icon: Icons.settings_outlined,
-                  title: tr(locale, 'profile.menuSettings'),
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    PaykMotion.push<void>(
-                      context,
-                      '/settings',
-                      fallback: () => const SettingsScreen(),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                _ProfileNotificationToggleCard(
-                  initialValue: member.messages,
-                  locale: locale,
-                ),
-                const SizedBox(height: 20),
-              ],
+                  const SizedBox(height: 20),
+                ],
               ),
             );
           },
@@ -359,12 +372,18 @@ class _LoginMethodsBanner extends StatelessWidget {
               InkWell(
                 onTap: onTap,
                 borderRadius: BorderRadius.circular(12),
+                splashFactory: NoSplash.splashFactory,
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
                 child: const _SocialCheckBadge(type: _SocialBadgeType.sms),
               ),
               const SizedBox(width: 12),
               InkWell(
                 onTap: onTap,
                 borderRadius: BorderRadius.circular(12),
+                splashFactory: NoSplash.splashFactory,
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
                 child: _SocialCheckBadge(
                   type: _SocialBadgeType.telegram,
                   isConnected: member.telegram,
@@ -381,10 +400,7 @@ class _LoginMethodsBanner extends StatelessWidget {
 enum _SocialBadgeType { sms, telegram }
 
 class _SocialCheckBadge extends StatelessWidget {
-  const _SocialCheckBadge({
-    required this.type,
-    this.isConnected = true,
-  });
+  const _SocialCheckBadge({required this.type, this.isConnected = true});
 
   final _SocialBadgeType type;
   final bool isConnected;
@@ -405,10 +421,7 @@ class _SocialCheckBadge extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFFE5E5EB),
-                width: 1.0,
-              ),
+              border: Border.all(color: const Color(0xFFE5E5EB), width: 1.0),
             ),
             alignment: Alignment.center,
             child: isSms
@@ -437,7 +450,9 @@ class _SocialCheckBadge extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: Icon(
-                (isSms || isConnected) ? Icons.check_rounded : Icons.add_rounded,
+                (isSms || isConnected)
+                    ? Icons.check_rounded
+                    : Icons.add_rounded,
                 size: 11,
                 color: Colors.white,
               ),
@@ -456,16 +471,18 @@ class _ProfileBannersCarousel extends StatefulWidget {
   final String locale;
 
   @override
-  State<_ProfileBannersCarousel> createState() => _ProfileBannersCarouselState();
+  State<_ProfileBannersCarousel> createState() =>
+      _ProfileBannersCarouselState();
 }
 
 class _ProfileBannersCarouselState extends State<_ProfileBannersCarousel> {
   final PageController _pageController = PageController();
-  int _currentPage = 0;
+  final ValueNotifier<int> _page = ValueNotifier<int>(0);
 
   @override
   void dispose() {
     _pageController.dispose();
+    _page.dispose();
     super.dispose();
   }
 
@@ -476,7 +493,10 @@ class _ProfileBannersCarouselState extends State<_ProfileBannersCarousel> {
         title: tr(widget.locale, 'profile.bannerStatusTitle'),
         text: tr(widget.locale, 'profile.bannerStatusText', {'pct': '20%'}),
         imageAsset: 'assets/3d/trophy.webp',
-        gradientColors: const [PaykColors.headerGradientStart, PaykColors.headerGradientEnd],
+        gradientColors: const [
+          PaykColors.headerGradientStart,
+          PaykColors.headerGradientEnd,
+        ],
         onTap: () {
           HapticFeedback.lightImpact();
           PaykMotion.push<void>(
@@ -490,7 +510,10 @@ class _ProfileBannersCarouselState extends State<_ProfileBannersCarousel> {
         title: tr(widget.locale, 'profile.bannerFriendsTitle'),
         text: tr(widget.locale, 'profile.bannerFriendsText', {'pct': '1%'}),
         imageAsset: 'assets/3d/gift.webp',
-        gradientColors: const [PaykColors.headerGradientStart, PaykColors.headerGradientEnd],
+        gradientColors: const [
+          PaykColors.headerGradientStart,
+          PaykColors.headerGradientEnd,
+        ],
         onTap: () {
           HapticFeedback.lightImpact();
           PaykMotion.push<void>(
@@ -509,31 +532,36 @@ class _ProfileBannersCarouselState extends State<_ProfileBannersCarousel> {
           child: PageView.builder(
             clipBehavior: Clip.hardEdge,
             controller: _pageController,
-            onPageChanged: (idx) => setState(() => _currentPage = idx),
+            onPageChanged: (idx) => _page.value = idx,
             itemCount: slides.length,
-            itemBuilder: (context, index) {
-              final slide = slides[index];
-              return _BannerSlideCard(data: slide);
-            },
+            itemBuilder: (context, index) =>
+                _BannerSlideCard(data: slides[index]),
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(slides.length, (i) {
-            final isActive = i == _currentPage;
-            return AnimatedContainer(
-              duration: PaykMotion.duration(context, PaykMotion.fast),
-              curve: PaykMotion.easeOut,
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: isActive ? 24 : 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: isActive ? const Color(0xFF4A4860) : const Color(0xFFD4D2DE),
-                borderRadius: BorderRadius.circular(3),
-              ),
+        ValueListenableBuilder<int>(
+          valueListenable: _page,
+          builder: (context, page, _) {
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(slides.length, (i) {
+                final isActive = i == page;
+                return AnimatedContainer(
+                  duration: PaykMotion.duration(context, PaykMotion.fast),
+                  curve: PaykMotion.easeOut,
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: isActive ? 24 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? const Color(0xFF4A4860)
+                        : const Color(0xFFD4D2DE),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                );
+              }),
             );
-          }),
+          },
         ),
       ],
     );
@@ -580,7 +608,10 @@ class _BannerSlideCard extends StatelessWidget {
                 ),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -662,15 +693,14 @@ class _ProfileMenuItem extends StatelessWidget {
           onTap();
         },
         borderRadius: BorderRadius.circular(12),
+        splashFactory: NoSplash.splashFactory,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
           child: Row(
             children: [
-              Icon(
-                icon,
-                size: 24,
-                color: PaykColors.textPrimary,
-              ),
+              Icon(icon, size: 24, color: PaykColors.textPrimary),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
@@ -955,7 +985,10 @@ void _showStoreContactDialog(
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded, color: PaykColors.textPrimary),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: PaykColors.textPrimary,
+                    ),
                     onPressed: () => Navigator.pop(ctx),
                   ),
                 ],
@@ -1008,7 +1041,6 @@ void _showStoreContactDialog(
   );
 }
 
-
 // -----------------------------------------------------------------------------
 // ДИАЛОГИ И МОДАЛКИ ДЛЯ ПУНКТОВ МЕНЮ
 // -----------------------------------------------------------------------------
@@ -1045,7 +1077,10 @@ void _showAboutDialog(BuildContext context, String locale) {
               Align(
                 alignment: Alignment.topRight,
                 child: IconButton(
-                  icon: const Icon(Icons.close_rounded, color: PaykColors.textPrimary),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: PaykColors.textPrimary,
+                  ),
                   onPressed: () => Navigator.pop(ctx),
                 ),
               ),
@@ -1108,7 +1143,10 @@ void _showAboutDialog(BuildContext context, String locale) {
                     ),
                     const SizedBox(height: 10),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
                       decoration: BoxDecoration(
                         color: PaykColors.tile,
                         borderRadius: BorderRadius.circular(20),
@@ -1141,32 +1179,57 @@ void _showAboutDialog(BuildContext context, String locale) {
                       title: tr(locale, 'profile.developer'),
                       value: tr(locale, 'profile.developerValue'),
                     ),
-                    const Divider(height: 1, indent: 52, color: PaykColors.border),
+                    const Divider(
+                      height: 1,
+                      indent: 52,
+                      color: PaykColors.border,
+                    ),
                     _AboutInfoRow(
                       icon: Icons.language_rounded,
                       title: tr(locale, 'profile.site'),
                       value: 'payk.tj',
                       onTap: () {
-                        Clipboard.setData(const ClipboardData(text: 'https://payk.tj'));
-                        showPaykMessage(context, tr(locale, 'profile.linkCopied', {'url': 'https://payk.tj'}));
+                        Clipboard.setData(
+                          const ClipboardData(text: 'https://payk.tj'),
+                        );
+                        showPaykMessage(
+                          context,
+                          tr(locale, 'profile.linkCopied', {
+                            'url': 'https://payk.tj',
+                          }),
+                        );
                       },
                     ),
-                    const Divider(height: 1, indent: 52, color: PaykColors.border),
+                    const Divider(
+                      height: 1,
+                      indent: 52,
+                      color: PaykColors.border,
+                    ),
                     _AboutInfoRow(
                       icon: Icons.description_outlined,
                       title: tr(locale, 'profile.terms'),
                       value: tr(locale, 'profile.openLink'),
                       onTap: () {
-                        showPaykMessage(context, tr(locale, 'profile.termsHint'));
+                        showPaykMessage(
+                          context,
+                          tr(locale, 'profile.termsHint'),
+                        );
                       },
                     ),
-                    const Divider(height: 1, indent: 52, color: PaykColors.border),
+                    const Divider(
+                      height: 1,
+                      indent: 52,
+                      color: PaykColors.border,
+                    ),
                     _AboutInfoRow(
                       icon: Icons.privacy_tip_outlined,
                       title: tr(locale, 'profile.privacy'),
                       value: tr(locale, 'profile.openLink'),
                       onTap: () {
-                        showPaykMessage(context, tr(locale, 'profile.privacyHint'));
+                        showPaykMessage(
+                          context,
+                          tr(locale, 'profile.privacyHint'),
+                        );
                       },
                     ),
                   ],
@@ -1200,8 +1263,6 @@ void _showAboutDialog(BuildContext context, String locale) {
     },
   );
 }
-
-
 
 class _ContactActionTile extends StatelessWidget {
   const _ContactActionTile({
@@ -1331,7 +1392,11 @@ class _AboutInfoRow extends StatelessWidget {
             ),
             if (onTap != null) ...[
               const SizedBox(width: 6),
-              const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: PaykColors.textSecondary),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 12,
+                color: PaykColors.textSecondary,
+              ),
             ],
           ],
         ),
@@ -1394,7 +1459,10 @@ class ProfileDetailsScreen extends ConsumerWidget {
           PaykPressable(
             scaleDown: PaykMotion.scaleIcon,
             child: IconButton(
-              icon: const Icon(Icons.logout_rounded, color: PaykColors.textPrimary),
+              icon: const Icon(
+                Icons.logout_rounded,
+                color: PaykColors.textPrimary,
+              ),
               tooltip: tr(locale, 'profile.logout'),
               onPressed: () {
                 HapticFeedback.lightImpact();
@@ -1414,7 +1482,7 @@ class ProfileDetailsScreen extends ConsumerWidget {
 
           final bottomInset = MediaQuery.paddingOf(context).bottom;
           return ListView(
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 96 + bottomInset),
+            padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + bottomInset),
             physics: const AlwaysScrollableScrollPhysics(
               parent: BouncingScrollPhysics(),
             ),
@@ -1431,7 +1499,7 @@ class ProfileDetailsScreen extends ConsumerWidget {
               _UserInfoCard(
                 member: member,
                 locale: locale,
-                onEdit: () => _showEditProfileSheet(context, ref, member),
+                onEdit: () => showEditProfileSheet(context, ref, member),
               ),
               const SizedBox(height: 14),
 
@@ -1439,7 +1507,8 @@ class ProfileDetailsScreen extends ConsumerWidget {
               _ContactsCard(
                 member: member,
                 locale: locale,
-                onChangePassword: () => showPaykMessage(context, tr(locale, 'profile.passwordSms')),
+                onChangePassword: () =>
+                    showPaykMessage(context, tr(locale, 'profile.passwordSms')),
               ),
               const SizedBox(height: 14),
 
@@ -1475,7 +1544,12 @@ Future<void> _pickAvatar(BuildContext context, WidgetRef ref) async {
     if (picked == null) return;
     await ref.read(loyaltyApiProvider).uploadAvatar(picked.path);
     ref.invalidate(meProvider);
-    if (context.mounted) showPaykMessage(context, tr(ref.read(localeProvider), 'profile.photoUpdated'));
+    if (context.mounted) {
+      showPaykMessage(
+        context,
+        tr(ref.read(localeProvider), 'profile.photoUpdated'),
+      );
+    }
   } catch (error) {
     if (context.mounted) showPaykMessage(context, errorText(error));
   }
@@ -1554,7 +1628,9 @@ class _UserInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rawName = '${member.firstName} ${member.lastName}'.trim();
-    final fullName = rawName.isNotEmpty ? rawName : tr(locale, 'profile.notSet');
+    final fullName = rawName.isNotEmpty
+        ? rawName
+        : tr(locale, 'profile.notSet');
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1579,7 +1655,11 @@ class _UserInfoCard extends StatelessWidget {
               ),
               TextButton.icon(
                 onPressed: onEdit,
-                icon: const Icon(Icons.edit_outlined, size: 18, color: PaykColors.primary),
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 18,
+                  color: PaykColors.primary,
+                ),
                 label: Text(
                   tr(locale, 'profile.change'),
                   style: TextStyle(
@@ -1597,10 +1677,7 @@ class _UserInfoCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          _InfoRow(
-            label: tr(locale, 'profile.fullName'),
-            value: fullName,
-          ),
+          _InfoRow(label: tr(locale, 'profile.fullName'), value: fullName),
           const SizedBox(height: 8),
           _InfoRow(
             label: tr(locale, 'profile.birth'),
@@ -1702,7 +1779,9 @@ class _ContactsCard extends StatelessWidget {
           const SizedBox(height: 6),
           _InfoRow(
             label: tr(locale, 'profile.email'),
-            value: (member.email != null && member.email!.isNotEmpty) ? member.email! : tr(locale, 'profile.notSetDate'),
+            value: (member.email != null && member.email!.isNotEmpty)
+                ? member.email!
+                : tr(locale, 'profile.notSetDate'),
           ),
         ],
       ),
@@ -1747,7 +1826,6 @@ class _InfoRow extends StatelessWidget {
     );
   }
 }
-
 
 /// 6. Карточка «Способы входа»
 class _LoginMethodsCard extends ConsumerWidget {
@@ -1887,8 +1965,12 @@ class _DeleteAccountCard extends StatelessWidget {
 // ДИАЛОГИ РЕДАКТИРОВАНИЯ И ВЫХОДА ДЕТАЛЬНОГО ПРОФИЛЯ
 // -----------------------------------------------------------------------------
 
-Future<void> _showEditProfileSheet(BuildContext context, WidgetRef ref, Member member) async {
-  final saved = await showModalBottomSheet<bool>(
+Future<void> showEditProfileSheet(
+  BuildContext context,
+  WidgetRef ref,
+  Member member,
+) async {
+  final saved = await showModalBottomSheet<String>(
     context: context,
     useRootNavigator: true,
     isScrollControlled: true,
@@ -1899,9 +1981,9 @@ Future<void> _showEditProfileSheet(BuildContext context, WidgetRef ref, Member m
     ),
     builder: (context) => _EditProfileSheet(member: member),
   );
-  if (saved == true && context.mounted) {
+  if (saved != null && context.mounted) {
     ref.invalidate(meProvider);
-    showPaykMessage(context, tr(ref.read(localeProvider), 'profile.saved'));
+    showPaykMessage(context, saved);
   }
 }
 
@@ -1915,13 +1997,26 @@ class _EditProfileSheet extends ConsumerStatefulWidget {
 }
 
 class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
-  late final TextEditingController _first = TextEditingController(text: widget.member.firstName);
-  late final TextEditingController _last = TextEditingController(text: widget.member.lastName);
-  late final DateTime? _storedBirth = DateTime.tryParse(widget.member.birthDate ?? '');
-  late final TextEditingController _day = TextEditingController(text: _storedBirth == null ? '' : '${_storedBirth!.day}');
+  late final TextEditingController _first = TextEditingController(
+    text: widget.member.firstName,
+  );
+  late final TextEditingController _last = TextEditingController(
+    text: widget.member.lastName,
+  );
+  late final DateTime? _storedBirth = DateTime.tryParse(
+    widget.member.birthDate ?? '',
+  );
+  late final TextEditingController _day = TextEditingController(
+    text: _storedBirth == null ? '' : '${_storedBirth.day}',
+  );
   late int? _month = _storedBirth?.month;
-  late final TextEditingController _year = TextEditingController(text: _storedBirth == null ? '' : '${_storedBirth!.year}');
-  late String _gender = widget.member.gender == 'm' || widget.member.gender == 'f' ? widget.member.gender! : '';
+  late final TextEditingController _year = TextEditingController(
+    text: _storedBirth == null ? '' : '${_storedBirth.year}',
+  );
+  late String _gender =
+      widget.member.gender == 'm' || widget.member.gender == 'f'
+      ? widget.member.gender!
+      : '';
   var _busy = false;
   String? _error;
 
@@ -1941,29 +2036,78 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
       setState(() => _error = tr(ref.read(localeProvider), 'profile.needName'));
       return;
     }
-    final first = DateTime(1920);
-    final last = latestBirthDate(DateTime.now());
-    final birth = parseBirthDate(day: _day.text, month: _month == null ? '' : '$_month', year: _year.text, first: first, last: last);
-    if (!birth.isOk && !birth.isEmpty) {
-      setState(() => _error = birthDateError(ref.read(localeProvider), birth, first, last));
-      return;
+    String? birthDate;
+    var addingDate = false;
+    if (!widget.member.birthDateLocked) {
+      final first = DateTime(1920);
+      final last = latestBirthDate(DateTime.now());
+      final birth = parseBirthDate(
+        day: _day.text,
+        month: _month == null ? '' : '$_month',
+        year: _year.text,
+        first: first,
+        last: last,
+      );
+      if (!birth.isOk && !birth.isEmpty) {
+        setState(
+          () => _error = birthDateError(
+            ref.read(localeProvider),
+            birth,
+            first,
+            last,
+          ),
+        );
+        return;
+      }
+      birthDate = birth.date == null
+          ? ''
+          : '${birth.date!.year.toString().padLeft(4, '0')}-${birth.date!.month.toString().padLeft(2, '0')}-${birth.date!.day.toString().padLeft(2, '0')}';
+      final hadDate =
+          widget.member.birthDate != null &&
+          widget.member.birthDate!.isNotEmpty;
+      addingDate = !hadDate && birth.date != null;
+      if (addingDate) {
+        final locale = ref.read(localeProvider);
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(tr(locale, 'edit.confirmDateTitle')),
+            content: Text(tr(locale, 'edit.confirmDateText')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(tr(locale, 'common.cancel')),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(tr(locale, 'edit.confirmDateYes')),
+              ),
+            ],
+          ),
+        );
+        if (confirmed != true || !mounted) return;
+      }
     }
     setState(() {
       _busy = true;
       _error = null;
     });
-    final birthDate = birth.date == null
-        ? ''
-        : '${birth.date!.year.toString().padLeft(4, '0')}-${birth.date!.month.toString().padLeft(2, '0')}-${birth.date!.day.toString().padLeft(2, '0')}';
     try {
-      await ref.read(sessionProvider.notifier).updateProfile(
+      await ref
+          .read(sessionProvider.notifier)
+          .updateProfile(
             firstName: firstName,
             lastName: lastName,
-            birthDate: birthDate,
+            birthDate: widget.member.birthDateLocked ? null : birthDate,
             gender: _gender,
           );
       if (!mounted) return;
-      Navigator.pop(context, true);
+      final locale = ref.read(localeProvider);
+      final bonus = widget.member.dobBonus ?? 0;
+      final message = addingDate && bonus > 0
+          ? tr(locale, 'edit.bonusAdded', {'bonus': formatMoney(bonus)})
+          : tr(locale, 'profile.saved');
+      Navigator.pop(context, message);
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -1976,9 +2120,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
-    final bottom = MediaQuery.viewInsetsOf(context).bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottom),
+    return _KeyboardInset(
       child: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -2000,12 +2142,21 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               const SizedBox(height: 16),
               Text(
                 tr(locale, 'profile.editTitle'),
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: PaykColors.textPrimary, letterSpacing: -0.3),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: PaykColors.textPrimary,
+                  letterSpacing: -0.3,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 tr(locale, 'profile.editHint'),
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: PaykColors.textSecondary),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: PaykColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 18),
               TextField(
@@ -2026,25 +2177,43 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               const SizedBox(height: 18),
               Text(
                 tr(locale, 'profile.birth'),
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: PaykColors.textSecondary),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: PaykColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 8),
-              BirthDateFields(
-                day: _day,
-                month: _month,
-                year: _year,
-                locale: locale,
-                onMonth: (value) => setState(() => _month = value),
-                dayLabel: tr(locale, 'profile.birthDay'),
-                monthLabel: tr(locale, 'profile.birthMonth'),
-                yearLabel: tr(locale, 'profile.birthYear'),
-                enabled: !_busy,
-                decoration: _fieldDecoration,
-              ),
+              if (widget.member.birthDateLocked)
+                Text(
+                  _birthLabel(widget.member.birthDate, locale),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: PaykColors.textPrimary,
+                  ),
+                )
+              else
+                BirthDateFields(
+                  day: _day,
+                  month: _month,
+                  year: _year,
+                  locale: locale,
+                  onMonth: (value) => setState(() => _month = value),
+                  dayLabel: tr(locale, 'profile.birthDay'),
+                  monthLabel: tr(locale, 'profile.birthMonth'),
+                  yearLabel: tr(locale, 'profile.birthYear'),
+                  enabled: !_busy,
+                  decoration: _fieldDecoration,
+                ),
               const SizedBox(height: 18),
               Text(
                 tr(locale, 'profile.gender'),
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: PaykColors.textSecondary),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: PaykColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 8),
               Row(
@@ -2053,7 +2222,11 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                     child: _GenderChoice(
                       label: tr(locale, 'profile.male'),
                       selected: _gender == 'm',
-                      onTap: _busy ? null : () => setState(() => _gender = _gender == 'm' ? '' : 'm'),
+                      onTap: _busy
+                          ? null
+                          : () => setState(
+                              () => _gender = _gender == 'm' ? '' : 'm',
+                            ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -2061,7 +2234,11 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                     child: _GenderChoice(
                       label: tr(locale, 'profile.female'),
                       selected: _gender == 'f',
-                      onTap: _busy ? null : () => setState(() => _gender = _gender == 'f' ? '' : 'f'),
+                      onTap: _busy
+                          ? null
+                          : () => setState(
+                              () => _gender = _gender == 'f' ? '' : 'f',
+                            ),
                     ),
                   ),
                 ],
@@ -2070,13 +2247,21 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                 const SizedBox(height: 14),
                 Text(
                   _error!,
-                  style: const TextStyle(color: PaykColors.danger, fontWeight: FontWeight.w600, height: 1.3),
+                  style: const TextStyle(
+                    color: PaykColors.danger,
+                    fontWeight: FontWeight.w600,
+                    height: 1.3,
+                  ),
                 ),
               ],
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: _busy ? null : _save,
-                child: Text(_busy ? tr(locale, 'profile.saving') : tr(locale, 'profile.save')),
+                child: Text(
+                  _busy
+                      ? tr(locale, 'profile.saving')
+                      : tr(locale, 'profile.save'),
+                ),
               ),
               Center(
                 child: TextButton(
@@ -2092,8 +2277,28 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   }
 }
 
+/// Клавиатурный отступ отдельно от формы: поля даты не пересобираются на каждом кадре клавиатуры.
+class _KeyboardInset extends StatelessWidget {
+  const _KeyboardInset({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottom),
+      child: child,
+    );
+  }
+}
+
 class _GenderChoice extends StatelessWidget {
-  const _GenderChoice({required this.label, required this.selected, required this.onTap});
+  const _GenderChoice({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String label;
   final bool selected;
@@ -2146,7 +2351,9 @@ InputDecoration _fieldDecoration(String label) {
   );
 }
 
-bool _hasLetter(String value) => value.runes.any((code) => String.fromCharCode(code).contains(RegExp(r'\p{L}', unicode: true)));
+bool _hasLetter(String value) => value.runes.any(
+  (code) => String.fromCharCode(code).contains(RegExp(r'\p{L}', unicode: true)),
+);
 
 String _birthLabel(String? raw, String locale) {
   if (raw == null || raw.isEmpty) return tr(locale, 'profile.notSetDate');
@@ -2163,7 +2370,11 @@ String _genderLabel(String? raw, String locale) {
   };
 }
 
-Future<void> _confirmLogout(BuildContext context, WidgetRef ref, String locale) async {
+Future<void> _confirmLogout(
+  BuildContext context,
+  WidgetRef ref,
+  String locale,
+) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
@@ -2180,7 +2391,9 @@ Future<void> _confirmLogout(BuildContext context, WidgetRef ref, String locale) 
               minimumSize: const Size.fromHeight(46),
               backgroundColor: PaykColors.tile,
               foregroundColor: PaykColors.textPrimary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: Text(tr(locale, 'common.cancel')),
           ),
@@ -2190,7 +2403,9 @@ Future<void> _confirmLogout(BuildContext context, WidgetRef ref, String locale) 
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(46),
               backgroundColor: PaykColors.bad,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: Text(tr(locale, 'profile.logout')),
           ),
@@ -2207,23 +2422,47 @@ Future<void> _confirmLogout(BuildContext context, WidgetRef ref, String locale) 
   }
 }
 
-Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref, String locale) async {
+Future<void> _confirmDeleteAccount(
+  BuildContext context,
+  WidgetRef ref,
+  String locale,
+) async {
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(tr(locale, 'profile.deleteTitle')),
-      content: Text(tr(locale, 'profile.deleteText')),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: Text(tr(locale, 'common.cancel')),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: FilledButton.styleFrom(backgroundColor: PaykColors.bad),
-          child: Text(tr(locale, 'profile.deleteForever')),
-        ),
-      ],
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(tr(locale, 'profile.deleteText')),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, false),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(46),
+              backgroundColor: PaykColors.tile,
+              foregroundColor: PaykColors.textPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(tr(locale, 'common.cancel')),
+          ),
+          const SizedBox(height: 8),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(46),
+              backgroundColor: PaykColors.bad,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(tr(locale, 'profile.deleteForever')),
+          ),
+        ],
+      ),
     ),
   );
 

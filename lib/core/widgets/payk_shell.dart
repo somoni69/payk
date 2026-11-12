@@ -34,7 +34,7 @@ class PaykShell extends ConsumerWidget {
       child: Scaffold(
         backgroundColor: PaykColors.canvas,
         extendBody: true,
-        body: shell,
+        body: RepaintBoundary(child: shell),
         bottomNavigationBar: LiquidGlassBottomBar(
           currentIndex: shell.currentIndex,
           onTap: _go,

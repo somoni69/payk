@@ -14,6 +14,7 @@ PendingCheck sample({
   double v = 0,
   bool coin10 = false,
   bool declined = false,
+  PendingCoupon? coupon,
 }) {
   return PendingCheck(
     id: 7,
@@ -35,6 +36,7 @@ PendingCheck sample({
     coin10: coin10,
     coinDeclined: declined,
     burnMin: 0.5,
+    coupon: coupon,
   );
 }
 
@@ -55,6 +57,23 @@ void main() {
       isTrue,
     );
     expect(needsChoice(sample(y: 0, balance: 0, confirmed: true)), isTrue);
+    expect(
+      needsChoice(
+        sample(
+          y: 0,
+          balance: 0,
+          coupon: const PendingCoupon(
+            id: 1,
+            offer: 20,
+            minBill: 100,
+            usable: true,
+            applied: false,
+            amount: 0,
+          ),
+        ),
+      ),
+      isTrue,
+    );
   });
 
   test('списание зажимается в минимум и максимум', () {

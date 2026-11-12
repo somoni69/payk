@@ -338,9 +338,9 @@ void main() {
       await tester.tap(find.text('Отмена'));
       await tester.pumpAndSettle();
 
-      // User remains on /profile
+      // Пользователь остаётся на экране деталей профиля
       expect(find.text('Выйти из аккаунта?'), findsNothing);
-      expect(router.state.matchedLocation, equals('/profile'));
+      expect(router.state.matchedLocation, equals('/profile/details'));
       expect(container.read(sessionProvider).loggedIn, isTrue);
       expect(container.read(splashFinishedProvider), isTrue);
     });

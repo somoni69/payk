@@ -12,7 +12,8 @@ class ShimmerSweep extends StatefulWidget {
   State<ShimmerSweep> createState() => _ShimmerSweepState();
 }
 
-class _ShimmerSweepState extends State<ShimmerSweep> with SingleTickerProviderStateMixin {
+class _ShimmerSweepState extends State<ShimmerSweep>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 1400),
@@ -37,10 +38,7 @@ class _ShimmerSweepState extends State<ShimmerSweep> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    return _ShimmerScope(
-      animation: _controller,
-      child: widget.child,
-    );
+    return _ShimmerScope(animation: _controller, child: widget.child);
   }
 }
 
@@ -50,11 +48,14 @@ class _ShimmerScope extends InheritedWidget {
   final Animation<double> animation;
 
   static Animation<double>? maybeOf(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<_ShimmerScope>()?.animation;
+    return context
+        .dependOnInheritedWidgetOfExactType<_ShimmerScope>()
+        ?.animation;
   }
 
   @override
-  bool updateShouldNotify(covariant _ShimmerScope oldWidget) => animation != oldWidget.animation;
+  bool updateShouldNotify(covariant _ShimmerScope oldWidget) =>
+      animation != oldWidget.animation;
 }
 
 /// Прямоугольник или круг на месте текста, иконки или карточки.
@@ -97,32 +98,68 @@ class SkeletonBox extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final resolved = width ?? (constraints.maxWidth.isFinite ? constraints.maxWidth : height);
-        return SizedBox(
-          width: resolved,
-          height: height,
-          child: animation == null || reduce
-              ? bone(null)
-              : AnimatedBuilder(
+        final resolved =
+            width ??
+            (constraints.maxWidth.isFinite ? constraints.maxWidth : height);
+        final painted = animation == null || reduce
+            ? bone(null)
+            : CustomPaint(
+                painter: _BonePainter(
                   animation: animation,
-                  builder: (context, _) {
-                    final render = context.findRenderObject();
-                    if (render is! RenderBox || !render.hasSize || !render.attached) {
-                      return bone(null);
-                    }
-                    try {
-                      final origin = render.localToGlobal(Offset.zero);
-                      final screen = MediaQuery.sizeOf(context).width;
-                      final head = -80 + animation.value * (screen + 160);
-                      return bone(_sweep(base, shine, head - origin.dx, render.size.width));
-                    } catch (_) {
-                      return bone(null);
-                    }
-                  },
+                  base: base,
+                  shine: shine,
+                  radius: radius,
+                  circle: circle,
                 ),
-        );
+                child: const SizedBox.expand(),
+              );
+        return SizedBox(width: resolved, height: height, child: painted);
       },
     );
+  }
+}
+
+/// Блик рисуется в paint. Виджет не пересобирается и не вызывает localToGlobal.
+class _BonePainter extends CustomPainter {
+  _BonePainter({
+    required this.animation,
+    required this.base,
+    required this.shine,
+    required this.radius,
+    required this.circle,
+  }) : super(repaint: animation);
+
+  final Animation<double> animation;
+  final Color base;
+  final Color shine;
+  final double radius;
+  final bool circle;
+  final Paint _paint = Paint();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final center = -80 + animation.value * (size.width + 160);
+    final gradient = _sweep(base, shine, center, size.width);
+    _paint
+      ..shader = gradient?.createShader(Offset.zero & size)
+      ..color = base;
+    if (circle) {
+      canvas.drawOval(Offset.zero & size, _paint);
+    } else {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius)),
+        _paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BonePainter oldDelegate) {
+    return base != oldDelegate.base ||
+        shine != oldDelegate.shine ||
+        radius != oldDelegate.radius ||
+        circle != oldDelegate.circle;
   }
 }
 

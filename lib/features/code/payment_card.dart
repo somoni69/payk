@@ -39,6 +39,7 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
   late double _burn = widget.check.v;
   late bool _coin10 = widget.check.coin10;
   late bool _noCoin = widget.check.coinDeclined && !widget.check.coin10;
+  late bool _coupon = widget.check.coupon?.applied ?? false;
   var _phase = _Phase.choose;
   var _confirmed = false;
   var _editing = false;
@@ -86,6 +87,7 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
         _burn = clampBurn(_burn, next);
         _coin10 = _coin10 && next.coin10Available;
         _noCoin = false;
+        _coupon = _coupon && (next.coupon?.usable ?? false);
       });
       _scheduleQuote();
       return;
@@ -107,6 +109,7 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
         _quoteMessage = null;
         _burn = clampBurn(_burn, next);
         _coin10 = _coin10 && next.coin10Available;
+        _coupon = _coupon && (next.coupon?.usable ?? false);
       });
       _scheduleQuote();
     }
@@ -122,6 +125,7 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
     _burn = check.v;
     _coin10 = check.coin10;
     _noCoin = check.coinDeclined && !check.coin10;
+    _coupon = check.coupon?.applied ?? false;
     _phase = check.clientConfirmed ? _Phase.waiting : _Phase.choose;
     _confirmed = check.clientConfirmed;
     _editing = false;
@@ -132,7 +136,8 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
     _quoted = null;
   }
 
-  String get _selectionKey => choiceKey(_burn, _coin10, _noCoin);
+  String get _selectionKey =>
+      choiceKey(_burn, _coin10, _noCoin, coupon: _coupon);
 
   void _scheduleQuote() {
     _quoteTimer?.cancel();
@@ -146,11 +151,18 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
     final burn = _burn;
     final coin10 = _coin10;
     final noCoin = _noCoin;
+    final coupon = _coupon;
     _quoteTimer = Timer(const Duration(milliseconds: 280), () async {
       try {
         final result = await ref
             .read(loyaltyApiProvider)
-            .quote(id, burn: burn, coin10: coin10, noCoin: noCoin);
+            .quote(
+              id,
+              burn: burn,
+              coin10: coin10,
+              noCoin: noCoin,
+              coupon: coupon,
+            );
         if (!mounted || seq != _quoteSeq) return;
         setState(() {
           _quoteKey = key;
@@ -189,7 +201,13 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
     try {
       await ref
           .read(loyaltyApiProvider)
-          .choose(id, burn: _burn, coin10: _coin10, noCoin: _noCoin);
+          .choose(
+            id,
+            burn: _burn,
+            coin10: _coin10,
+            noCoin: _noCoin,
+            coupon: _coupon,
+          );
       if (!mounted) return;
       setState(() {
         _phase = _Phase.waiting;
@@ -217,15 +235,25 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
     final key = _selectionKey;
     final settled = _quoteKey == key;
     final calculating = !waiting && !settled;
+    final couponOnCheck = check.coupon?.applied ?? false;
+    final couponShifted = !waiting && _coupon != couponOnCheck;
+    final shifted =
+        couponShifted &&
+            _quoted != null &&
+            (_quoted!.coupon?.applied ?? false) == _coupon
+        ? _quoted
+        : null;
+    final limitsPending = couponShifted && shifted == null;
+    final limit = shifted ?? check;
     final view = waiting
         ? check
         : (settled && _quoted != null
               ? _quoted!
               : (key == choiceKeyOf(check) ? check : (_quoted ?? check)));
-    final canBurn = canBurnOn(check);
-    final y = check.y ?? 0;
+    final y = limit.y ?? 0;
     final min = burnMinOf(check);
-    final aStar = check.aStar ?? 0;
+    final aStar = limit.aStar ?? 0;
+    final canBurn = !limitsPending && canBurnOn(check, limit: y);
     final pristine = !waiting && !_confirmed && key == choiceKeyOf(check);
     final canConfirm = settled && _quoteMessage == null && !calculating;
     final loses =
@@ -367,6 +395,48 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
             ),
             if (!waiting) ...[
               const SizedBox(height: 12),
+              if (check.coupon case final coupon?)
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    tr(locale, 'pay.coupon', {
+                      'amount': formatMoney(coupon.offer),
+                    }),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Text(
+                    coupon.usable
+                        ? tr(locale, 'pay.couponHint')
+                        : tr(locale, 'pay.couponMin', {
+                            'amount': formatMoney(coupon.minBill),
+                          }),
+                  ),
+                  value: _coupon && coupon.usable,
+                  onChanged: !coupon.usable || _phase == _Phase.sending
+                      ? null
+                      : (value) {
+                          setState(() {
+                            _coupon = value;
+                            _burn = 0;
+                            _error = null;
+                            _quoteKey = null;
+                            _quoted = null;
+                            _quoteMessage = null;
+                          });
+                          _scheduleQuote();
+                        },
+                ),
+              if (limitsPending)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(
+                    tr(locale, 'pay.sending'),
+                    style: const TextStyle(
+                      color: PaykColors.muted,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
               if (canBurn) ...[
                 Row(
                   children: [
@@ -508,6 +578,22 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
               }),
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
+            if (view.coupon?.applied == true &&
+                view.amountBeforeCoupon != null) ...[
+              Text(
+                '${tr(locale, 'pay.billRow')} ${formatMoney(view.amountBeforeCoupon!)}',
+              ),
+              Text(
+                '${tr(locale, 'pay.couponRow')} −${formatMoney(view.coupon!.amount)}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: PaykColors.violet,
+                ),
+              ),
+              Text(
+                '${tr(locale, 'pay.afterCoupon')} ${formatMoney(view.amount ?? 0)}',
+              ),
+            ],
             if (view.v > 0)
               Text(
                 tr(locale, 'pay.spendLine', {'amount': formatMoney(view.v)}),
@@ -584,6 +670,7 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
                           _burn = check.v;
                           _coin10 = check.coin10;
                           _noCoin = check.coinDeclined && !check.coin10;
+                          _coupon = check.coupon?.applied ?? false;
                           _quoteKey = choiceKeyOf(check);
                           _quoted = null;
                           _quoteMessage = null;

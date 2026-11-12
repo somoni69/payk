@@ -156,7 +156,10 @@ abstract final class PaykMotion {
   }
 
   /// Создаёт `PageRoute` с фирменной плавной анимацией Payk (для прямого `Navigator.push`).
-  static PageRouteBuilder<T> route<T>(Widget pageWidget, {RouteSettings? settings}) {
+  static PageRouteBuilder<T> route<T>(
+    Widget pageWidget, {
+    RouteSettings? settings,
+  }) {
     return PageRouteBuilder<T>(
       settings: settings,
       transitionDuration: page,
@@ -202,124 +205,164 @@ abstract final class PaykMotion {
     }
   }
 
-  /// Композиторный пространственный переход между экранами:
-  /// - Входящий экран: сдвиг `7%` по X + масштаб `0.985 -> 1.0` + `opacity 0 -> 1` по кривой `easeOut`.
-  /// - Фоновый экран: мягкий параллакс `-2.5%` по X + масштаб `1.0 -> 0.985` по кривой `easeOut`.
+  /// Входящий экран: сдвиг `6.5%` по X + масштаб `0.985 -> 1.0` + проявление.
+  ///
+  /// Нижний экран не сдвигаем. Под ним живой блюр нижнего бара: параллакс
+  /// пересчитывал бы его на каждом кадре и давал фриз при открытии профиля,
+  /// шторок и диалогов.
   static Widget buildSharedSlideTransition(
     BuildContext context,
     Animation<double> animation,
-    Animation<double> secondaryAnimation,
+    Animation<double> _,
     Widget child,
   ) {
-    if (shouldReduceMotion(context)) {
-      return child;
-    }
-
-    final primaryCurved = CurvedAnimation(
-      parent: animation,
-      curve: easeOut,
-      reverseCurve: easeOut,
-    );
-    final fadeCurved = Tween<double>(
-      begin: 0.01,
-      end: 1.0,
-    ).animate(
-      CurvedAnimation(
-        parent: animation,
-        curve: const Interval(0.0, 0.8, curve: easeOut),
-        reverseCurve: const Interval(0.2, 1.0, curve: easeOut),
-      ),
-    );
-    final secondaryCurved = CurvedAnimation(
-      parent: secondaryAnimation,
-      curve: easeOut,
-      reverseCurve: easeOut,
-    );
-
-    final slideIn = Tween<Offset>(
-      begin: const Offset(0.065, 0.0),
-      end: Offset.zero,
-    ).animate(primaryCurved);
-
-    final scaleIn = Tween<double>(
-      begin: 0.985,
-      end: 1.0,
-    ).animate(primaryCurved);
-
-    final slideOut = Tween<Offset>(
-      begin: Offset.zero,
-      end: const Offset(-0.025, 0.0),
-    ).animate(secondaryCurved);
-
-    final scaleOut = Tween<double>(
-      begin: 1.0,
-      end: 0.988,
-    ).animate(secondaryCurved);
-
-    return SlideTransition(
-      position: slideOut,
-      child: ScaleTransition(
-        scale: scaleOut,
-        child: FadeTransition(
-          opacity: fadeCurved,
-          child: SlideTransition(
-            position: slideIn,
-            child: ScaleTransition(
-              scale: scaleIn,
-              child: child,
-            ),
-          ),
-        ),
-      ),
-    );
+    if (shouldReduceMotion(context)) return child;
+    return _PaykSharedSlide(animation: animation, child: child);
   }
 
-  /// Композиторный переход `Fade + Scale(0.96 -> 1.0)` для корневых состояний и модальных переходов.
+  /// Композиторный переход `Fade + Scale(0.96 -> 1.0)` для корневых состояний.
+  /// Нижний экран остаётся на месте, чтобы не гонять блюр на каждом кадре.
   static Widget buildFadeScaleTransition(
     BuildContext context,
     Animation<double> animation,
-    Animation<double> secondaryAnimation,
+    Animation<double> _,
     Widget child,
   ) {
-    if (shouldReduceMotion(context)) {
-      return child;
-    }
+    if (shouldReduceMotion(context)) return child;
+    return _PaykFadeScale(animation: animation, child: child);
+  }
+}
 
-    final primaryCurved = CurvedAnimation(
+/// Кривые создаются один раз. `buildTransitions` вызывается на каждом кадре,
+/// и новый [CurvedAnimation] там навсегда подписывался на маршрут.
+class _PaykSharedSlide extends StatefulWidget {
+  const _PaykSharedSlide({required this.animation, required this.child});
+
+  final Animation<double> animation;
+  final Widget child;
+
+  @override
+  State<_PaykSharedSlide> createState() => _PaykSharedSlideState();
+}
+
+class _PaykSharedSlideState extends State<_PaykSharedSlide> {
+  late CurvedAnimation _primary;
+  late CurvedAnimation _fadeCurve;
+  late Animation<double> _fade;
+  late Animation<Offset> _slide;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _bind(widget.animation);
+  }
+
+  void _bind(Animation<double> animation) {
+    _primary = CurvedAnimation(
       parent: animation,
-      curve: easeOut,
-      reverseCurve: easeOut,
+      curve: PaykMotion.easeOut,
+      reverseCurve: PaykMotion.easeOut,
     );
-    final secondaryCurved = CurvedAnimation(
-      parent: secondaryAnimation,
-      curve: easeOut,
-      reverseCurve: easeOut,
+    _fadeCurve = CurvedAnimation(
+      parent: animation,
+      curve: const Interval(0.0, 0.8, curve: PaykMotion.easeOut),
+      reverseCurve: const Interval(0.2, 1.0, curve: PaykMotion.easeOut),
     );
+    _fade = Tween<double>(begin: 0.01, end: 1).animate(_fadeCurve);
+    _slide = Tween<Offset>(
+      begin: const Offset(0.065, 0),
+      end: Offset.zero,
+    ).animate(_primary);
+    _scale = Tween<double>(begin: 0.985, end: 1).animate(_primary);
+  }
 
-    final fadeIn = Tween<double>(
-      begin: 0.01,
-      end: 1.0,
-    ).animate(primaryCurved);
+  @override
+  void didUpdateWidget(covariant _PaykSharedSlide oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.animation != widget.animation) {
+      _release();
+      _bind(widget.animation);
+    }
+  }
 
-    final scaleIn = Tween<double>(
-      begin: entranceScale,
-      end: 1.0,
-    ).animate(primaryCurved);
+  void _release() {
+    _primary.dispose();
+    _fadeCurve.dispose();
+  }
 
-    final scaleOut = Tween<double>(
-      begin: 1.0,
-      end: 0.985,
-    ).animate(secondaryCurved);
+  @override
+  void dispose() {
+    _release();
+    super.dispose();
+  }
 
-    return ScaleTransition(
-      scale: scaleOut,
-      child: FadeTransition(
-        opacity: fadeIn,
-        child: ScaleTransition(
-          scale: scaleIn,
-          child: child,
-        ),
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(
+        position: _slide,
+        child: ScaleTransition(scale: _scale, child: widget.child),
       ),
+    );
+  }
+}
+
+class _PaykFadeScale extends StatefulWidget {
+  const _PaykFadeScale({required this.animation, required this.child});
+
+  final Animation<double> animation;
+  final Widget child;
+
+  @override
+  State<_PaykFadeScale> createState() => _PaykFadeScaleState();
+}
+
+class _PaykFadeScaleState extends State<_PaykFadeScale> {
+  late CurvedAnimation _primary;
+  late Animation<double> _fade;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _bind(widget.animation);
+  }
+
+  void _bind(Animation<double> animation) {
+    _primary = CurvedAnimation(
+      parent: animation,
+      curve: PaykMotion.easeOut,
+      reverseCurve: PaykMotion.easeOut,
+    );
+    _fade = Tween<double>(begin: 0.01, end: 1).animate(_primary);
+    _scale = Tween<double>(
+      begin: PaykMotion.entranceScale,
+      end: 1,
+    ).animate(_primary);
+  }
+
+  @override
+  void didUpdateWidget(covariant _PaykFadeScale oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.animation != widget.animation) {
+      _primary.dispose();
+      _bind(widget.animation);
+    }
+  }
+
+  @override
+  void dispose() {
+    _primary.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fade,
+      child: ScaleTransition(scale: _scale, child: widget.child),
     );
   }
 }
@@ -462,10 +505,7 @@ class _PaykPressableState extends State<PaykPressable>
         builder: (context, child) {
           final t = _controller.value;
           final scale = 1.0 - (1.0 - widget.scaleDown) * t;
-          return Transform.scale(
-            scale: scale,
-            child: child,
-          );
+          return Transform.scale(scale: scale, child: child);
         },
       ),
     );

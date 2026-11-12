@@ -83,15 +83,15 @@ void main() {
       ],
       child: MaterialApp(
         theme: PaykTheme.light,
-        home: const Scaffold(
-          body: HomeScreen(),
-        ),
+        home: const Scaffold(body: HomeScreen()),
       ),
     );
   }
 
   group('Home Screen New Mockup Widgets (Tajik UI)', () {
-    testWidgets('Renders all 4 requested widgets matching design screenshot', (tester) async {
+    testWidgets('Renders all 4 requested widgets matching design screenshot', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(1080, 4000);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -112,21 +112,33 @@ void main() {
       expect(find.byType(LinearProgressIndicator), findsNothing);
 
       // 2. Дӯстонро даъват кунед card
-      expect(find.text('Дӯстонро даъват кунед ва аз харидҳои онҳо 1% гиред'), findsOneWidget);
+      expect(
+        find.text('Дӯстонро даъват кунед ва аз харидҳои онҳо 1% гиред'),
+        findsOneWidget,
+      );
       expect(find.text('SO - 4654'), findsOneWidget);
       expect(find.byIcon(Icons.arrow_forward_rounded), findsOneWidget);
-      expect(find.byIcon(Icons.help_outline_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.help_outline_rounded), findsNothing);
 
       // 3. Огоҳиномаҳо switch tile
-      expect(find.text('Кэшбэк ва статусро аз даст надиҳед — огоҳиномаҳоро фаъол кунед'), findsOneWidget);
+      expect(
+        find.text(
+          'Кэшбэк ва статусро аз даст надиҳед — огоҳиномаҳоро фаъол кунед',
+        ),
+        findsOneWidget,
+      );
       final switchFinder = find.byType(Switch);
       expect(switchFinder, findsOneWidget);
       final Switch switchWidget = tester.widget(switchFinder);
       expect(switchWidget.value, isTrue);
 
-      // 4. Мағозаҳо section
+      expect(find.text('Мағозаҳо'), findsNothing);
+      expect(find.text('СУПЕРМАРКЕТ'), findsNothing);
+
+      await tester.tap(find.text('Ширкатҳои ман'));
+      await tester.pumpAndSettle();
+
       expect(find.text('Мағозаҳо'), findsOneWidget);
-      expect(find.text('Ҳама'), findsOneWidget);
       expect(find.text('СУПЕРМАРКЕТ'), findsOneWidget);
       expect(find.text('ЛИБОС'), findsOneWidget);
       expect(find.textContaining('кэшбэк 2%'), findsOneWidget);
@@ -135,34 +147,40 @@ void main() {
       expect(find.textContaining('бо бонус то 10%'), findsOneWidget);
     });
 
-    testWidgets('Tapping on referral code copies it to clipboard and shows snackbar', (tester) async {
-      tester.view.physicalSize = const Size(1080, 4000);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'Tapping on referral code copies it to clipboard and shows snackbar',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 4000);
+        tester.view.devicePixelRatio = 2.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-        SystemChannels.platform,
-        (MethodCall methodCall) async {
-          if (methodCall.method == 'Clipboard.setData') {
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          (MethodCall methodCall) async {
+            if (methodCall.method == 'Clipboard.setData') {
+              return null;
+            }
             return null;
-          }
-          return null;
-        },
-      );
+          },
+        );
 
-      await tester.pumpWidget(wrapWithScope(locale: 'tj'));
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(wrapWithScope(locale: 'tj'));
+        await tester.pumpAndSettle();
 
-      await tester.tap(find.text('SO - 4654'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
+        await tester.tap(find.text('SO - 4654'));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('Пайванд нусха шуд'), findsOneWidget);
-    });
+        expect(find.text('Пайванд нусха шуд'), findsOneWidget);
+      },
+    );
   });
 
   test('each status keeps its own card material', () {
-    final faces = List<LoyaltyCardFace>.generate(5, (index) => loyaltyCardFace(index + 1));
+    final faces = List<LoyaltyCardFace>.generate(
+      5,
+      (index) => loyaltyCardFace(index + 1),
+    );
     expect(faces.map((face) => face.colors.first).toSet(), hasLength(5));
     expect(faces[0].ink, Colors.white);
     expect(faces[1].ink, isNot(Colors.white));
@@ -173,7 +191,9 @@ void main() {
     expect(loyaltyTierLevel(1), 1);
   });
 
-  testWidgets('changing status applies the matching card design', (tester) async {
+  testWidgets('changing status applies the matching card design', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.0;
     addTearDown(tester.view.resetPhysicalSize);

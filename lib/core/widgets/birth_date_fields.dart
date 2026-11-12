@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../i18n/strings.dart';
+import '../motion/payk_motion.dart';
 import '../theme/payk_colors.dart';
 
 enum BirthDateIssue { empty, incomplete, invalid, tooEarly, tooLate }
@@ -32,7 +33,10 @@ BirthDateParse parseBirthDate({
   if (dayText.isEmpty && monthText.isEmpty && yearText.isEmpty) {
     return const BirthDateParse.issue(BirthDateIssue.empty);
   }
-  if (dayText.isEmpty || monthText.isEmpty || yearText.isEmpty || yearText.length != 4) {
+  if (dayText.isEmpty ||
+      monthText.isEmpty ||
+      yearText.isEmpty ||
+      yearText.length != 4) {
     return const BirthDateParse.issue(BirthDateIssue.incomplete);
   }
   final dayNumber = int.tryParse(dayText);
@@ -45,23 +49,38 @@ BirthDateParse parseBirthDate({
     return const BirthDateParse.issue(BirthDateIssue.invalid);
   }
   final date = DateTime(yearNumber, monthNumber, dayNumber);
-  if (date.year != yearNumber || date.month != monthNumber || date.day != dayNumber) {
+  if (date.year != yearNumber ||
+      date.month != monthNumber ||
+      date.day != dayNumber) {
     return const BirthDateParse.issue(BirthDateIssue.invalid);
   }
   final dayOnly = DateTime(date.year, date.month, date.day);
   final firstDay = DateTime(first.year, first.month, first.day);
   final lastDay = DateTime(last.year, last.month, last.day);
-  if (dayOnly.isBefore(firstDay)) return const BirthDateParse.issue(BirthDateIssue.tooEarly);
-  if (dayOnly.isAfter(lastDay)) return const BirthDateParse.issue(BirthDateIssue.tooLate);
+  if (dayOnly.isBefore(firstDay)) {
+    return const BirthDateParse.issue(BirthDateIssue.tooEarly);
+  }
+  if (dayOnly.isAfter(lastDay)) {
+    return const BirthDateParse.issue(BirthDateIssue.tooLate);
+  }
   return BirthDateParse.ok(dayOnly);
 }
 
-String birthDateError(String locale, BirthDateParse result, DateTime first, DateTime last) {
+String birthDateError(
+  String locale,
+  BirthDateParse result,
+  DateTime first,
+  DateTime last,
+) {
   final from = _dotted(first);
   final to = _dotted(last);
   return switch (result.issue) {
     BirthDateIssue.invalid => tr(locale, 'profile.birthInvalid'),
-    BirthDateIssue.tooEarly || BirthDateIssue.tooLate => tr(locale, 'profile.birthRange', {'from': from, 'to': to}),
+    BirthDateIssue.tooEarly || BirthDateIssue.tooLate => tr(
+      locale,
+      'profile.birthRange',
+      {'from': from, 'to': to},
+    ),
     _ => tr(locale, 'profile.birthNeed'),
   };
 }
@@ -162,7 +181,12 @@ class BirthDateFields extends StatelessWidget {
     );
   }
 
-  Widget _part(TextEditingController controller, String label, int maxLength, TextInputAction action) {
+  Widget _part(
+    TextEditingController controller,
+    String label,
+    int maxLength,
+    TextInputAction action,
+  ) {
     final base = decoration?.call(label) ?? InputDecoration(labelText: label);
     return TextField(
       controller: controller,
@@ -203,33 +227,33 @@ class _BirthMonthFieldState extends State<_BirthMonthField> {
   static const _rowHeight = 44.0;
   static const _visibleRows = 5;
 
-  final _controller = ExpansibleController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  var _open = false;
 
   void _toggle() {
     if (!widget.enabled) return;
-    if (_controller.isExpanded) {
-      _controller.collapse();
-    } else {
-      _controller.expand();
-    }
+    setState(() => _open = !_open);
+  }
+
+  void _choose(int month) {
+    setState(() => _open = false);
+    widget.onMonth(month);
   }
 
   @override
   Widget build(BuildContext context) {
-    final field = widget.decoration?.call(widget.label) ?? InputDecoration(labelText: widget.label);
-    return Expansible(
-      controller: _controller,
-      animationStyle: const AnimationStyle(curve: Curves.easeOut, reverseCurve: Curves.easeOut),
-      headerBuilder: (context, animation) {
-        return InkWell(
+    final field =
+        widget.decoration?.call(widget.label) ??
+        InputDecoration(labelText: widget.label);
+    final reduce = MediaQuery.disableAnimationsOf(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InkWell(
           onTap: widget.enabled ? _toggle : null,
           borderRadius: BorderRadius.circular(16),
+          splashFactory: NoSplash.splashFactory,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
           child: InputDecorator(
             decoration: field,
             isEmpty: widget.month == null,
@@ -237,65 +261,77 @@ class _BirthMonthFieldState extends State<_BirthMonthField> {
               children: [
                 Expanded(
                   child: Text(
-                    widget.month == null ? '' : birthMonthName(widget.locale, widget.month!),
+                    widget.month == null
+                        ? ''
+                        : birthMonthName(widget.locale, widget.month!),
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ),
-                RotationTransition(
-                  turns: Tween<double>(begin: 0, end: 0.5).animate(animation),
-                  child: const Icon(Icons.expand_more_rounded, color: PaykColors.textSecondary),
+                AnimatedRotation(
+                  turns: _open ? 0.5 : 0,
+                  duration: reduce ? Duration.zero : PaykMotion.micro,
+                  curve: PaykMotion.easeOut,
+                  child: const Icon(
+                    Icons.expand_more_rounded,
+                    color: PaykColors.textSecondary,
+                  ),
                 ),
               ],
             ),
           ),
-        );
-      },
-      bodyBuilder: (context, animation) {
-        return Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: PaykColors.tile,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: PaykColors.border),
-            ),
-            child: SizedBox(
-              height: _rowHeight * _visibleRows,
-              child: ListView.builder(
-                itemExtent: _rowHeight,
-                itemCount: 12,
-                itemBuilder: (context, index) {
-                  final month = index + 1;
-                  final selected = widget.month == month;
-                  final style = Theme.of(context).textTheme.bodyLarge;
-                  return InkWell(
-                    onTap: widget.enabled
-                        ? () {
-                            widget.onMonth(month);
-                            _controller.collapse();
-                          }
-                        : null,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              birthMonthName(widget.locale, month),
-                              style: selected ? style?.copyWith(color: PaykColors.primary) : style,
+        ),
+        if (_open)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: PaykColors.tile,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: PaykColors.border),
+              ),
+              child: SizedBox(
+                height: _rowHeight * _visibleRows,
+                child: ListView.builder(
+                  primary: false,
+                  itemExtent: _rowHeight,
+                  itemCount: 12,
+                  itemBuilder: (context, index) {
+                    final month = index + 1;
+                    final selected = widget.month == month;
+                    final style = Theme.of(context).textTheme.bodyLarge;
+                    return InkWell(
+                      onTap: widget.enabled ? () => _choose(month) : null,
+                      splashFactory: NoSplash.splashFactory,
+                      splashColor: Colors.transparent,
+                      highlightColor: Colors.transparent,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                birthMonthName(widget.locale, month),
+                                style: selected
+                                    ? style?.copyWith(color: PaykColors.primary)
+                                    : style,
+                              ),
                             ),
-                          ),
-                          if (selected) const Icon(Icons.check_rounded, size: 18, color: PaykColors.primary),
-                        ],
+                            if (selected)
+                              const Icon(
+                                Icons.check_rounded,
+                                size: 18,
+                                color: PaykColors.primary,
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
           ),
-        );
-      },
+      ],
     );
   }
 }

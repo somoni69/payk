@@ -128,6 +128,7 @@ class LoyaltyApi {
     required double burn,
     required bool coin10,
     required bool noCoin,
+    bool coupon = false,
   }) async {
     final json = await _client.send(
       '/me/pending/$id',
@@ -136,6 +137,7 @@ class LoyaltyApi {
         'burn_amount': burn.toStringAsFixed(2),
         'coin10': coin10,
         'no_coin': noCoin,
+        'coupon': coupon,
       },
     );
     return PendingCheck.fromJson(asMap(json));
@@ -147,6 +149,7 @@ class LoyaltyApi {
     required double burn,
     required bool coin10,
     required bool noCoin,
+    bool coupon = false,
   }) async {
     final json = await _client.send(
       '/me/pending/$id/quote',
@@ -155,6 +158,7 @@ class LoyaltyApi {
         'burn_amount': burn.toStringAsFixed(2),
         'coin10': coin10,
         'no_coin': noCoin,
+        'coupon': coupon,
       },
     );
     return QuoteResult.fromJson(asMap(json));

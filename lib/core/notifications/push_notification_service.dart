@@ -203,24 +203,32 @@ class PushNotificationService {
     _onNotificationTap?.call(route);
   }
 
-  /// Получение FCM-токена устройства и подписка на broadcast-топики
+  /// Получение FCM-токена устройства и подписка на broadcast-топики.
+  /// getToken — регистрационный токен для отправки. onRegistered в Messaging 17
+  /// отдаёт идентификатор установки, им пуш не послать.
   Future<void> _setupTokenAndTopics(
     Future<void> Function(String token)? onTokenUpdate,
   ) async {
-    // Слушаем регистрацию токена (firebase_messaging 17+)
-    _fcm.onRegistered.listen((token) {
+    Future<void> publish(String? token) async {
+      if (token == null || token.isEmpty) return;
       _fcmToken = token;
-      _log('[PushNotificationService] FCM Token registered: $token');
-      onTokenUpdate?.call(token);
+      _log('[PushNotificationService] FCM token ready (${token.length})');
+      await onTokenUpdate?.call(token);
+    }
+
+    // onRegistered отдаёт идентификатор установки, а не токен отправки.
+    // ignore: deprecated_member_use
+    _fcm.onTokenRefresh.listen((token) {
+      publish(token);
     });
 
     try {
-      await _fcm.register();
+      // ignore: deprecated_member_use
+      await publish(await _fcm.getToken());
     } catch (e) {
-      _log('[PushNotificationService] Error registering FCM: $e');
+      _log('[PushNotificationService] Error reading FCM token: $e');
     }
 
-    // Подписываемся на общий топик "all" для массовых рассылок без явной базы токенов
     try {
       await _fcm.subscribeToTopic('all');
       _log('[PushNotificationService] Subscribed to topic "all"');

@@ -34,10 +34,10 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBQSYZD2i8ZATgRICIj1H33kQM2ud4NjE8',
-    appId: '1:713617302599:ios:d8a2940f3d3a0c8506bd62',
+    appId: '1:713617302599:ios:41938b7de3cb599306bd62',
     messagingSenderId: '713617302599',
     projectId: 'payk-app-loyalty',
     storageBucket: 'payk-app-loyalty.firebasestorage.app',
-    iosBundleId: 'app.payk.payk',
+    iosBundleId: 'tj.payk.loyalty.app',
   );
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:payk/core/i18n/locale_controller.dart';
 import 'package:payk/core/theme/payk_theme.dart';
@@ -256,6 +257,8 @@ void main() {
       ); // Menu item + modal header
       expect(find.text('WhatsApp · MSX Алмоси'), findsOneWidget);
       expect(find.textContaining('+992 55 551 82 20'), findsNWidgets(2));
+      expect(find.byType(SvgPicture), findsNWidgets(2));
+      expect(find.byIcon(Icons.chat_rounded), findsNothing);
     });
   });
 }

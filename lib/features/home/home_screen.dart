@@ -16,10 +16,8 @@ import '../../data/models/models.dart';
 import '../../data/providers.dart';
 import '../categories/categories_screen.dart';
 import '../code/client_code_screen.dart';
-import '../friends/friends_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../profile/profile_screen.dart';
-import '../sizes/sizes_screen.dart';
 import 'home_header.dart';
 import 'loyalty_card.dart';
 
@@ -28,7 +26,7 @@ import 'loyalty_card.dart';
 /// - Круглый аватар пользователя 48x48 dp с рамкой.
 /// - Персонализированное приветствие «Привет, [Имя]!» и подзаголовок «С возвращением!».
 /// - Полупрозрачные кнопки QR-сканера и уведомлений (колокольчик).
-/// - Карточки быстрого доступа: «QR-код», «Мои размеры», «Мои сертификаты».
+/// - Карточки быстрого доступа: «QR-код», «Мои компании», «Мои сертификаты».
 /// - Корректная интеграция с Riverpod (`meProvider`, `messagesProvider`, баланс, сессия).
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -47,10 +45,8 @@ class HomeScreen extends ConsumerWidget {
           value: ref.watch(meProvider),
           onRetry: () => ref.invalidate(meProvider),
           loading: const HomeSkeleton(),
-          data: (account) => _HomeBody(
-            account: account,
-            locale: ref.watch(localeProvider),
-          ),
+          data: (account) =>
+              _HomeBody(account: account, locale: ref.watch(localeProvider)),
         ),
       ),
     );
@@ -58,10 +54,7 @@ class HomeScreen extends ConsumerWidget {
 }
 
 class _HomeBody extends ConsumerWidget {
-  const _HomeBody({
-    required this.account,
-    required this.locale,
-  });
+  const _HomeBody({required this.account, required this.locale});
 
   final Account account;
   final String locale;
@@ -88,131 +81,281 @@ class _HomeBody extends ConsumerWidget {
           parent: BouncingScrollPhysics(),
         ),
         children: [
-        // 1. Фиолетовая шапка UDC с аватаром, кнопками и быстрыми действиями
-        HomeHeader(
-          account: account,
-          locale: locale,
-          onProfileTap: () => PaykMotion.push<void>(
-            context,
-            '/profile/details',
-            fallback: () => const ProfileDetailsScreen(),
+          // 1. Фиолетовая шапка UDC с аватаром, кнопками и быстрыми действиями
+          HomeHeader(
+            account: account,
+            locale: locale,
+            onProfileTap: () => PaykMotion.push<void>(
+              context,
+              '/profile/details',
+              fallback: () => const ProfileDetailsScreen(),
+            ),
+            onScannerTap: () => PaykMotion.push<void>(
+              context,
+              '/code',
+              fallback: () => const ClientCodeScreen(),
+            ),
+            onNotificationsTap: () => _openMessages(context, ref, locale),
+            onCodeTap: () => PaykMotion.push<void>(
+              context,
+              '/code',
+              fallback: () => const ClientCodeScreen(),
+            ),
+            onCompaniesTap: () => _openCompaniesModal(context, account, locale),
+            onCertificatesTap: () =>
+                _openCertificatesModal(context, account, locale),
           ),
-          onScannerTap: () => PaykMotion.push<void>(
-            context,
-            '/code',
-            fallback: () => const ClientCodeScreen(),
-          ),
-          onNotificationsTap: () => _openMessages(context, ref, locale),
-          onCodeTap: () => PaykMotion.push<void>(
-            context,
-            '/code',
-            fallback: () => const ClientCodeScreen(),
-          ),
-          onSizesTap: () => PaykMotion.push<void>(
-            context,
-            '/sizes',
-            fallback: () => const SizesScreen(),
-          ),
-          onCertificatesTap: () => _openCertificatesModal(context, account, locale),
-        ),
 
-        const SizedBox(height: 20),
+          const SizedBox(height: 20),
 
-        // Системные уведомления (приостановка программы, долг, подарок на ДР)
-        if (!account.programEnabled)
+          // Системные уведомления (приостановка программы, долг, подарок на ДР)
+          if (!account.programEnabled)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _Notice(
+                title: tr(locale, 'home.paused'),
+                body: tr(locale, 'home.pausedText'),
+              ),
+            ),
+
+          if (wallet.debt > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _Notice(
+                title: tr(locale, 'home.debtTitle', {
+                  'amount': formatMoney(-wallet.debt),
+                }),
+                body: tr(locale, 'home.debtText'),
+              ),
+            ),
+
+          if (_gift(member, wallet) case final gift?)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _Notice(
+                title: tr(locale, 'home.giftTitle'),
+                body: tr(locale, 'home.giftBody', {
+                  'amount': formatMoney(
+                    gift.amount.toDouble(),
+                    decimals: false,
+                  ),
+                  'from': formatShortDate(gift.from),
+                  'until': formatShortDate(gift.until),
+                  'cl': formatMoney(
+                    gift.minClothes.toDouble(),
+                    decimals: false,
+                  ),
+                  'sm': formatMoney(
+                    gift.minSupermarket.toDouble(),
+                    decimals: false,
+                  ),
+                }),
+              ),
+            ),
+
+          // 1. Карта статуса: вид меняется вместе с уровнем кошелька
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _Notice(
-              title: tr(locale, 'home.paused'),
-              body: tr(locale, 'home.pausedText'),
+            child: LoyaltyCard(
+              member: member,
+              wallet: wallet,
+              locale: locale,
+              tiers: account.tierCount,
             ),
           ),
 
-        if (wallet.debt > 0)
+          const SizedBox(height: 14),
+
+          if (account.coupon case final coupon?) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _BirthdayCouponCard(coupon: coupon, locale: locale),
+            ),
+            const SizedBox(height: 14),
+          ],
+          if ((member.birthDate == null || member.birthDate!.isEmpty) &&
+              (member.dobBonus ?? 0) > 0) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _DobPromptCard(
+                locale: locale,
+                bonus: member.dobBonus!,
+                onTap: () => showEditProfileSheet(context, ref, member),
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
+          // 2. Карточка «Дӯстонро даъват кунед» (реферальный код и шаринг)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _Notice(
-              title: tr(locale, 'home.debtTitle', {'amount': formatMoney(-wallet.debt)}),
-              body: tr(locale, 'home.debtText'),
+            child: _InviteFriendsCard(member: member, locale: locale),
+          ),
+
+          const SizedBox(height: 14),
+
+          // 3. Плитка переключателя «Огоҳиномаҳо» (уведомления)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _NotificationToggleCard(
+              initialValue: member.messages,
+              locale: locale,
             ),
           ),
 
-        if (_gift(member, wallet) case final gift?)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _Notice(
-              title: tr(locale, 'home.giftTitle'),
-              body: tr(locale, 'home.giftBody', {
-                'amount': formatMoney(gift.amount.toDouble(), decimals: false),
-                'from': formatShortDate(gift.from),
-                'until': formatShortDate(gift.until),
-                'cl': formatMoney(gift.minClothes.toDouble(), decimals: false),
-                'sm': formatMoney(gift.minSupermarket.toDouble(), decimals: false),
-              }),
-            ),
-          ),
-
-        // 1. Карта статуса: вид меняется вместе с уровнем кошелька
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: LoyaltyCard(
-            member: member,
-            wallet: wallet,
-            locale: locale,
-            tiers: account.tierCount,
-          ),
-        ),
-
-        const SizedBox(height: 14),
-
-        // 2. Карточка «Дӯстонро даъват кунед» (реферальный код и шаринг)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: _InviteFriendsCard(
-            member: member,
-            locale: locale,
-          ),
-        ),
-
-        const SizedBox(height: 14),
-
-        // 3. Плитка переключателя «Огоҳиномаҳо» (уведомления)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: _NotificationToggleCard(
-            initialValue: member.messages,
-            locale: locale,
-          ),
-        ),
-
-        const SizedBox(height: 20),
-
-        // 4. Секция «Мағозаҳо» с карточками «СУПЕРМАРКЕТ» и «ЛИБОС»
-        _StoresSection(
-          wallet: wallet,
-          locale: locale,
-        ),
-
-        const SizedBox(height: 96),
-      ],
-    ),
-  );
+          const SizedBox(height: 96),
+        ],
+      ),
+    );
+  }
 }
+
+/// Активный купон ко дню рождения. Применяется в окне оплаты.
+class _BirthdayCouponCard extends StatelessWidget {
+  const _BirthdayCouponCard({required this.coupon, required this.locale});
+
+  final BirthdayCoupon coupon;
+  final String locale;
+
+  @override
+  Widget build(BuildContext context) {
+    final until = DateTime.tryParse(coupon.validTo);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F5FB),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEBE9F2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tr(locale, 'home.couponTitle'),
+            style: const TextStyle(
+              fontFamily: 'Manrope',
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            [
+              formatMoney(coupon.amount),
+              if (until != null)
+                tr(locale, 'home.couponUntil', {
+                  'date': formatShortDate(until),
+                }),
+            ].join(' · '),
+            style: const TextStyle(
+              fontFamily: 'Manrope',
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: PaykColors.primary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            tr(locale, 'home.couponMin', {
+              'format': tr(locale, 'format.CL'),
+              'amount': formatMoney(coupon.minBillCl),
+            }),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: PaykColors.textSecondary,
+            ),
+          ),
+          Text(
+            tr(locale, 'home.couponMin', {
+              'format': tr(locale, 'format.SM'),
+              'amount': formatMoney(coupon.minBillSm),
+            }),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: PaykColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            tr(locale, 'home.couponHint'),
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: PaykColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DobPromptCard extends StatelessWidget {
+  const _DobPromptCard({
+    required this.locale,
+    required this.bonus,
+    required this.onTap,
+  });
+
+  final String locale;
+  final double bonus;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return PaykPressable(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF6F5FB),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFEBE9F2)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              tr(locale, 'home.dobPrompt', {'bonus': '+${formatMoney(bonus)}'}),
+              style: const TextStyle(
+                fontFamily: 'Manrope',
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              tr(locale, 'home.dobPromptText'),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: PaykColors.textSecondary,
+                height: 1.35,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// 2. Карточка «Дӯстонро даъват кунед»: приглашение друзей, реферальный код и шаринг
 class _InviteFriendsCard extends StatelessWidget {
-  const _InviteFriendsCard({
-    required this.member,
-    required this.locale,
-  });
+  const _InviteFriendsCard({required this.member, required this.locale});
 
   final Member member;
   final String locale;
 
   Future<void> _share(BuildContext context, String code) async {
     HapticFeedback.lightImpact();
-    final text = 'Присоединяйтесь к бонусной программе ПАЙК — кэшбэк с каждой покупки. Мой код приглашения: $code';
+    final text =
+        'Присоединяйтесь к бонусной программе ПАЙК — кэшбэк с каждой покупки. Мой код приглашения: $code';
     try {
       final res = await SharePlus.instance.share(ShareParams(text: text));
       if (res.status == ShareResultStatus.unavailable && context.mounted) {
@@ -253,46 +396,16 @@ class _InviteFriendsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  tr(locale, 'home.inviteFriends'),
-                  style: const TextStyle(
-                    fontFamily: 'Manrope',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: PaykColors.textPrimary,
-                    height: 1.3,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              PaykPressable(
-                scaleDown: PaykMotion.scaleIcon,
-                haptic: true,
-                onTap: () => PaykMotion.push<void>(
-                  context,
-                  '/friends',
-                  fallback: () => const FriendsScreen(),
-                ),
-                child: Container(
-                  width: 26,
-                  height: 26,
-                  decoration: const BoxDecoration(
-                    color: PaykColors.primary,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.help_outline_rounded,
-                    color: Colors.white,
-                    size: 16,
-                  ),
-                ),
-              ),
-            ],
+          Text(
+            tr(locale, 'home.inviteFriends'),
+            style: const TextStyle(
+              fontFamily: 'Manrope',
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: PaykColors.textPrimary,
+              height: 1.3,
+              letterSpacing: -0.2,
+            ),
           ),
           const SizedBox(height: 14),
           Row(
@@ -302,7 +415,10 @@ class _InviteFriendsCard extends StatelessWidget {
                   scaleDown: PaykMotion.scaleSubtle,
                   onTap: () => _copy(context, code),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 13,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
@@ -358,10 +474,12 @@ class _NotificationToggleCard extends ConsumerStatefulWidget {
   final String locale;
 
   @override
-  ConsumerState<_NotificationToggleCard> createState() => _NotificationToggleCardState();
+  ConsumerState<_NotificationToggleCard> createState() =>
+      _NotificationToggleCardState();
 }
 
-class _NotificationToggleCardState extends ConsumerState<_NotificationToggleCard> {
+class _NotificationToggleCardState
+    extends ConsumerState<_NotificationToggleCard> {
   late bool _enabled;
 
   @override
@@ -431,123 +549,6 @@ class _NotificationToggleCardState extends ConsumerState<_NotificationToggleCard
   }
 }
 
-/// 4. Секция «Мағозаҳо» с кнопкой «Ҳама» и карточками супермаркета и одежды
-class _StoresSection extends StatelessWidget {
-  const _StoresSection({
-    required this.wallet,
-    required this.locale,
-  });
-
-  final Wallet wallet;
-  final String locale;
-
-  @override
-  Widget build(BuildContext context) {
-    final smRate = wallet.rates.supermarket.earn > 0 ? wallet.rates.supermarket.earn : 0.02;
-    final smBurn = wallet.rates.supermarket.burnCap > 0 ? wallet.rates.supermarket.burnCap : 0.01;
-    final clRate = wallet.rates.clothes.earn > 0 ? wallet.rates.clothes.earn : 0.05;
-    final clBurn = wallet.rates.clothes.burnCap > 0 ? wallet.rates.clothes.burnCap : 0.10;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                tr(locale, 'home.stores'),
-                style: const TextStyle(
-                  fontFamily: 'Manrope',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.3,
-                  color: PaykColors.textPrimary,
-                ),
-              ),
-              PaykPressable(
-                scaleDown: PaykMotion.scaleIcon,
-                child: InkWell(
-                  onTap: () {
-                    HapticFeedback.lightImpact();
-                    PaykMotion.go(
-                      context,
-                      '/categories',
-                      fallback: () => const CategoriesScreen(),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: PaykColors.chipBg,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      tr(locale, 'home.all'),
-                      style: const TextStyle(
-                        fontFamily: 'Manrope',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: PaykColors.primary,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 82,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            children: [
-              _StoreRateCard(
-                locale: locale,
-                title: tr(locale, 'format.SM').toUpperCase(),
-                assetImage: 'assets/3d/cart.webp',
-                iconBgColor: const Color(0xFFF1F3F9),
-                cashbackPercent: formatPercent(smRate),
-                burnCapPercent: formatPercent(smBurn),
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  PaykMotion.go(
-                    context,
-                    '/categories',
-                    fallback: () => const CategoriesScreen(),
-                  );
-                },
-              ),
-              const SizedBox(width: 12),
-              _StoreRateCard(
-                locale: locale,
-                title: tr(locale, 'format.CL').toUpperCase(),
-                assetImage: 'assets/3d/tshirt.webp',
-                iconBgColor: const Color(0xFFEBF7EE),
-                cashbackPercent: formatPercent(clRate),
-                burnCapPercent: formatPercent(clBurn),
-                onTap: () {
-                  HapticFeedback.lightImpact();
-                  PaykMotion.go(
-                    context,
-                    '/categories',
-                    fallback: () => const CategoriesScreen(),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _StoreRateCard extends StatelessWidget {
   const _StoreRateCard({
     required this.locale,
@@ -569,122 +570,127 @@ class _StoreRateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PaykPressable(
-      scaleDown: PaykMotion.scaleSubtle,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Ink(
-          width: 236,
-          height: 82,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
+    return SizedBox(
+      width: double.infinity,
+      height: 82,
+      child: PaykPressable(
+        scaleDown: PaykMotion.scaleSubtle,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFEBE9F0), width: 1.0),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x06000000),
-                blurRadius: 6,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: iconBgColor,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Center(
-                  child: Image.asset(
-                    assetImage,
-                    width: 34,
-                    height: 34,
-                    fit: BoxFit.contain,
+            child: Ink(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: const Color(0xFFEBE9F0), width: 1.0),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x06000000),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
                   ),
-                ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontFamily: 'Manrope',
-                        fontSize: 14.0,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.2,
-                        color: PaykColors.textPrimary,
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: iconBgColor,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Center(
+                      child: Image.asset(
+                        assetImage,
+                        width: 34,
+                        height: 34,
+                        fit: BoxFit.contain,
                       ),
                     ),
-                    const SizedBox(height: 3),
-                    Text.rich(
-                      TextSpan(
-                        children: [
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.2,
+                            color: PaykColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text.rich(
                           TextSpan(
-                            text: tr(locale, 'home.cashbackLine', {'pct': cashbackPercent}),
-                            style: const TextStyle(
-                              fontFamily: 'Manrope',
-                              fontSize: 12.0,
-                              fontWeight: FontWeight.w700,
-                              color: PaykColors.primary,
-                            ),
+                            children: [
+                              TextSpan(
+                                text: tr(locale, 'home.cashbackLine', {
+                                  'pct': cashbackPercent,
+                                }),
+                                style: const TextStyle(
+                                  fontFamily: 'Manrope',
+                                  fontSize: 12.0,
+                                  fontWeight: FontWeight.w700,
+                                  color: PaykColors.primary,
+                                ),
+                              ),
+                              const TextSpan(
+                                text: ' · ',
+                                style: TextStyle(
+                                  fontSize: 12.0,
+                                  color: PaykColors.textSecondary,
+                                ),
+                              ),
+                              TextSpan(
+                                text: tr(locale, 'home.burnLine', {
+                                  'pct': burnCapPercent,
+                                }),
+                                style: const TextStyle(
+                                  fontFamily: 'Manrope',
+                                  fontSize: 12.0,
+                                  fontWeight: FontWeight.w500,
+                                  color: PaykColors.textSecondary,
+                                ),
+                              ),
+                            ],
                           ),
-                          const TextSpan(
-                            text: ' · ',
-                            style: TextStyle(
-                              fontSize: 12.0,
-                              color: PaykColors.textSecondary,
-                            ),
-                          ),
-                          TextSpan(
-                            text: tr(locale, 'home.burnLine', {'pct': burnCapPercent}),
-                            style: const TextStyle(
-                              fontFamily: 'Manrope',
-                              fontSize: 12.0,
-                              fontWeight: FontWeight.w500,
-                              color: PaykColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 }
 
 /// Системное уведомление / баннер
 class _Notice extends StatelessWidget {
-  const _Notice({required this.title, required this.body, this.onTap});
+  const _Notice({required this.title, required this.body});
 
   final String title;
   final String body;
-  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final card = Container(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -717,9 +723,6 @@ class _Notice extends StatelessWidget {
         ],
       ),
     );
-    final tap = onTap;
-    if (tap == null) return card;
-    return PaykPressable(onTap: tap, child: card);
   }
 }
 
@@ -732,7 +735,183 @@ BirthdayGift? _gift(Member member, Wallet wallet) {
   return birthdayGift(birth, wallet.status, DateTime.now());
 }
 
-/// Навигация на отдельный экран «Уведомления»
+/// Модальный лист «Мои компании»: баланс и карточки магазинов.
+void _openCompaniesModal(BuildContext context, Account account, String locale) {
+  showModalBottomSheet<void>(
+    context: context,
+    useRootNavigator: true,
+    isScrollControlled: true,
+    backgroundColor: PaykColors.canvas,
+    sheetAnimationStyle: PaykMotion.sheetAnimationStyle,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+    builder: (sheetContext) {
+      final wallet = account.wallet;
+      final smRate = wallet.rates.supermarket.earn > 0
+          ? wallet.rates.supermarket.earn
+          : 0.02;
+      final smBurn = wallet.rates.supermarket.burnCap > 0
+          ? wallet.rates.supermarket.burnCap
+          : 0.01;
+      final clRate = wallet.rates.clothes.earn > 0
+          ? wallet.rates.clothes.earn
+          : 0.05;
+      final clBurn = wallet.rates.clothes.burnCap > 0
+          ? wallet.rates.clothes.burnCap
+          : 0.10;
+      final bottom = MediaQuery.paddingOf(sheetContext).bottom;
+
+      return Padding(
+        padding: EdgeInsets.fromLTRB(20, 10, 20, 20 + bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: PaykColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    tr(locale, 'home.companies'),
+                    style: const TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                      color: PaykColors.textPrimary,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: PaykColors.textSecondary,
+                  ),
+                  onPressed: () => Navigator.pop(sheetContext),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFEBE9F0)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: PaykColors.activePill,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    alignment: Alignment.center,
+                    child: Image.asset(
+                      'assets/3d/coin.webp',
+                      width: 36,
+                      height: 36,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tr(locale, 'home.bonusBalance'),
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: PaykColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${formatNumber(wallet.balance)} смн',
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.3,
+                            color: PaykColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              tr(locale, 'home.stores'),
+              style: const TextStyle(
+                fontFamily: 'Manrope',
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
+                color: PaykColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 10),
+            _StoreRateCard(
+              locale: locale,
+              title: tr(locale, 'format.SM').toUpperCase(),
+              assetImage: 'assets/3d/cart.webp',
+              iconBgColor: const Color(0xFFF1F3F9),
+              cashbackPercent: formatPercent(smRate),
+              burnCapPercent: formatPercent(smBurn),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                Navigator.pop(sheetContext);
+                PaykMotion.go(
+                  context,
+                  '/categories',
+                  fallback: () => const CategoriesScreen(),
+                );
+              },
+            ),
+            const SizedBox(height: 10),
+            _StoreRateCard(
+              locale: locale,
+              title: tr(locale, 'format.CL').toUpperCase(),
+              assetImage: 'assets/3d/tshirt.webp',
+              iconBgColor: const Color(0xFFEBF7EE),
+              cashbackPercent: formatPercent(clRate),
+              burnCapPercent: formatPercent(clBurn),
+              onTap: () {
+                HapticFeedback.lightImpact();
+                Navigator.pop(sheetContext);
+                PaykMotion.go(
+                  context,
+                  '/categories',
+                  fallback: () => const CategoriesScreen(),
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 void _openMessages(BuildContext context, WidgetRef ref, String locale) {
   PaykMotion.push<void>(
     context,
@@ -744,7 +923,11 @@ void _openMessages(BuildContext context, WidgetRef ref, String locale) {
 }
 
 /// Модальный лист «Мои сертификаты»
-void _openCertificatesModal(BuildContext context, Account account, String locale) {
+void _openCertificatesModal(
+  BuildContext context,
+  Account account,
+  String locale,
+) {
   showModalBottomSheet<void>(
     context: context,
     useRootNavigator: true,
@@ -802,7 +985,9 @@ void _openCertificatesModal(BuildContext context, Account account, String locale
                       colors: [Color(0xFFEDEAFB), Color(0xFFF8F7FD)],
                     ),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: PaykColors.primary.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: PaykColors.primary.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -835,7 +1020,10 @@ void _openCertificatesModal(BuildContext context, Account account, String locale
                             const SizedBox(height: 2),
                             Text(
                               tr(locale, 'home.discountUntil', {
-                                'amount': formatMoney(gift.amount.toDouble(), decimals: false),
+                                'amount': formatMoney(
+                                  gift.amount.toDouble(),
+                                  decimals: false,
+                                ),
                                 'date': formatShortDate(gift.until),
                               }),
                               style: const TextStyle(

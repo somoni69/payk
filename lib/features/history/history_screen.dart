@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
 import '../../core/i18n/locale_controller.dart';
+import '../../core/payment_choice.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
@@ -39,10 +40,7 @@ enum HistoryCategory {
 /// 3. Фильтрация операций в реальном времени по выбранной категории и строке поиска.
 /// 4. Карточка пустого состояния с 3D-чеком («Ҳанӯз амалиёт нест») или список транзакций.
 class HistoryScreen extends ConsumerStatefulWidget {
-  const HistoryScreen({
-    super.key,
-    this.initialCategory,
-  });
+  const HistoryScreen({super.key, this.initialCategory});
 
   final String? initialCategory;
 
@@ -54,6 +52,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   final TextEditingController _searchController = TextEditingController();
   late HistoryCategory _selectedCategory;
   String _searchQuery = '';
+  final List<HistoryEntry> _extra = [];
+  var _loadingMore = false;
+  var _moreDone = false;
 
   @override
   void initState() {
@@ -103,50 +104,68 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 
   List<HistoryEntry> _filterEntries(List<HistoryEntry> entries) {
-    return entries.where((entry) {
-      // 1. Фильтрация по выбранной категории
-      switch (_selectedCategory) {
-        case HistoryCategory.all:
-          break;
-        case HistoryCategory.purchases:
-          final isPurchase = entry.billAmount != null ||
-              entry.type == 'purchase' ||
-              entry.type == 'burn' ||
-              entry.mode == 'supermarket' ||
-              entry.mode == 'clothes';
-          if (!isPurchase) return false;
-        case HistoryCategory.accrual:
-          final isAccrual = entry.type == 'accrual' ||
-              (entry.amount > 0 && entry.type != 'referral');
-          if (!isAccrual) return false;
-        case HistoryCategory.burn:
-          final isBurn = entry.type == 'burn' ||
-              (entry.mode != null && entry.amount < 0);
-          if (!isBurn) return false;
-        case HistoryCategory.returns:
-          final isReturn = entry.type == 'refund' || entry.type == 'reversal';
-          if (!isReturn) return false;
-        case HistoryCategory.friends:
-          final isFriend = entry.type == 'referral' ||
-              entry.type == 'referral_reversal';
-          if (!isFriend) return false;
-      }
+    return entries
+        .where((entry) {
+          if (!historyTypeInCategory(entry.type, _selectedCategory.key)) {
+            return false;
+          }
+          if (_searchQuery.isEmpty) return true;
+          final q = _searchQuery.toLowerCase();
+          if (entry.id.toString().contains(q)) return true;
+          if (entry.billExtId != null && entry.billExtId!.toLowerCase().contains(q)) {
+            return true;
+          }
+          if (entry.type.toLowerCase().contains(q)) return true;
+          if (entry.note != null && entry.note!.toLowerCase().contains(q)) {
+            return true;
+          }
+          if (entry.format != null && entry.format!.toLowerCase().contains(q)) {
+            return true;
+          }
+          if (entry.mode != null && entry.mode!.toLowerCase().contains(q)) {
+            return true;
+          }
+          if (formatMoney(entry.amount).toLowerCase().contains(q)) return true;
+          if (entry.billAmount != null &&
+              formatMoney(entry.billAmount!).toLowerCase().contains(q)) {
+            return true;
+          }
+          return false;
+        })
+        .toList(growable: false);
+  }
 
-      // 2. Фильтрация по поисковому запросу
-      if (_searchQuery.isEmpty) return true;
-      final q = _searchQuery.toLowerCase();
-      if (entry.id.toString().contains(q)) return true;
-      if (entry.type.toLowerCase().contains(q)) return true;
-      if (entry.note != null && entry.note!.toLowerCase().contains(q)) return true;
-      if (entry.format != null && entry.format!.toLowerCase().contains(q)) return true;
-      if (entry.mode != null && entry.mode!.toLowerCase().contains(q)) return true;
-      if (formatMoney(entry.amount).toLowerCase().contains(q)) return true;
-      if (entry.billAmount != null &&
-          formatMoney(entry.billAmount!).toLowerCase().contains(q)) {
-        return true;
-      }
-      return false;
-    }).toList(growable: false);
+  Future<void> _loadMore(List<HistoryEntry> loaded) async {
+    if (_loadingMore || loaded.isEmpty) return;
+    setState(() => _loadingMore = true);
+    try {
+      final page = await ref
+          .read(loyaltyApiProvider)
+          .history(beforeId: loaded.last.id);
+      if (!mounted) return;
+      final seen = loaded.map((entry) => entry.id).toSet();
+      setState(() {
+        _extra.addAll(page.where((entry) => !seen.contains(entry.id)));
+        _moreDone = page.length < 50;
+      });
+    } catch (_) {
+      // Список уже открытых операций остаётся на экране.
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
+  Future<void> _searchOnServer() async {
+    final query = _searchQuery;
+    if (query.isEmpty) return;
+    try {
+      final page = await ref.read(loyaltyApiProvider).history(query: query);
+      if (!mounted || query != _searchQuery) return;
+      final seen = _extra.map((entry) => entry.id).toSet();
+      setState(() {
+        _extra.addAll(page.where((entry) => !seen.contains(entry.id)));
+      });
+    } catch (_) {}
   }
 
   @override
@@ -187,6 +206,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             hint: tr(locale, 'history.search'),
             showClear: _searchQuery.isNotEmpty,
             onClear: _clearSearch,
+            onSubmit: _searchOnServer,
           ),
         ),
       ),
@@ -197,14 +217,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           onRetry: () => ref.invalidate(historyProvider),
           loading: const HistorySkeleton(),
           data: (allEntries) {
-            final filteredEntries = _filterEntries(allEntries);
-            final isFiltered = _selectedCategory != HistoryCategory.all ||
+            final loaded = [...allEntries, ..._extra];
+            final filteredEntries = _filterEntries(loaded);
+            final showMore = !_moreDone && allEntries.length >= 50;
+            final isFiltered =
+                _selectedCategory != HistoryCategory.all ||
                 _searchQuery.isNotEmpty;
 
             return RefreshIndicator(
               color: PaykColors.violet,
               backgroundColor: Colors.white,
               onRefresh: () async {
+                setState(() {
+                  _extra.clear();
+                  _moreDone = false;
+                });
                 ref.invalidate(historyProvider);
                 try {
                   await ref.read(historyProvider.future);
@@ -216,132 +243,160 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   parent: BouncingScrollPhysics(),
                 ),
                 children: [
-                // Секция категорий (Категорияҳо / Категории)
-                Text(
-                  tr(locale, 'history.categories'),
-                  style: const TextStyle(
-                    fontFamily: 'Manrope',
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: PaykColors.textPrimary,
+                  // Секция категорий (Категорияҳо / Категории)
+                  Text(
+                    tr(locale, 'history.categories'),
+                    style: const TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: PaykColors.textPrimary,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 12),
 
-                // Сетка из 6 интерактивных 3D-плиток (3x2)
-                Row(
-                  children: [
-                    Expanded(
-                      child: _CategoryTile(
-                        category: HistoryCategory.all,
-                        isSelected: _selectedCategory == HistoryCategory.all,
-                        title: tr(locale, 'history.cat.all'),
-                        onTap: () => _pickCategory(HistoryCategory.all),
+                  // Сетка из 6 интерактивных 3D-плиток (3x2)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _CategoryTile(
+                          category: HistoryCategory.all,
+                          isSelected: _selectedCategory == HistoryCategory.all,
+                          title: tr(locale, 'history.cat.all'),
+                          onTap: () => _pickCategory(HistoryCategory.all),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _CategoryTile(
-                        category: HistoryCategory.purchases,
-                        isSelected: _selectedCategory == HistoryCategory.purchases,
-                        title: tr(locale, 'history.cat.purchases'),
-                        onTap: () => _pickCategory(HistoryCategory.purchases),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _CategoryTile(
+                          category: HistoryCategory.purchases,
+                          isSelected:
+                              _selectedCategory == HistoryCategory.purchases,
+                          title: tr(locale, 'history.cat.purchases'),
+                          onTap: () => _pickCategory(HistoryCategory.purchases),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _CategoryTile(
-                        category: HistoryCategory.accrual,
-                        isSelected: _selectedCategory == HistoryCategory.accrual,
-                        title: tr(locale, 'history.cat.accrual'),
-                        onTap: () => _pickCategory(HistoryCategory.accrual),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _CategoryTile(
+                          category: HistoryCategory.accrual,
+                          isSelected:
+                              _selectedCategory == HistoryCategory.accrual,
+                          title: tr(locale, 'history.cat.accrual'),
+                          onTap: () => _pickCategory(HistoryCategory.accrual),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _CategoryTile(
-                        category: HistoryCategory.burn,
-                        isSelected: _selectedCategory == HistoryCategory.burn,
-                        title: tr(locale, 'history.cat.burn'),
-                        onTap: () => _pickCategory(HistoryCategory.burn),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _CategoryTile(
+                          category: HistoryCategory.burn,
+                          isSelected: _selectedCategory == HistoryCategory.burn,
+                          title: tr(locale, 'history.cat.burn'),
+                          onTap: () => _pickCategory(HistoryCategory.burn),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _CategoryTile(
-                        category: HistoryCategory.returns,
-                        isSelected: _selectedCategory == HistoryCategory.returns,
-                        title: tr(locale, 'history.cat.returns'),
-                        onTap: () => _pickCategory(HistoryCategory.returns),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _CategoryTile(
+                          category: HistoryCategory.returns,
+                          isSelected:
+                              _selectedCategory == HistoryCategory.returns,
+                          title: tr(locale, 'history.cat.returns'),
+                          onTap: () => _pickCategory(HistoryCategory.returns),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _CategoryTile(
-                        category: HistoryCategory.friends,
-                        isSelected: _selectedCategory == HistoryCategory.friends,
-                        title: tr(locale, 'history.cat.friends'),
-                        onTap: () => _pickCategory(HistoryCategory.friends),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _CategoryTile(
+                          category: HistoryCategory.friends,
+                          isSelected:
+                              _selectedCategory == HistoryCategory.friends,
+                          title: tr(locale, 'history.cat.friends'),
+                          onTap: () => _pickCategory(HistoryCategory.friends),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
 
-                const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-                // 3. Список операций или карточка пустого состояния
-                AnimatedSwitcher(
-                  duration: PaykMotion.duration(context, PaykMotion.normal),
-                  switchInCurve: PaykMotion.easeOut,
-                  switchOutCurve: PaykMotion.easeOut,
-                  child: filteredEntries.isEmpty
-                      ? KeyedSubtree(
-                          key: ValueKey('empty_${_selectedCategory.key}_$isFiltered'),
-                          child: _EmptyHistoryCard(
-                            isFiltered: isFiltered,
-                            locale: locale,
-                          ),
-                        )
-                      : Container(
-                          key: ValueKey('list_${_selectedCategory.key}'),
-                          decoration: BoxDecoration(
-                            color: PaykColors.sheet,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: PaykColors.border, width: 1.0),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.02),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                  // 3. Список операций или карточка пустого состояния
+                  AnimatedSwitcher(
+                    duration: PaykMotion.duration(context, PaykMotion.normal),
+                    switchInCurve: PaykMotion.easeOut,
+                    switchOutCurve: PaykMotion.easeOut,
+                    child: filteredEntries.isEmpty
+                        ? KeyedSubtree(
+                            key: ValueKey(
+                              'empty_${_selectedCategory.key}_$isFiltered',
+                            ),
+                            child: _EmptyHistoryCard(
+                              isFiltered: isFiltered,
+                              locale: locale,
+                            ),
+                          )
+                        : Container(
+                            key: ValueKey('list_${_selectedCategory.key}'),
+                            decoration: BoxDecoration(
+                              color: PaykColors.sheet,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: PaykColors.border,
+                                width: 1.0,
                               ),
-                            ],
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Column(
-                            children: [
-                              for (var i = 0; i < filteredEntries.length; i++) ...[
-                                if (i > 0)
-                                  const Divider(
-                                    height: 1,
-                                    thickness: 1,
-                                    color: PaykColors.border,
-                                  ),
-                                _HistoryRow(
-                                  entry: filteredEntries[i],
-                                  locale: locale,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.02),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
                                 ),
                               ],
-                            ],
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Column(
+                              children: [
+                                for (
+                                  var i = 0;
+                                  i < filteredEntries.length;
+                                  i++
+                                ) ...[
+                                  if (i > 0)
+                                    const Divider(
+                                      height: 1,
+                                      thickness: 1,
+                                      color: PaykColors.border,
+                                    ),
+                                  _HistoryRow(
+                                    entry: filteredEntries[i],
+                                    locale: locale,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                  ),
+                  if (showMore)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: TextButton(
+                        onPressed: _loadingMore
+                            ? null
+                            : () => _loadMore(loaded),
+                        child: Text(
+                          tr(
+                            locale,
+                            _loadingMore ? 'history.loading' : 'history.more',
                           ),
                         ),
-                ),
-              ],
-            ),
-          );
+                      ),
+                    ),
+                ],
+              ),
+            );
           },
         ),
       ),
@@ -355,12 +410,14 @@ class _SearchField extends StatelessWidget {
     required this.hint,
     required this.showClear,
     required this.onClear,
+    required this.onSubmit,
   });
 
   final TextEditingController controller;
   final String hint;
   final bool showClear;
   final VoidCallback onClear;
+  final VoidCallback onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -368,6 +425,8 @@ class _SearchField extends StatelessWidget {
       height: 48,
       child: TextField(
         controller: controller,
+        textInputAction: TextInputAction.search,
+        onSubmitted: (_) => onSubmit(),
         style: const TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.w500,
@@ -409,7 +468,10 @@ class _SearchField extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 0,
+          ),
         ),
       ),
     );
@@ -500,10 +562,7 @@ class _CategoryTile extends StatelessWidget {
 
 /// Карточка пустого состояния с 3D-чеком
 class _EmptyHistoryCard extends StatelessWidget {
-  const _EmptyHistoryCard({
-    required this.isFiltered,
-    required this.locale,
-  });
+  const _EmptyHistoryCard({required this.isFiltered, required this.locale});
 
   final bool isFiltered;
   final String locale;
@@ -556,7 +615,10 @@ class _EmptyHistoryCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            tr(locale, isFiltered ? 'history.notFoundText' : 'history.emptyText'),
+            tr(
+              locale,
+              isFiltered ? 'history.notFoundText' : 'history.emptyText',
+            ),
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontFamily: 'Manrope',
@@ -574,10 +636,7 @@ class _EmptyHistoryCard extends StatelessWidget {
 
 /// Строка одной операции
 class _HistoryRow extends StatelessWidget {
-  const _HistoryRow({
-    required this.entry,
-    required this.locale,
-  });
+  const _HistoryRow({required this.entry, required this.locale});
 
   final HistoryEntry entry;
   final String locale;
@@ -595,9 +654,7 @@ class _HistoryRow extends StatelessWidget {
             height: 42,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: positive
-                  ? PaykColors.incomeSoft
-                  : PaykColors.expenseSoft,
+              color: positive ? PaykColors.incomeSoft : PaykColors.expenseSoft,
             ),
             alignment: Alignment.center,
             child: Icon(
@@ -605,9 +662,7 @@ class _HistoryRow extends StatelessWidget {
                   ? Icons.arrow_downward_rounded
                   : Icons.arrow_upward_rounded,
               size: 20,
-              color: positive
-                  ? PaykColors.success
-                  : PaykColors.bad,
+              color: positive ? PaykColors.success : PaykColors.bad,
             ),
           ),
           const SizedBox(width: 12),
@@ -628,6 +683,7 @@ class _HistoryRow extends StatelessWidget {
                 Text(
                   [
                     formatDate(entry.createdAt),
+                    if (entry.billExtId != null) '№ ${entry.billExtId}',
                     if (entry.billAmount != null)
                       tr(locale, 'history.billAmount', {
                         'amount': formatMoney(entry.billAmount!),
@@ -654,9 +710,7 @@ class _HistoryRow extends StatelessWidget {
               fontSize: 16,
               letterSpacing: -0.2,
               fontFeatures: const [FontFeature.tabularFigures()],
-              color: positive
-                  ? PaykColors.success
-                  : PaykColors.textPrimary,
+              color: positive ? PaykColors.success : PaykColors.textPrimary,
             ),
           ),
         ],

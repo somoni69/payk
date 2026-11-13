@@ -21,6 +21,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _messagesUpdating = false;
+  String? _purchaseUpdating;
 
   Future<void> _changeLocale(String code) async {
     HapticFeedback.selectionClick();
@@ -42,6 +43,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (mounted) {
         setState(() => _messagesUpdating = false);
       }
+    }
+  }
+
+  Future<void> _togglePurchase(String field, bool value) async {
+    HapticFeedback.selectionClick();
+    setState(() => _purchaseUpdating = field);
+    try {
+      if (field == 'auto_round') {
+        await ref.read(sessionProvider.notifier).setCoinRounding(value);
+      } else {
+        await ref.read(sessionProvider.notifier).setPurchaseNotify(value);
+      }
+      ref.invalidate(meProvider);
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _purchaseUpdating = null);
     }
   }
 
@@ -213,7 +230,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      const Divider(height: 1, thickness: 1, color: PaykColors.border),
+                      const Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: PaykColors.border,
+                      ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
@@ -244,15 +265,61 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          Switch.adaptive(
-                            value: isMessagesEnabled,
-                            activeThumbColor: PaykColors.primary,
-                            activeTrackColor: const Color(0xFFD6CFF9),
-                            onChanged: _messagesUpdating
-                                ? null
-                                : (val) => _toggleMessages(val),
+                          Transform.scale(
+                            scale: 0.9,
+                            child: Switch.adaptive(
+                              value: isMessagesEnabled,
+                              activeThumbColor: Colors.white,
+                              activeTrackColor: PaykColors.primary,
+                              inactiveThumbColor: Colors.white,
+                              inactiveTrackColor: const Color(0xFFD1D1D6),
+                              trackOutlineColor: WidgetStateProperty.all(
+                                Colors.transparent,
+                              ),
+                              onChanged: _messagesUpdating
+                                  ? null
+                                  : (val) => _toggleMessages(val),
+                            ),
                           ),
                         ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _SettingsCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tr(locale, 'settings.purchases'),
+                        style: const TextStyle(
+                          fontFamily: 'Manrope',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: PaykColors.textPrimary,
+                        ),
+                      ),
+                      _SettingSwitch(
+                        title: tr(locale, 'settings.round'),
+                        hint: tr(locale, 'settings.roundHint'),
+                        value: member.coinRounding,
+                        enabled: _purchaseUpdating == null,
+                        onChanged: (value) =>
+                            _togglePurchase('auto_round', value),
+                      ),
+                      const Divider(
+                        height: 1,
+                        thickness: 1,
+                        color: PaykColors.border,
+                      ),
+                      _SettingSwitch(
+                        title: tr(locale, 'settings.purchaseNotify'),
+                        hint: tr(locale, 'settings.purchaseNotifyHint'),
+                        value: member.purchaseNotify,
+                        enabled: _purchaseUpdating == null,
+                        onChanged: (value) =>
+                            _togglePurchase('purchase_notify', value),
                       ),
                     ],
                   ),
@@ -262,6 +329,73 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _SettingSwitch extends StatelessWidget {
+  const _SettingSwitch({
+    required this.title,
+    required this.hint,
+    required this.value,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String hint;
+  final bool value;
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Manrope',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: PaykColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  hint,
+                  style: const TextStyle(
+                    fontFamily: 'Manrope',
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: PaykColors.textSecondary,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Transform.scale(
+            scale: 0.9,
+            child: Switch.adaptive(
+              value: value,
+              activeThumbColor: Colors.white,
+              activeTrackColor: PaykColors.primary,
+              inactiveThumbColor: Colors.white,
+              inactiveTrackColor: const Color(0xFFD1D1D6),
+              trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
+              onChanged: enabled ? onChanged : null,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -337,7 +471,9 @@ class _LanguageOption extends StatelessWidget {
                 fontFamily: 'Manrope',
                 fontSize: 15.0,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                color: isSelected ? PaykColors.primary : PaykColors.textSecondary,
+                color: isSelected
+                    ? PaykColors.primary
+                    : PaykColors.textSecondary,
               ),
             ),
           ),

@@ -8,6 +8,7 @@ import '../core/notifications/push_notification_service.dart';
 import '../core/theme/payk_colors.dart';
 import '../core/theme/payk_theme.dart';
 import '../data/providers.dart';
+import '../features/code/pending_payment_host.dart';
 import 'router.dart';
 
 class PaykApp extends ConsumerStatefulWidget {
@@ -30,20 +31,24 @@ class _PaykAppState extends ConsumerState<PaykApp> {
 
   void _initNotifications() {
     final router = ref.read(routerProvider);
-    ref.read(pushNotificationServiceProvider).initialize(
-      onNotificationTap: (route) {
-        if (mounted) {
-          router.push(route);
-        }
-      },
-      onTokenUpdate: (token) async {
-        try {
-          if (ref.read(sessionProvider).loggedIn) {
-            await ref.read(loyaltyApiProvider).updateMe({'fcm_token': token});
-          }
-        } catch (_) {}
-      },
-    );
+    ref
+        .read(pushNotificationServiceProvider)
+        .initialize(
+          onNotificationTap: (route) {
+            if (mounted) {
+              router.push(route);
+            }
+          },
+          onTokenUpdate: (token) async {
+            try {
+              if (ref.read(sessionProvider).loggedIn) {
+                await ref.read(loyaltyApiProvider).updateMe({
+                  'fcm_token': token,
+                });
+              }
+            } catch (_) {}
+          },
+        );
   }
 
   @override
@@ -70,10 +75,12 @@ class _PaykAppState extends ConsumerState<PaykApp> {
           maxScaleFactor: 1.25,
           child: content,
         );
-        final wrapped = GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-          child: textClamped,
+        final wrapped = PendingPaymentHost(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+            child: textClamped,
+          ),
         );
 
         if (!kIsWeb) {

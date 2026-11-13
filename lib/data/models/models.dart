@@ -15,10 +15,13 @@ class Member {
     this.avatarUrl,
     this.messages = false,
     this.coinRounding = true,
+    this.purchaseNotify = true,
     this.telegram = false,
     this.shoeSize,
     this.pantsSize,
     this.topSize,
+    this.dobBonus,
+    this.birthDateLocked = false,
   });
 
   final String firstName;
@@ -27,7 +30,12 @@ class Member {
   final int? birthYear;
   final String? birthDate;
   final String? country;
+
+  /// «Танга из кешбэка»: сервер зовёт это auto_round.
   final bool coinRounding;
+
+  /// Сообщение после каждой покупки и возврата.
+  final bool purchaseNotify;
   final String referralCode;
   final String? email;
 
@@ -41,6 +49,12 @@ class Member {
   final String? shoeSize;
   final String? pantsSize;
   final String? topSize;
+
+  /// Сколько дадут за первую указанную дату. Пусто — дата уже есть или бонус уже выдан.
+  final double? dobBonus;
+
+  /// Дату меняет только магазин.
+  final bool birthDateLocked;
 
   bool get isSizesComplete {
     bool filled(String? value) => value != null && value.trim().isNotEmpty;
@@ -60,11 +74,20 @@ class Member {
       gender: _memberGender(asStringOrNull(json['gender'])),
       avatarUrl: asStringOrNull(json['avatar_url']),
       messages: json['messages'] == true,
-      coinRounding: json['coin_rounding'] != false,
+      coinRounding: json.containsKey('auto_round')
+          ? json['auto_round'] == true
+          : json['coin_rounding'] != false,
+      purchaseNotify:
+          !json.containsKey('purchase_notify') ||
+          json['purchase_notify'] == true,
       telegram: json['telegram'] == true,
       shoeSize: asStringOrNull(json['shoe_size']),
       pantsSize: asStringOrNull(json['pants_size']),
       topSize: asStringOrNull(json['top_size']),
+      dobBonus: asMoneyOrNull(json['dob_bonus']),
+      birthDateLocked:
+          json['birth_date_locked'] == true ||
+          (asStringOrNull(json['birth_date']) ?? '').isNotEmpty,
     );
   }
 }
@@ -186,6 +209,7 @@ class Account {
     required this.programEnabled,
     this.tierCount = 5,
     this.messagesUnread = 0,
+    this.coupon,
   });
 
   final Member member;
@@ -194,6 +218,7 @@ class Account {
   final bool programEnabled;
   final int tierCount;
   final int messagesUnread;
+  final BirthdayCoupon? coupon;
 
   factory Account.fromJson(Map<String, dynamic> json) {
     final program = json['program'] is Map
@@ -213,6 +238,9 @@ class Account {
           ? thresholds.length + 1
           : 5,
       messagesUnread: asInt(json['messages_unread']),
+      coupon: json['coupon'] is Map
+          ? BirthdayCoupon.fromJson(asMap(json['coupon']))
+          : null,
       wallet: Wallet(
         status: asInt(json['status']),
         balance: asMoney(json['balance']),
@@ -244,6 +272,7 @@ class HistoryEntry {
     this.mode,
     this.format,
     this.note,
+    this.billExtId,
   });
 
   final int id;
@@ -255,6 +284,7 @@ class HistoryEntry {
   final String? mode;
   final String? format;
   final String? note;
+  final String? billExtId;
 
   factory HistoryEntry.fromJson(Map<String, dynamic> json) {
     final bill = json['bill'] is Map ? asMap(json['bill']) : null;
@@ -270,6 +300,7 @@ class HistoryEntry {
           asStringOrNull(json['format']) ??
           (bill == null ? null : asStringOrNull(bill['format'])),
       note: asStringOrNull(json['note']),
+      billExtId: bill == null ? null : asStringOrNull(bill['ext_id']),
     );
   }
 }
@@ -344,85 +375,208 @@ class FriendsInfo {
   }
 }
 
+class PendingCoupon {
+  const PendingCoupon({
+    required this.id,
+    required this.offer,
+    required this.minBill,
+    required this.usable,
+    required this.applied,
+    required this.amount,
+  });
+
+  final int id;
+  final double offer;
+  final double minBill;
+  final bool usable;
+  final bool applied;
+  final double amount;
+
+  factory PendingCoupon.fromJson(Map<String, dynamic> json) {
+    return PendingCoupon(
+      id: asInt(json['id']),
+      offer: asMoney(json['offer']),
+      minBill: asMoney(json['min_bill']),
+      usable: json['usable'] == true,
+      applied: json['applied'] == true,
+      amount: asMoney(json['amount']),
+    );
+  }
+}
+
+class BirthdayCoupon {
+  const BirthdayCoupon({
+    required this.amount,
+    required this.minBillSm,
+    required this.minBillCl,
+    required this.validTo,
+  });
+
+  final double amount;
+  final double minBillSm;
+  final double minBillCl;
+  final String validTo;
+
+  factory BirthdayCoupon.fromJson(Map<String, dynamic> json) {
+    return BirthdayCoupon(
+      amount: asMoney(json['amount']),
+      minBillSm: asMoney(json['min_bill_sm']),
+      minBillCl: asMoney(json['min_bill_cl']),
+      validTo: asString(json['valid_to']),
+    );
+  }
+}
+
 class PendingCheck {
   const PendingCheck({
     required this.id,
     required this.format,
     required this.mode,
-    required this.burnAmount,
+    required this.v,
     required this.clientConfirmed,
+    this.state = 'pending',
+    this.billExtId,
     this.amount,
-    this.earn,
-    this.maxBurn,
+    this.x0,
+    this.x,
+    this.y,
+    this.a,
+    this.aStar,
+    this.cap,
+    this.r = 0,
+    this.why,
+    this.b = 0,
+    this.coin10 = false,
+    this.coin10Available = false,
+    this.coinDeclined = false,
+    this.coinSuggested = false,
+    this.cardAmount = 0,
     this.toPay,
+    this.cashToPay,
     this.store,
     this.expiresAt,
-    this.threshold,
-    this.cap,
-    this.earnRate,
-    this.resultEarn,
-    this.roundAmount,
-    this.coin = true,
-    this.toTen = false,
+    this.serverNow,
     this.balance,
     this.debt,
+    this.burnMin = 0.5,
     this.eligible,
     this.excludedAmount,
     this.isWholesale = false,
     this.source,
+    this.status,
+    this.amountBeforeCoupon,
+    this.coupon,
   });
 
   final int id;
+  final String state;
   final String format;
-  final String mode;
-  final double burnAmount;
-  final bool clientConfirmed;
+  final String? billExtId;
   final double? amount;
-  final double? earn;
-  final double? maxBurn;
+  final int? status;
+  final double? x0;
+  final double? x;
+  final double? y;
+  final double? a;
+  final double? aStar;
+  final double? cap;
+  final String mode;
+
+  /// Выбранное списание.
+  final double v;
+
+  /// Танга.
+  final double r;
+  final String? why;
+  final double b;
+  final bool coin10;
+  final bool coin10Available;
+  final bool coinDeclined;
+  final bool coinSuggested;
+  final double cardAmount;
   final double? toPay;
+  final double? cashToPay;
+  final bool clientConfirmed;
   final String? store;
   final DateTime? expiresAt;
-  final double? threshold;
-  final double? cap;
-  final double? earnRate;
-  final double? resultEarn;
-  final double? roundAmount;
-  final bool coin;
-  final bool toTen;
+  final DateTime? serverNow;
   final double? balance;
   final double? debt;
+  final double burnMin;
   final double? eligible;
   final double? excludedAmount;
   final bool isWholesale;
   final String? source;
+  final double? amountBeforeCoupon;
+  final PendingCoupon? coupon;
+
+  double get burnAmount => v;
+  double? get earn => x;
+  double? get maxBurn => y;
 
   factory PendingCheck.fromJson(Map<String, dynamic> json) {
+    final burn = json.containsKey('v')
+        ? asMoney(json['v'])
+        : asMoney(json['burn_amount']);
+    final star = asMoneyOrNull(json['a_star']) ?? asMoneyOrNull(json['a']);
     return PendingCheck(
       id: asInt(json['id']),
+      state: asString(json['state']).isEmpty
+          ? 'pending'
+          : asString(json['state']),
       format: asString(json['format']),
-      mode: asString(json['mode']).isEmpty ? 'earn' : asString(json['mode']),
-      burnAmount: asMoney(json['burn_amount']),
-      clientConfirmed: json['client_confirmed'] == true,
+      billExtId: asStringOrNull(json['bill_ext_id']),
       amount: asMoneyOrNull(json['amount']),
-      earn: asMoneyOrNull(json['x']),
-      maxBurn: asMoneyOrNull(json['y']),
+      status: asIntOrNull(json['status']),
+      x0: asMoneyOrNull(json['x0']),
+      x: asMoneyOrNull(json['x']),
+      y: asMoneyOrNull(json['y']),
+      a: asMoneyOrNull(json['a']),
+      aStar: star,
+      cap: asMoneyOrNull(json['cap']),
+      mode: asString(json['mode']).isEmpty ? 'earn' : asString(json['mode']),
+      v: burn,
+      r: asMoney(json['r'] ?? json['round']),
+      why: asStringOrNull(json['why']),
+      b: asMoney(json['b']),
+      coin10: json['coin10'] == true || json['to_ten'] == true,
+      coin10Available: json['coin10_available'] == true,
+      coinDeclined: json['coin_declined'] == true,
+      coinSuggested: json['coin_suggested'] == true,
+      cardAmount: asMoney(json['card_amount']),
       toPay: asMoneyOrNull(json['to_pay']),
+      cashToPay:
+          asMoneyOrNull(json['cash_to_pay']) ?? asMoneyOrNull(json['to_pay']),
+      clientConfirmed: json['client_confirmed'] == true,
       store: asStringOrNull(json['store']),
       expiresAt: json['expires_at'] == null ? null : asDate(json['expires_at']),
-      threshold: asMoneyOrNull(json['a']),
-      cap: asMoneyOrNull(json['cap']),
-      earnRate: asMoneyOrNull(json['earn_rate']),
-      resultEarn: asMoneyOrNull(json['earn']),
-      roundAmount: asMoneyOrNull(json['round']),
-      coin: json['coin'] != false,
-      toTen: json['to_ten'] == true,
+      serverNow: json['server_now'] == null ? null : asDate(json['server_now']),
       balance: asMoneyOrNull(json['balance']),
       debt: asMoneyOrNull(json['debt']),
+      burnMin: json['burn_min'] == null ? 0.5 : asMoney(json['burn_min']),
       eligible: asMoneyOrNull(json['eligible']),
       excludedAmount: asMoneyOrNull(json['excluded_amount']),
       isWholesale: json['is_wholesale'] == true,
       source: asStringOrNull(json['source']),
+      amountBeforeCoupon: asMoneyOrNull(json['amount_before_coupon']),
+      coupon: json['coupon'] is Map
+          ? PendingCoupon.fromJson(asMap(json['coupon']))
+          : null,
+    );
+  }
+}
+
+class QuoteResult {
+  const QuoteResult({this.preview, this.message});
+
+  final PendingCheck? preview;
+  final String? message;
+
+  factory QuoteResult.fromJson(Map<String, dynamic> json) {
+    final preview = json['preview'];
+    return QuoteResult(
+      preview: preview is Map ? PendingCheck.fromJson(asMap(preview)) : null,
+      message: asStringOrNull(json['message']),
     );
   }
 }
@@ -463,7 +617,9 @@ class ClosedBill {
     this.mode,
     this.earn,
     this.burn,
+    this.round,
     this.amount,
+    this.coupon,
   });
 
   final int id;
@@ -471,7 +627,9 @@ class ClosedBill {
   final String? mode;
   final double? earn;
   final double? burn;
+  final double? round;
   final double? amount;
+  final double? coupon;
 
   factory ClosedBill.fromJson(Map<String, dynamic> json) {
     final bill = json['bill'] is Map ? asMap(json['bill']) : null;
@@ -481,7 +639,9 @@ class ClosedBill {
       mode: bill == null ? null : asStringOrNull(bill['mode']),
       earn: bill == null ? null : asMoneyOrNull(bill['earn']),
       burn: bill == null ? null : asMoneyOrNull(bill['burn']),
+      round: bill == null ? null : asMoneyOrNull(bill['round']),
       amount: bill == null ? null : asMoneyOrNull(bill['amount']),
+      coupon: bill == null ? null : asMoneyOrNull(bill['coupon']),
     );
   }
 }

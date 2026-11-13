@@ -201,15 +201,15 @@ void main() {
       await tester.pumpWidget(wrapWithScope(const HomeScreen()));
       await tester.pumpAndSettle();
 
-      // 1. Tap "Мои размеры" -> экран размеров
-      await tester.tap(find.text('Мои размеры'));
+      // 1. Tap "Мои компании" -> шторка компаний
+      await tester.tap(find.text('Мои компании'));
       await tester.pumpAndSettle();
-      expect(find.text('Обувь'), findsOneWidget);
-      expect(find.text('Сохранить'), findsOneWidget);
+      expect(find.text('Бонусный баланс'), findsOneWidget);
+      expect(find.text('СУПЕРМАРКЕТ'), findsOneWidget);
 
-      Navigator.of(tester.element(find.text('Обувь'))).pop();
+      await tester.tap(find.byIcon(Icons.close_rounded).last);
       await tester.pumpAndSettle();
-      expect(find.text('Обувь'), findsNothing);
+      expect(find.text('Бонусный баланс'), findsNothing);
 
       // 2. Tap "Мои сертификаты" -> bottom sheet opens
       await tester.tap(find.text('Мои сертификаты'));
@@ -382,7 +382,7 @@ void main() {
       );
 
       // Check actions: «Отмена» and «Удалить навсегда»
-      final cancelBtn = find.widgetWithText(TextButton, 'Отмена');
+      final cancelBtn = find.widgetWithText(FilledButton, 'Отмена');
       final confirmDeleteBtn = find.widgetWithText(FilledButton, 'Удалить навсегда');
       expect(cancelBtn, findsOneWidget);
       expect(confirmDeleteBtn, findsOneWidget);

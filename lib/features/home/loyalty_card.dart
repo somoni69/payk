@@ -203,7 +203,7 @@ class _LoyaltyCardSurface extends StatelessWidget {
                     ),
                   ),
                 ),
-              _WatermarkSlot(color: face.mark),
+              _WatermarkSlot(letter: face.ink),
               Padding(
                 padding: const EdgeInsets.fromLTRB(22, 18, 20, 16),
                 child: Column(
@@ -314,11 +314,11 @@ class _LoyaltyCardSurface extends StatelessWidget {
   }
 }
 
-/// Водяной знак справа. Цвет берётся с текущего материала карты.
+/// Знак Алмосӣ справа на карте. Буква берёт цвет текста текущего материала.
 class _WatermarkSlot extends StatelessWidget {
-  const _WatermarkSlot({required this.color});
+  const _WatermarkSlot({required this.letter});
 
-  final Color color;
+  final Color letter;
 
   @override
   Widget build(BuildContext context) {
@@ -329,15 +329,35 @@ class _WatermarkSlot extends StatelessWidget {
         return Stack(
           children: [
             Positioned(
-              right: width * 0.015,
-              top: height * 0.14,
-              width: width * 0.44,
-              height: height * 0.78,
-              child: PaykGlyph(color: color),
+              right: 12,
+              top: height * 0.16,
+              width: width * 0.40,
+              height: height * 0.68,
+              child: _AlmosiLogo(letter: letter),
             ),
           ],
         );
       },
+    );
+  }
+}
+
+class _AlmosiLogo extends StatelessWidget {
+  const _AlmosiLogo({required this.letter});
+
+  final Color letter;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset('assets/images/almosi_blue.png', fit: BoxFit.contain),
+        ColorFiltered(
+          colorFilter: ColorFilter.mode(letter, BlendMode.srcIn),
+          child: Image.asset('assets/images/almosi_letter.png', fit: BoxFit.contain),
+        ),
+      ],
     );
   }
 }

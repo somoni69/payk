@@ -6,6 +6,10 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../firebase_options.dart';
 
+void _log(String message) {
+  if (kDebugMode) debugPrint(message);
+}
+
 /// Фоновый обработчик сообщений (должен быть функцией верхнего уровня)
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -16,7 +20,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       );
     }
   } catch (_) {}
-  debugPrint('[PushNotificationService] Background message: ${message.messageId}');
+  _log('[PushNotificationService] Background message: ${message.messageId}');
 }
 
 /// Сервис управления пуш-уведомлениями (FCM + Local Notifications)
@@ -60,7 +64,7 @@ class PushNotificationService {
         );
       }
     } catch (e) {
-      debugPrint('[PushNotificationService] Firebase init note: $e');
+      _log('[PushNotificationService] Firebase init note: $e');
       return;
     }
 
@@ -84,9 +88,9 @@ class PushNotificationService {
       await _setupTokenAndTopics(onTokenUpdate);
 
       _isInitialized = true;
-      debugPrint('[PushNotificationService] Initialized successfully');
+      _log('[PushNotificationService] Initialized successfully');
     } catch (e) {
-      debugPrint('[PushNotificationService] Setup skipped or failed: $e');
+      _log('[PushNotificationService] Setup skipped or failed: $e');
     }
   }
 
@@ -102,7 +106,7 @@ class PushNotificationService {
       sound: true,
     );
 
-    debugPrint(
+    _log(
       '[PushNotificationService] Authorization status: ${settings.authorizationStatus}',
     );
 
@@ -148,7 +152,7 @@ class PushNotificationService {
   /// Прослушивание входящих сообщений при открытом приложении
   void _listenForegroundMessages() {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      debugPrint('[PushNotificationService] Foreground message: ${message.data}');
+      _log('[PushNotificationService] Foreground message: ${message.data}');
       final notification = message.notification;
       final route = message.data['route'] as String? ?? '/notifications';
 
@@ -194,34 +198,42 @@ class PushNotificationService {
   }
 
   void _handleMessageClick(RemoteMessage message) {
-    debugPrint('[PushNotificationService] Notification opened: ${message.data}');
+    _log('[PushNotificationService] Notification opened: ${message.data}');
     final route = message.data['route'] as String? ?? '/notifications';
     _onNotificationTap?.call(route);
   }
 
-  /// Получение FCM-токена устройства и подписка на broadcast-топики
+  /// Получение FCM-токена устройства и подписка на broadcast-топики.
+  /// getToken — регистрационный токен для отправки. onRegistered в Messaging 17
+  /// отдаёт идентификатор установки, им пуш не послать.
   Future<void> _setupTokenAndTopics(
     Future<void> Function(String token)? onTokenUpdate,
   ) async {
-    // Слушаем регистрацию токена (firebase_messaging 17+)
-    _fcm.onRegistered.listen((token) {
+    Future<void> publish(String? token) async {
+      if (token == null || token.isEmpty) return;
       _fcmToken = token;
-      debugPrint('[PushNotificationService] FCM Token registered: $token');
-      onTokenUpdate?.call(token);
+      _log('[PushNotificationService] FCM token ready (${token.length})');
+      await onTokenUpdate?.call(token);
+    }
+
+    // onRegistered отдаёт идентификатор установки, а не токен отправки.
+    // ignore: deprecated_member_use
+    _fcm.onTokenRefresh.listen((token) {
+      publish(token);
     });
 
     try {
-      await _fcm.register();
+      // ignore: deprecated_member_use
+      await publish(await _fcm.getToken());
     } catch (e) {
-      debugPrint('[PushNotificationService] Error registering FCM: $e');
+      _log('[PushNotificationService] Error reading FCM token: $e');
     }
 
-    // Подписываемся на общий топик "all" для массовых рассылок без явной базы токенов
     try {
       await _fcm.subscribeToTopic('all');
-      debugPrint('[PushNotificationService] Subscribed to topic "all"');
+      _log('[PushNotificationService] Subscribed to topic "all"');
     } catch (e) {
-      debugPrint('[PushNotificationService] Subscribe to topic error: $e');
+      _log('[PushNotificationService] Subscribe to topic error: $e');
     }
   }
 
@@ -230,7 +242,7 @@ class PushNotificationService {
     try {
       await _fcm.subscribeToTopic(topic);
     } catch (e) {
-      debugPrint('[PushNotificationService] Failed to subscribe to $topic: $e');
+      _log('[PushNotificationService] Failed to subscribe to $topic: $e');
     }
   }
 
@@ -239,7 +251,7 @@ class PushNotificationService {
     try {
       await _fcm.unsubscribeFromTopic(topic);
     } catch (e) {
-      debugPrint('[PushNotificationService] Failed to unsubscribe from $topic: $e');
+      _log('[PushNotificationService] Failed to unsubscribe from $topic: $e');
     }
   }
 }

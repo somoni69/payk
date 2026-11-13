@@ -300,7 +300,7 @@ void main() {
               account: mockAccount,
               locale: 'ru',
               onOpenCode: () => codeTapped = true,
-              onOpenSizes: () => companiesTapped = true,
+              onOpenCompanies: () => companiesTapped = true,
               onOpenCertificates: () => certsTapped = true,
             ),
           ),
@@ -314,8 +314,8 @@ void main() {
       await tester.tap(qrCard);
       expect(codeTapped, isTrue);
 
-      // Tap Мои размеры
-      final companiesCard = find.text('Мои размеры');
+      // Tap Мои компании
+      final companiesCard = find.text('Мои компании');
       expect(companiesCard, findsOneWidget);
       await tester.tap(companiesCard);
       expect(companiesTapped, isTrue);
@@ -327,7 +327,7 @@ void main() {
       expect(certsTapped, isTrue);
     });
 
-    testWidgets('2.3 Full Home Screen modal interactivity: Мои размеры & Мои сертификаты', (tester) async {
+    testWidgets('2.3 Full Home Screen modal interactivity: Мои компании & Мои сертификаты', (tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 2.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -335,17 +335,17 @@ void main() {
       await tester.pumpWidget(wrapWithProviders(const HomeScreen()));
       await tester.pumpAndSettle();
 
-      // Tap Мои размеры -> экран размеров
-      await tester.tap(find.text('Мои размеры'));
+      // Tap Мои компании -> шторка с балансом и партнёрами
+      await tester.tap(find.text('Мои компании'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Обувь'), findsOneWidget);
-      expect(find.text('Сохранить'), findsOneWidget);
+      expect(find.text('Бонусный баланс'), findsOneWidget);
+      expect(find.text('СУПЕРМАРКЕТ'), findsOneWidget);
 
-      Navigator.of(tester.element(find.text('Обувь'))).pop();
+      await tester.tap(find.byIcon(Icons.close_rounded).last);
       await tester.pumpAndSettle();
 
-      expect(find.text('Обувь'), findsNothing);
+      expect(find.text('Бонусный баланс'), findsNothing);
 
       // Tap Мои сертификаты -> Modal bottom sheet appears
       await tester.tap(find.text('Мои сертификаты'));
@@ -538,9 +538,9 @@ void main() {
       await tester.tap(find.text('Отмена'));
       await tester.pumpAndSettle();
 
-      // Still on /profile, dialog dismissed
+      // Диалог закрыт, пользователь остаётся на экране деталей профиля
       expect(find.text('Выйти из аккаунта?'), findsNothing);
-      expect(router.state.matchedLocation, equals('/profile'));
+      expect(router.state.matchedLocation, equals('/profile/details'));
 
       // Tap logout again and confirm
       await tester.tap(logoutButton);

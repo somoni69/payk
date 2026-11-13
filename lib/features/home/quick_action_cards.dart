@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../core/format.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
@@ -9,7 +10,7 @@ import '../../data/models/models.dart';
 
 /// Горизонтальный ряд карточек быстрого доступа в стиле UDC:
 /// 1. «QR-код» — интерактивный QR для кассы
-/// 2. «Мои размеры» — подсказка заполнить размеры и переход к ним
+/// 2. «Мои компании» — стопка монет, баланс бонусов
 /// 3. «Мои сертификаты» — билет со звездой, сертификаты
 class QuickActionCards extends StatelessWidget {
   const QuickActionCards({
@@ -17,14 +18,14 @@ class QuickActionCards extends StatelessWidget {
     required this.account,
     required this.locale,
     required this.onOpenCode,
-    required this.onOpenSizes,
+    required this.onOpenCompanies,
     required this.onOpenCertificates,
   });
 
   final Account account;
   final String locale;
   final VoidCallback onOpenCode;
-  final VoidCallback onOpenSizes;
+  final VoidCallback onOpenCompanies;
   final VoidCallback onOpenCertificates;
 
   @override
@@ -77,7 +78,10 @@ class QuickActionCards extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
-                          border: Border.all(color: PaykColors.primary, width: 2.0),
+                          border: Border.all(
+                            color: PaykColors.primary,
+                            width: 2.0,
+                          ),
                         ),
                         child: Center(
                           child: Container(
@@ -110,49 +114,41 @@ class QuickActionCards extends StatelessWidget {
           ),
           const SizedBox(width: 10),
 
-          // 2. Карточка «Мои размеры» — тот же размер, что у соседних.
-          // Подсказка только пока клиент не заполнил размеры.
+          // 2. Карточка «Мои компании»
           _QuickActionTile(
             width: 138,
             height: 114,
-            onTap: onOpenSizes,
-            semanticsLabel: tr(locale, 'sizes.title'),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const _CoinsIllustration(),
-                  const SizedBox(height: 5),
-                  Text(
-                    tr(locale, 'sizes.title'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: PaykColors.textPrimary,
-                      letterSpacing: -0.2,
-                    ),
+            onTap: onOpenCompanies,
+            semanticsLabel: tr(locale, 'home.companies'),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _CoinsIllustration(),
+                const SizedBox(height: 5),
+                Text(
+                  tr(locale, 'home.companies'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: PaykColors.textPrimary,
+                    letterSpacing: -0.2,
                   ),
-                  if (member.isSizesComplete) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      _sizeLine(member),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: PaykColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${formatNumber(wallet.balance, decimals: false)} смн',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: PaykColors.textSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 10),
@@ -182,7 +178,9 @@ class QuickActionCards extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  wallet.status > 1 ? tr(locale, 'home.active') : tr(locale, 'home.coupons'),
+                  wallet.status > 1
+                      ? tr(locale, 'home.active')
+                      : tr(locale, 'home.coupons'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -198,13 +196,6 @@ class QuickActionCards extends StatelessWidget {
       ),
     );
   }
-}
-
-String _sizeLine(Member member) {
-  return [member.shoeSize, member.pantsSize, member.topSize]
-      .whereType<String>()
-      .where((value) => value.trim().isNotEmpty)
-      .join(' · ');
 }
 
 class _QuickActionTile extends StatelessWidget {
@@ -296,7 +287,11 @@ class _CoinsIllustration extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(Icons.star_rounded, size: 12, color: Colors.white),
+              child: const Icon(
+                Icons.star_rounded,
+                size: 12,
+                color: Colors.white,
+              ),
             ),
           ),
           // Верхняя золотая монетка
@@ -322,7 +317,11 @@ class _CoinsIllustration extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(Icons.star_rounded, size: 12, color: Colors.white),
+              child: const Icon(
+                Icons.star_rounded,
+                size: 12,
+                color: Colors.white,
+              ),
             ),
           ),
         ],
@@ -371,7 +370,11 @@ class _TicketIllustration extends StatelessWidget {
                   borderRadius: BorderRadius.circular(1),
                 ),
               ),
-              const Icon(Icons.star_rounded, size: 13, color: Color(0xFFFFD54F)),
+              const Icon(
+                Icons.star_rounded,
+                size: 13,
+                color: Color(0xFFFFD54F),
+              ),
               Container(
                 width: 2.5,
                 height: 10,

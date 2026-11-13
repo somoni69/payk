@@ -31,7 +31,7 @@ class LiquidNavItem {
 /// - Ширина капсулы: 316.0 dp.
 /// - Скругление капсулы: 33.0 dp (stadium shape).
 /// - Зеркальная фаска: Specular Rim Border 1.2px.
-/// - Реальный оптический блур BackdropFilter (sigma 24.0).
+/// - Оптический блур BackdropFilter, сигма 8.
 /// - Векторные иконки из Payk Ecosystem и знак PAYK по центру («PAYK для бизнеса»).
 /// - Активная капля: pill 54x40 dp со скруглением 16 dp и зеркальным кантом.
 class LiquidGlassBottomBar extends StatelessWidget {
@@ -72,6 +72,12 @@ class LiquidGlassBottomBar extends StatelessWidget {
 
   static const double barHeight = 66.0;
   static const double barWidth = 316.0;
+
+  /// Один и тот же фильтр на все пересборки бара, чтобы слой блюра не сбрасывался.
+  static final ImageFilter _barBlur = ImageFilter.blur(
+    sigmaX: LiquidGlassTokens.blurSm,
+    sigmaY: LiquidGlassTokens.blurSm,
+  );
 
   void _handleTap(int index) {
     if (index != currentIndex) {
@@ -122,13 +128,10 @@ class LiquidGlassBottomBar extends StatelessWidget {
                             child: _buildTabsRow(),
                           )
                         : BackdropFilter(
-                            filter: ImageFilter.blur(
-                              sigmaX: LiquidGlassTokens.blurLg,
-                              sigmaY: LiquidGlassTokens.blurLg,
-                            ),
+                            filter: _barBlur,
                             child: ColoredBox(
                               color: LiquidGlassTokens.surfaceLight,
-                              child: _buildTabsRow(),
+                              child: RepaintBoundary(child: _buildTabsRow()),
                             ),
                           ),
                   ),
@@ -223,7 +226,7 @@ class _LiquidBarItemWidget extends StatelessWidget {
                         ),
                         if (item.icon != null)
                           Opacity(
-                            opacity: 0.001,
+                            opacity: 0,
                             child: Icon(
                               item.icon,
                               size: 24,

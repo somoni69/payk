@@ -168,11 +168,13 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
                       decoration: const InputDecoration(
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
+                        filled: false,
                         border: InputBorder.none,
                         focusedBorder: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         errorBorder: InputBorder.none,
                         disabledBorder: InputBorder.none,
+                        focusedErrorBorder: InputBorder.none,
                         hintText: '90 123 45 67',
                         hintStyle: TextStyle(
                           fontSize: 18,
@@ -429,11 +431,15 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   LengthLimitingTextInputFormatter(6),
                 ],
                 decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                  filled: false,
                   border: InputBorder.none,
                   focusedBorder: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   errorBorder: InputBorder.none,
                   disabledBorder: InputBorder.none,
+                  focusedErrorBorder: InputBorder.none,
                   counterText: '',
                   hintText: '••••••',
                   hintStyle: TextStyle(

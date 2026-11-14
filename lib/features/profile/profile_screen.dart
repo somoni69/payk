@@ -21,6 +21,7 @@ import '../../data/api/api_exception.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
 import '../friends/friends_screen.dart';
+import '../history/history_screen.dart';
 import '../rules/rules_screen.dart';
 import '../sizes/size_offers_screen.dart';
 import '../sizes/sizes_screen.dart';
@@ -147,6 +148,18 @@ class ProfileScreen extends ConsumerWidget {
                         context,
                         '/sizes',
                         fallback: () => const SizesScreen(),
+                      );
+                    },
+                  ),
+                  _ProfileMenuItem(
+                    icon: Icons.receipt_long_outlined,
+                    title: tr(locale, 'profile.purchases'),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      PaykMotion.push<void>(
+                        context,
+                        '/receipts',
+                        fallback: () => const HistoryScreen(initialTab: HistoryTab.bills),
                       );
                     },
                   ),

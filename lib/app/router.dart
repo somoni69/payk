@@ -13,6 +13,7 @@ import '../features/categories/categories_screen.dart';
 import '../features/code/client_code_screen.dart';
 import '../features/friends/friends_screen.dart';
 import '../features/history/history_screen.dart';
+import '../features/history/receipt_detail_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/notifications/notifications_screen.dart';
 import '../features/profile/connect_screen.dart';
@@ -124,8 +125,33 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/history',
-        pageBuilder: (context, state) =>
-            PaykMotion.buildPage(state: state, child: const HistoryScreen()),
+        pageBuilder: (context, state) {
+          final tab = state.uri.queryParameters['tab'] == 'bills'
+              ? HistoryTab.bills
+              : HistoryTab.ops;
+          final cat = state.uri.queryParameters['cat'];
+          return PaykMotion.buildPage(
+            state: state,
+            child: HistoryScreen(initialCategory: cat, initialTab: tab),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/receipts',
+        pageBuilder: (context, state) => PaykMotion.buildPage(
+          state: state,
+          child: const HistoryScreen(initialTab: HistoryTab.bills),
+        ),
+      ),
+      GoRoute(
+        path: '/history/receipt/:id',
+        pageBuilder: (context, state) {
+          final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+          return PaykMotion.buildPage(
+            state: state,
+            child: ReceiptDetailScreen(receiptId: id),
+          );
+        },
       ),
       GoRoute(
         path: '/rules',
@@ -167,8 +193,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/size-offers',
-        pageBuilder: (context, state) =>
-            PaykMotion.buildPage(state: state, child: const SizeOffersScreen()),
+        pageBuilder: (context, state) {
+          final focus = int.tryParse(state.uri.queryParameters['focus'] ?? '');
+          return PaykMotion.buildPage(
+            state: state,
+            child: SizeOffersScreen(focusOfferId: focus),
+          );
+        },
       ),
       GoRoute(
         path: '/notifications',

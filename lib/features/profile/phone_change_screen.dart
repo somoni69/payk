@@ -298,8 +298,15 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                               ),
                               inputFormatters: const [TajikPhoneFormatter()],
                               decoration: const InputDecoration(
-                                isCollapsed: true,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                                filled: false,
                                 border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                errorBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                focusedErrorBorder: InputBorder.none,
                                 hintText: '90 123 45 67',
                                 hintStyle: TextStyle(
                                   fontSize: 17,

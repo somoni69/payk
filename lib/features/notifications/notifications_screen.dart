@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
 import '../../core/i18n/locale_controller.dart';
@@ -11,6 +12,7 @@ import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
+import '../sizes/size_offers_screen.dart';
 
 /// Отдельный полноценный экран уведомлений и сообщений в стиле UDC / Payk
 class NotificationsScreen extends ConsumerStatefulWidget {
@@ -21,12 +23,59 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
+  final List<LoyaltyMessageItem> _extraItems = <LoyaltyMessageItem>[];
+  bool _loadingMore = false;
+  bool? _hasMoreOverride;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(loyaltyApiProvider).markMessagesRead().ignore();
     });
+  }
+
+  Future<void> _loadMore(List<LoyaltyMessageItem> all) async {
+    if (_loadingMore || all.isEmpty) return;
+    setState(() => _loadingMore = true);
+    try {
+      final page = await ref
+          .read(loyaltyApiProvider)
+          .messages(beforeId: all.last.id);
+      if (!mounted) return;
+      final existingIds = {for (final item in all) item.id};
+      final fresh = page.where((item) => !existingIds.contains(item.id)).toList();
+      setState(() {
+        _extraItems.addAll(fresh);
+        _hasMoreOverride = page.length >= 30;
+      });
+    } catch (_) {
+      // Игнорируем сбой догрузки; пользователь может нажать снова
+    } finally {
+      if (mounted) setState(() => _loadingMore = false);
+    }
+  }
+
+  Future<void> _refresh() async {
+    setState(() {
+      _extraItems.clear();
+      _hasMoreOverride = null;
+    });
+    ref.invalidate(messagesProvider);
+    try {
+      await ref.read(messagesProvider.future);
+    } catch (_) {}
+  }
+
+  void _openOffers(BuildContext context) {
+    final router = GoRouter.maybeOf(context);
+    if (router != null) {
+      router.push('/size-offers');
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const SizeOffersScreen()),
+      );
+    }
   }
 
   @override
@@ -58,7 +107,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         centerTitle: true,
         title: Text(
           tr(locale, 'home.notifications'),
-          style: TextStyle(
+          style: const TextStyle(
             fontFamily: 'Manrope',
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -78,6 +127,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               onPressed: () async {
                 HapticFeedback.lightImpact();
                 await ref.read(loyaltyApiProvider).markMessagesRead();
+                if (!mounted) return;
+                setState(() {
+                  _extraItems.clear();
+                  _hasMoreOverride = null;
+                });
                 ref.invalidate(messagesProvider);
                 ref.invalidate(meProvider);
               },
@@ -87,10 +141,16 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       ),
       body: AsyncView(
         value: messagesAsync,
-        onRetry: () => ref.invalidate(messagesProvider),
+        onRetry: _refresh,
         loading: const NotificationsSkeleton(),
-        data: (items) {
-          if (items.isEmpty) {
+        data: (headItems) {
+          final seen = <int>{};
+          final all = <LoyaltyMessageItem>[];
+          for (final item in [...headItems, ..._extraItems]) {
+            if (seen.add(item.id)) all.add(item);
+          }
+
+          if (all.isEmpty) {
             return Center(
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -109,14 +169,46 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
             );
           }
 
-          return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
+          final hasMore = _hasMoreOverride ?? (headItems.length >= 30);
+
+          return RefreshIndicator(
+            color: PaykColors.violet,
+            backgroundColor: Colors.white,
+            onRefresh: _refresh,
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
+              itemCount: all.length + (hasMore ? 1 : 0),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                if (index >= all.length) {
+                  return Center(
+                    child: OutlinedButton(
+                      onPressed: _loadingMore ? null : () => _loadMore(all),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: PaykColors.primary,
+                        side: const BorderSide(color: PaykColors.border),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        _loadingMore
+                            ? tr(locale, 'history.loading')
+                            : tr(locale, 'history.more'),
+                      ),
+                    ),
+                  );
+                }
+                return _NotificationCard(
+                  item: all[index],
+                  locale: locale,
+                  onOpenOffers: () => _openOffers(context),
+                );
+              },
             ),
-            itemCount: items.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
-            itemBuilder: (context, index) => _NotificationCard(item: items[index]),
           );
         },
       ),
@@ -125,13 +217,27 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 }
 
 class _NotificationCard extends StatelessWidget {
-  const _NotificationCard({required this.item});
+  const _NotificationCard({
+    required this.item,
+    required this.locale,
+    required this.onOpenOffers,
+  });
 
   final LoyaltyMessageItem item;
+  final String locale;
+  final VoidCallback onOpenOffers;
+
+  String _kindTitle() {
+    final key = 'messages.kind.${item.kind}';
+    final resolved = tr(locale, key);
+    if (resolved != key) return resolved;
+    return tr(locale, 'messages.kind.other');
+  }
 
   @override
   Widget build(BuildContext context) {
     final isUnread = !item.read;
+    final hasOffersLink = item.kind == 'size_flash' || item.kind == 'size_new';
 
     return AnimatedContainer(
       duration: PaykMotion.duration(context, PaykMotion.normal),
@@ -169,23 +275,40 @@ class _NotificationCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
-                  isUnread
-                      ? Icons.notifications_active_rounded
-                      : Icons.notifications_none_rounded,
+                  hasOffersLink
+                      ? Icons.local_offer_outlined
+                      : (isUnread
+                          ? Icons.notifications_active_rounded
+                          : Icons.notifications_none_rounded),
                   color: isUnread ? PaykColors.primary : PaykColors.textSecondary,
                   size: 20,
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Text(
-                  formatDate(item.createdAt),
-                  style: const TextStyle(
-                    fontFamily: 'Manrope',
-                    color: PaykColors.textSecondary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _kindTitle(),
+                      style: const TextStyle(
+                        fontFamily: 'Manrope',
+                        color: PaykColors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      formatDate(item.createdAt),
+                      style: const TextStyle(
+                        fontFamily: 'Manrope',
+                        color: PaykColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               if (isUnread)
@@ -210,6 +333,40 @@ class _NotificationCard extends StatelessWidget {
               color: PaykColors.textPrimary,
             ),
           ),
+          if (hasOffersLink) ...[
+            const SizedBox(height: 12),
+            PaykPressable(
+              scaleDown: PaykMotion.scaleButton,
+              onTap: onOpenOffers,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: PaykColors.activePill,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      tr(locale, 'messages.openOffers'),
+                      style: const TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: PaykColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 16,
+                      color: PaykColors.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

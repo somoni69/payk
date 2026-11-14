@@ -1,15 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/birthday.dart';
 import '../../core/format.dart';
 import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
+import '../../core/size_offers_logic.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/message.dart';
+import '../../core/widgets/payk_avatar.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
 import '../../data/models/models.dart';
@@ -18,6 +24,8 @@ import '../categories/categories_screen.dart';
 import '../code/client_code_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../profile/profile_screen.dart';
+import '../sizes/size_offers_screen.dart';
+import '../sizes/sizes_screen.dart';
 import 'home_header.dart';
 import 'loyalty_card.dart';
 
@@ -185,6 +193,11 @@ class _HomeBody extends ConsumerWidget {
             ),
             const SizedBox(height: 14),
           ],
+
+          _HomeOffersSection(locale: locale),
+
+          if (isSizesEmpty(member))
+            _SizesHintCard(member: member, locale: locale),
 
           // 2. Карточка «Дӯстонро даъват кунед» (реферальный код и шаринг)
           Padding(
@@ -1080,4 +1093,436 @@ void _openCertificatesModal(
       );
     },
   );
+}
+
+class _HomeOffersSection extends ConsumerStatefulWidget {
+  const _HomeOffersSection({required this.locale});
+
+  final String locale;
+
+  @override
+  ConsumerState<_HomeOffersSection> createState() => _HomeOffersSectionState();
+}
+
+class _HomeOffersSectionState extends ConsumerState<_HomeOffersSection> {
+  Timer? _ticker;
+  DateTime _now = DateTime.now();
+
+  void _syncTicker(bool needTicker) {
+    if (needTicker && _ticker == null) {
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() => _now = DateTime.now());
+      });
+    } else if (!needTicker && _ticker != null) {
+      _ticker?.cancel();
+      _ticker = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  void _openAll(BuildContext context, {int? focusId}) {
+    final router = GoRouter.maybeOf(context);
+    if (router != null) {
+      router.push(focusId != null ? '/size-offers?focus=$focusId' : '/size-offers');
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => SizeOffersScreen(focusOfferId: focusId),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final async = ref.watch(sizeOffersPreviewProvider);
+    final response = async.asData?.value;
+    if (response == null) {
+      _syncTicker(false);
+      return const SizedBox.shrink();
+    }
+    final activeOffers = response.items
+        .where((offer) => showOfferOnHome(offer, liveOfferStatus(offer, _now)))
+        .toList();
+    if (activeOffers.isEmpty) {
+      _syncTicker(false);
+      return const SizedBox.shrink();
+    }
+    _syncTicker(activeOffers.any((o) => o.flash && o.expiresAt != null));
+    final preview = activeOffers.take(2).toList();
+    final locale = widget.locale;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  tr(locale, 'home.offers'),
+                  style: const TextStyle(
+                    fontFamily: 'Manrope',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: PaykColors.textPrimary,
+                  ),
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _openAll(context),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${tr(locale, 'home.offersAll')} (${activeOffers.length})',
+                      style: const TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: PaykColors.primary,
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 18,
+                      color: PaykColors.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (var i = 0; i < preview.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
+            _HomeOfferTile(
+              offer: preview[i],
+              locale: locale,
+              now: _now,
+              onTap: () => _openAll(context, focusId: preview[i].id),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HomeOfferTile extends StatelessWidget {
+  const _HomeOfferTile({
+    required this.offer,
+    required this.locale,
+    required this.now,
+    required this.onTap,
+  });
+
+  final SizeOffer offer;
+  final String locale;
+  final DateTime now;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final photo = resolvePaykAvatarUrl(offer.imageUrl);
+    final pct = discountPercent(offer.originalPrice, offer.discountPrice);
+    final sizeLabel = offer.size.trim().isNotEmpty
+        ? offer.size.trim()
+        : tr(locale, 'sizes.cat.${offer.category}');
+    final left = offer.remainingAt(now);
+    final hasCode = offer.claimed && (offer.promoCode ?? '').isNotEmpty;
+
+    return PaykPressable(
+      scaleDown: PaykMotion.scaleSubtle,
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: PaykColors.sheet,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: PaykColors.border),
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox(
+                width: 60,
+                height: 60,
+                child: photo != null
+                    ? Image.network(
+                        photo,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Container(
+                          color: PaykColors.tile,
+                          child: const Icon(
+                            Icons.local_offer_outlined,
+                            color: PaykColors.primary,
+                          ),
+                        ),
+                      )
+                    : Container(
+                        color: PaykColors.tile,
+                        child: const Icon(
+                          Icons.local_offer_outlined,
+                          color: PaykColors.primary,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: PaykColors.activePill,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          sizeLabel,
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: PaykColors.primary,
+                          ),
+                        ),
+                      ),
+                      if (pct != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: PaykColors.danger.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '-$pct%',
+                            style: const TextStyle(
+                              fontFamily: 'Manrope',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: PaykColors.danger,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    offer.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: PaykColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      if (offer.discountPrice != null) ...[
+                        Text(
+                          formatMoney(offer.discountPrice!, decimals: false),
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: PaykColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      if (hasCode)
+                        Text(
+                          '${tr(locale, 'offers.code')}: ${formatPromoCode(offer.promoCode!)}',
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: PaykColors.primary,
+                          ),
+                        )
+                      else if (offer.flash && left > Duration.zero)
+                        Text(
+                          formatOfferCountdownWithDays(
+                            left,
+                            tr(locale, 'offers.dayShort'),
+                          ),
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: PaykColors.accentAmber,
+                          ),
+                        )
+                      else
+                        Text(
+                          tr(locale, 'offers.claim'),
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: PaykColors.primary,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: PaykColors.textMuted,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SizesHintCard extends StatefulWidget {
+  const _SizesHintCard({required this.member, required this.locale});
+
+  final Member member;
+  final String locale;
+
+  @override
+  State<_SizesHintCard> createState() => _SizesHintCardState();
+}
+
+class _SizesHintCardState extends State<_SizesHintCard> {
+  bool _loaded = false;
+  bool _dismissed = false;
+
+  String get _prefsKey {
+    final id = widget.member.id?.toString() ?? widget.member.phone;
+    return 'payk.sizes_hint.$id';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadState();
+  }
+
+  Future<void> _loadState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final val = prefs.getBool(_prefsKey) ?? false;
+      if (!mounted) return;
+      setState(() {
+        _dismissed = val;
+        _loaded = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loaded = true);
+    }
+  }
+
+  Future<void> _dismiss() async {
+    setState(() => _dismissed = true);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_prefsKey, true);
+    } catch (_) {}
+  }
+
+  void _openSizes(BuildContext context) {
+    final router = GoRouter.maybeOf(context);
+    if (router != null) {
+      router.push('/sizes');
+    } else {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const SizesScreen()),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded || _dismissed) return const SizedBox.shrink();
+    final locale = widget.locale;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+      child: PaykPressable(
+        scaleDown: PaykMotion.scaleSubtle,
+        onTap: () => _openSizes(context),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: PaykColors.sheet,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: PaykColors.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: PaykColors.activePill,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.straighten_rounded,
+                  color: PaykColors.primary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tr(locale, 'home.sizesHint'),
+                      style: const TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: PaykColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      tr(locale, 'home.sizesHintText'),
+                      style: const TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: PaykColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: _dismiss,
+                icon: const Icon(Icons.close_rounded, size: 18, color: PaykColors.textMuted),
+                tooltip: tr(locale, 'home.sizesHintHide'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

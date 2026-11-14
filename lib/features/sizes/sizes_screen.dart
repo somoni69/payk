@@ -5,26 +5,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
+import '../../core/size_offers_logic.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/message.dart';
 import '../../core/widgets/states.dart';
 import '../../data/api/api_exception.dart';
+import '../../data/models/models.dart';
 import '../../data/providers.dart';
-
-const shoeSizes = [
-  '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46',
-  '36.5', '37.5', '38.5', '39.5', '40.5', '41.5', '42.5', '43.5', '44.5', '45.5',
-];
-
-const pantsSizes = [
-  '28', '30', '32', '34', '36', '38', '40', '42', '44', '46', '48', '50', '52', '54', '56', '58', '60',
-  'S', 'M', 'L', 'XL', '2XL', '3XL',
-];
-
-const topSizes = [
-  'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL',
-  '46', '48', '50', '52', '54', '56', '58', '60',
-];
 
 /// Три размера в том же виде, что и остальные карточки профиля.
 class SizesScreen extends ConsumerStatefulWidget {
@@ -38,26 +25,48 @@ class _SizesScreenState extends ConsumerState<SizesScreen> {
   String? _shoe;
   String? _pants;
   String? _top;
+  String? _origShoe;
+  String? _origPants;
+  String? _origTop;
   var _ready = false;
   var _saving = false;
   String? _error;
 
-  void _take(String? shoe, String? pants, String? top) {
+  void _take(Member member) {
     if (_ready) return;
-    _shoe = shoe;
-    _pants = pants;
-    _top = top;
+    _origShoe = normalizeSize(member.shoeSize);
+    _origPants = normalizeSize(member.pantsSize);
+    _origTop = normalizeSize(member.topSize);
+    _shoe = _origShoe;
+    _pants = _origPants;
+    _top = _origTop;
     _ready = true;
   }
 
+  Map<String, String?> _currentPatch() {
+    return buildSizesPatch(
+      initialShoe: _origShoe,
+      initialPants: _origPants,
+      initialTop: _origTop,
+      draftShoe: _shoe,
+      draftPants: _pants,
+      draftTop: _top,
+    );
+  }
+
   Future<void> _save() async {
+    final patch = _currentPatch();
+    if (patch.isEmpty) return;
     setState(() {
       _saving = true;
       _error = null;
     });
     try {
-      await ref.read(loyaltyApiProvider).updateSizes(shoe: _shoe, pants: _pants, top: _top);
+      await ref.read(loyaltyApiProvider).updateSizesPatch(patch);
       ref.invalidate(meProvider);
+      ref.invalidate(sizeOffersProvider);
+      ref.invalidate(sizeOffersPreviewProvider);
+      ref.invalidate(sizeOffersFeedProvider);
       if (!mounted) return;
       showPaykMessage(context, tr(ref.read(localeProvider), 'sizes.saved'));
       Navigator.of(context).maybePop();
@@ -104,7 +113,8 @@ class _SizesScreenState extends ConsumerState<SizesScreen> {
         onRetry: () => ref.invalidate(meProvider),
         data: (account) {
           final member = account.member;
-          _take(member.shoeSize, member.pantsSize, member.topSize);
+          _take(member);
+          final dirty = _currentPatch().isNotEmpty;
           return ListView(
             padding: EdgeInsets.fromLTRB(20, 8, 20, 24 + MediaQuery.paddingOf(context).bottom),
             children: [
@@ -118,26 +128,40 @@ class _SizesScreenState extends ConsumerState<SizesScreen> {
                   color: PaykColors.textSecondary,
                 ),
               ),
+              const SizedBox(height: 4),
+              Text(
+                tr(locale, 'sizes.tapAgain'),
+                style: const TextStyle(
+                  fontFamily: 'Manrope',
+                  fontSize: 12,
+                  height: 1.35,
+                  fontWeight: FontWeight.w500,
+                  color: PaykColors.textMuted,
+                ),
+              ),
               const SizedBox(height: 16),
               _SizeGroup(
                 title: tr(locale, 'sizes.shoe'),
-                values: shoeSizes,
+                notSetLabel: tr(locale, 'sizes.notSet'),
+                rows: rowsWithCurrentSize(shoeSizeRows, _shoe),
                 selected: _shoe,
-                onPick: (value) => setState(() => _shoe = value),
+                onPick: (value) => setState(() => _shoe = toggleSizeSelection(_shoe, value)),
               ),
               const SizedBox(height: 16),
               _SizeGroup(
                 title: tr(locale, 'sizes.pants'),
-                values: pantsSizes,
+                notSetLabel: tr(locale, 'sizes.notSet'),
+                rows: rowsWithCurrentSize(pantsSizeRows, _pants),
                 selected: _pants,
-                onPick: (value) => setState(() => _pants = value),
+                onPick: (value) => setState(() => _pants = toggleSizeSelection(_pants, value)),
               ),
               const SizedBox(height: 16),
               _SizeGroup(
                 title: tr(locale, 'sizes.top'),
-                values: topSizes,
+                notSetLabel: tr(locale, 'sizes.notSet'),
+                rows: rowsWithCurrentSize(topSizeRows, _top),
                 selected: _top,
-                onPick: (value) => setState(() => _top = value),
+                onPick: (value) => setState(() => _top = toggleSizeSelection(_top, value)),
               ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
@@ -145,7 +169,7 @@ class _SizesScreenState extends ConsumerState<SizesScreen> {
               ],
               const SizedBox(height: 20),
               FilledButton(
-                onPressed: _saving ? null : _save,
+                onPressed: (_saving || !dirty) ? null : _save,
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
                   backgroundColor: PaykColors.primary,
@@ -164,13 +188,15 @@ class _SizesScreenState extends ConsumerState<SizesScreen> {
 class _SizeGroup extends StatelessWidget {
   const _SizeGroup({
     required this.title,
-    required this.values,
+    required this.notSetLabel,
+    required this.rows,
     required this.selected,
     required this.onPick,
   });
 
   final String title;
-  final List<String> values;
+  final String notSetLabel;
+  final List<List<String>> rows;
   final String? selected;
   final ValueChanged<String> onPick;
 
@@ -187,31 +213,49 @@ class _SizeGroup extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontFamily: 'Manrope',
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: PaykColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Row(
             children: [
-              for (final value in values)
-                _SizeChip(
-                  label: value,
-                  selected: selected == value,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    onPick(value);
-                  },
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Manrope',
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: PaykColors.textPrimary,
+                  ),
                 ),
+              ),
+              Text(
+                selected ?? notSetLabel,
+                style: TextStyle(
+                  fontFamily: 'Manrope',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: selected != null ? PaykColors.primary : PaykColors.textMuted,
+                ),
+              ),
             ],
           ),
+          const SizedBox(height: 10),
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final value in rows[i])
+                  _SizeChip(
+                    label: value,
+                    selected: selected == value,
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      onPick(value);
+                    },
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );

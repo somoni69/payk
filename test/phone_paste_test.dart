@@ -38,6 +38,14 @@ void main() {
     await tester.enterText(find.byType(TextField), '+992 90 099 91 39');
     await tester.pump();
 
-    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text, '90 099 91 39');
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.controller!.text, '90 099 91 39');
+    final dec = field.decoration!;
+    expect(dec.filled, isFalse);
+    expect(dec.border, InputBorder.none);
+    expect(dec.enabledBorder, InputBorder.none);
+    expect(dec.focusedBorder, InputBorder.none);
+    expect(dec.errorBorder, InputBorder.none);
+    expect(dec.disabledBorder, InputBorder.none);
   });
 }

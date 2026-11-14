@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'api_client.dart';
 import 'api_config.dart';
 import 'api_exception.dart';
@@ -83,18 +85,19 @@ class LoyaltyApi {
 
   /// Размеры обуви, брюк и верха. null снимает значение.
   Future<void> updateSizes({String? shoe, String? pants, String? top}) async {
-    await _client.send(
-      '/me/sizes',
-      method: 'PATCH',
-      body: {'shoe_size': shoe, 'pants_size': pants, 'top_size': top},
-    );
+    await updateSizesPatch({'shoe_size': shoe, 'pants_size': pants, 'top_size': top});
   }
 
-  Future<List<SizeOffer>> sizeOffers() async {
-    final json = asMap(await _client.send('/me/size-offers'));
-    final raw = json['items'];
-    if (raw is! List) return const [];
-    return [for (final item in raw) SizeOffer.fromJson(asMap(item))];
+  /// Отправляет только изменённые поля размеров (ключ с null снимает значение).
+  Future<void> updateSizesPatch(Map<String, String?> patch) async {
+    if (patch.isEmpty) return;
+    await _client.send('/me/sizes', method: 'PATCH', body: patch);
+  }
+
+  Future<SizeOffersResponse> sizeOffers({bool markRead = true}) async {
+    final suffix = markRead ? '' : '?mark_read=false';
+    final json = asMap(await _client.send('/me/size-offers$suffix'));
+    return SizeOffersResponse.fromJson(json, fetchedAt: DateTime.now());
   }
 
   Future<SizeOffer> claimSizeOffer(int id) async {
@@ -102,7 +105,7 @@ class LoyaltyApi {
       '/me/size-offers/$id/claim',
       method: 'POST',
     );
-    return SizeOffer.fromJson(asMap(json));
+    return SizeOffer.fromJson(asMap(json), fetchedAt: DateTime.now());
   }
 
   Future<void> uploadAvatar(String filePath) async {
@@ -182,6 +185,51 @@ class LoyaltyApi {
     final json = await _client.send('/me/history$suffix');
     if (json is! List) throw ApiException(0, 'Неожиданный ответ сервера');
     return [for (final item in json) HistoryEntry.fromJson(asMap(item))];
+  }
+
+  Future<ReceiptsPage> receipts({
+    int? beforeId,
+    String? dFrom,
+    String? dTo,
+    String? fmt,
+    String? q,
+  }) async {
+    final params = <String, String>{};
+    if (beforeId != null) params['before_id'] = '$beforeId';
+    if (dFrom != null && dFrom.isNotEmpty) params['d_from'] = dFrom;
+    if (dTo != null && dTo.isNotEmpty) params['d_to'] = dTo;
+    if (fmt != null && fmt.isNotEmpty) params['fmt'] = fmt;
+    final text = q?.trim();
+    if (text != null && text.isNotEmpty) params['q'] = text;
+    final suffix = params.isEmpty
+        ? ''
+        : '?${params.entries.map((entry) => '${entry.key}=${Uri.encodeQueryComponent(entry.value)}').join('&')}';
+    final json = asMap(await _client.send('/me/receipts$suffix'));
+    return ReceiptsPage.fromJson(json);
+  }
+
+  Future<ReceiptView> receipt(int id) async {
+    final json = asMap(await _client.send('/me/receipts/$id'));
+    return ReceiptView.fromJson(json);
+  }
+
+  Future<ReceiptClaim> claimReceipt(
+    int id, {
+    required String kind,
+    String text = '',
+  }) async {
+    final json = asMap(
+      await _client.send(
+        '/me/receipts/$id/claims',
+        method: 'POST',
+        body: {'kind': kind, 'text': text},
+      ),
+    );
+    return ReceiptClaim.fromJson(json);
+  }
+
+  Future<Uint8List> receiptFile(int id, {required String kind}) {
+    return _client.downloadBytes('/me/receipts/$id/file?kind=$kind');
   }
 
   Future<FriendsInfo> friends() async {

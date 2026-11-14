@@ -72,6 +72,11 @@ String daysWord(int value) => plural(value, 'день', 'дня', 'дней');
 
 String monthsWord(int value) => plural(value, 'месяц', 'месяца', 'месяцев');
 
+String receiptsCountLabel(String locale, int count) {
+  if (locale == 'tj') return '$count чек';
+  return '$count ${plural(count, 'чек', 'чека', 'чеков')}';
+}
+
 String formatRating(double rating) =>
     rating.toStringAsFixed(1).replaceAll('.', ',');
 
@@ -124,3 +129,96 @@ String companyInitial(String name) {
 }
 
 String spacedCode(String code) => code.split('').join(' ');
+
+String formatTime(DateTime date) {
+  final hh = date.hour.toString().padLeft(2, '0');
+  final mm = date.minute.toString().padLeft(2, '0');
+  return '$hh:$mm';
+}
+
+String formatTimeSeconds(DateTime date) {
+  final ss = date.second.toString().padLeft(2, '0');
+  return '${formatTime(date)}:$ss';
+}
+
+/// 3 → «3», 0.5 → «0,5 кг», 1.25 → «1,25 м»: не больше трёх знаков, «шт» не пишем.
+String formatQty(double qty, String? unit) {
+  final rounded = (qty * 1000).round() / 1000;
+  var numText = rounded == rounded.roundToDouble()
+      ? rounded.toStringAsFixed(0)
+      : rounded
+            .toStringAsFixed(3)
+            .replaceAll(RegExp(r'0+$'), '')
+            .replaceAll(RegExp(r'\.$'), '');
+  numText = numText.replaceAll('.', ',');
+  final cleanUnit = (unit ?? '').trim();
+  if (cleanUnit.isEmpty || cleanUnit == 'шт') return numText;
+  return '$numText\u00A0$cleanUnit';
+}
+
+/// Доля ставки с сервера: 0.15 → «15 %», 0.125 → «12,5 %».
+String formatRatePct(double share) {
+  final pct = (share * 10000).round() / 100;
+  final text = pct == pct.roundToDouble()
+      ? pct.toStringAsFixed(0)
+      : pct
+            .toStringAsFixed(2)
+            .replaceAll(RegExp(r'0+$'), '')
+            .replaceAll(RegExp(r'\.$'), '')
+            .replaceAll('.', ',');
+  return '$text\u00A0%';
+}
+
+const _monthsNomRu = [
+  'январь',
+  'февраль',
+  'март',
+  'апрель',
+  'май',
+  'июнь',
+  'июль',
+  'август',
+  'сентябрь',
+  'октябрь',
+  'ноябрь',
+  'декабрь',
+];
+
+const _monthsNomTj = [
+  'январи',
+  'феврали',
+  'марти',
+  'апрели',
+  'майи',
+  'июни',
+  'июли',
+  'августи',
+  'сентябри',
+  'октябри',
+  'ноябри',
+  'декабри',
+];
+
+/// «2026-11» → «ноябрь 2026» / «ноябри 2026».
+String formatMonthTitle(String yearMonth, String locale) {
+  final parts = yearMonth.split('-');
+  if (parts.length != 2) return yearMonth;
+  final year = parts[0];
+  final month = int.tryParse(parts[1]) ?? 0;
+  if (month < 1 || month > 12) return yearMonth;
+  final names = locale == 'tj' ? _monthsNomTj : _monthsNomRu;
+  return '${names[month - 1]} $year';
+}
+
+/// Ключ месяца «YYYY-MM».
+String monthKeyOf(DateTime date) {
+  final mm = date.month.toString().padLeft(2, '0');
+  return '${date.year}-$mm';
+}
+
+/// «ГГГГ-ММ-ДД» для фильтра дат чеков.
+String formatIsoDate(DateTime date) {
+  final mm = date.month.toString().padLeft(2, '0');
+  final dd = date.day.toString().padLeft(2, '0');
+  return '${date.year}-$mm-$dd';
+}

@@ -1,12 +1,15 @@
 import '../api/api_client.dart';
 import '../api/json_parse.dart';
 
+export 'receipt_models.dart';
+
 class Member {
   const Member({
     required this.firstName,
     required this.lastName,
     required this.phone,
     required this.referralCode,
+    this.id,
     this.birthYear,
     this.birthDate,
     this.country,
@@ -27,6 +30,7 @@ class Member {
   final String firstName;
   final String lastName;
   final String phone;
+  final int? id;
   final int? birthYear;
   final String? birthDate;
   final String? country;
@@ -63,6 +67,7 @@ class Member {
 
   factory Member.fromJson(Map<String, dynamic> json) {
     return Member(
+      id: asIntOrNull(json['id']),
       firstName: asString(json['first_name']),
       lastName: asString(json['last_name']),
       phone: asString(json['phone']),
@@ -1012,10 +1017,14 @@ class SizeOffer {
     this.imageUrl,
     this.originalPrice,
     this.discountPrice,
+    this.currency = 'смн',
+    this.validHours,
     this.expiresAt,
     this.serverNow,
+    this.status = 'ACTIVE',
     this.promoCode,
     this.claimed = false,
+    this.issued = false,
     DateTime? fetchedAt,
   }) : fetchedAt = fetchedAt ?? DateTime.now();
 
@@ -1028,15 +1037,51 @@ class SizeOffer {
   final String? imageUrl;
   final double? originalPrice;
   final double? discountPrice;
+  final String currency;
+  final int? validHours;
   final DateTime? expiresAt;
 
   /// Часы сервера в момент ответа. Обратный отсчёт считаем от них.
   final DateTime? serverNow;
+  final String status;
   final String? promoCode;
   final bool claimed;
+
+  /// Кассир уже выдал товар по коду — код и «Забрать» больше не показываем.
+  final bool issued;
   final DateTime fetchedAt;
 
   bool get flash => type == 'FLASH_SALE';
+
+  SizeOffer copyWith({
+    String? status,
+    String? promoCode,
+    bool? claimed,
+    bool? issued,
+    DateTime? serverNow,
+    DateTime? fetchedAt,
+  }) {
+    return SizeOffer(
+      id: id,
+      type: type,
+      category: category,
+      title: title,
+      description: description,
+      size: size,
+      imageUrl: imageUrl,
+      originalPrice: originalPrice,
+      discountPrice: discountPrice,
+      currency: currency,
+      validHours: validHours,
+      expiresAt: expiresAt,
+      serverNow: serverNow ?? this.serverNow,
+      status: status ?? this.status,
+      promoCode: promoCode ?? this.promoCode,
+      claimed: claimed ?? this.claimed,
+      issued: issued ?? this.issued,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+    );
+  }
 
   Duration remainingAt(DateTime now) {
     final deadline = expiresAt;
@@ -1047,7 +1092,13 @@ class SizeOffer {
     return left;
   }
 
-  factory SizeOffer.fromJson(Map<String, dynamic> json) {
+  factory SizeOffer.fromJson(
+    Map<String, dynamic> json, {
+    DateTime? fallbackServerNow,
+    DateTime? fetchedAt,
+  }) {
+    final currency = asString(json['currency']);
+    final rawStatus = asString(json['status']);
     return SizeOffer(
       id: asInt(json['id']),
       type: asString(json['type']),
@@ -1058,11 +1109,42 @@ class SizeOffer {
       imageUrl: asStringOrNull(json['image_url']),
       originalPrice: asMoneyOrNull(json['original_price']),
       discountPrice: asMoneyOrNull(json['discount_price']),
+      currency: currency.isEmpty ? 'смн' : currency,
+      validHours: asIntOrNull(json['valid_hours']),
       expiresAt: _dateOrNull(json['expires_at']),
-      serverNow: _dateOrNull(json['server_now']),
+      serverNow: _dateOrNull(json['server_now']) ?? fallbackServerNow,
+      status: rawStatus.isEmpty ? 'ACTIVE' : rawStatus,
       promoCode: asStringOrNull(json['promo_code']),
       claimed: json['claimed'] == true,
+      issued: json['issued'] == true,
+      fetchedAt: fetchedAt,
     );
+  }
+}
+
+class SizeOffersResponse {
+  const SizeOffersResponse({required this.items, this.serverNow});
+
+  final List<SizeOffer> items;
+  final DateTime? serverNow;
+
+  factory SizeOffersResponse.fromJson(
+    Map<String, dynamic> json, {
+    DateTime? fetchedAt,
+  }) {
+    final serverNow = _dateOrNull(json['server_now']);
+    final raw = json['items'];
+    final items = raw is List
+        ? [
+            for (final item in raw)
+              SizeOffer.fromJson(
+                asMap(item),
+                fallbackServerNow: serverNow,
+                fetchedAt: fetchedAt,
+              ),
+          ]
+        : const <SizeOffer>[];
+    return SizeOffersResponse(items: items, serverNow: serverNow);
   }
 }
 

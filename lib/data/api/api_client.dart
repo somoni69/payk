@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -40,42 +41,14 @@ class ApiClient {
   final http.Client _http;
   Future<void>? _refreshing;
 
-  Future<Object?> send(
-    String path, {
-    String method = 'GET',
-    Object? body,
-    bool auth = true,
+  Future<http.Response> _sendWithAuthRetry(
+    Future<http.Response> Function(String? token) dispatch, {
+    required bool auth,
   }) async {
-    String? sentToken;
-    Future<http.Response> dispatch() {
-      final headers = <String, String>{
-        'Accept': 'application/json',
-        'X-Locale': readLocale(),
-      };
-      if (body != null) headers['Content-Type'] = 'application/json';
-      sentToken = auth ? readTokens()?.accessToken : null;
-      if (sentToken != null && sentToken!.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $sentToken';
-      }
-      final uri = Uri.parse('${ApiConfig.base}$path');
-      final encoded = body == null ? null : jsonEncode(body);
-      final Future<http.Response> response;
-      switch (method) {
-        case 'POST':
-          response = _http.post(uri, headers: headers, body: encoded);
-        case 'PATCH':
-          response = _http.patch(uri, headers: headers, body: encoded);
-        case 'DELETE':
-          response = _http.delete(uri, headers: headers, body: encoded);
-        default:
-          response = _http.get(uri, headers: headers);
-      }
-      return response.timeout(const Duration(seconds: 20));
-    }
-
+    String? sentToken = auth ? readTokens()?.accessToken : null;
     http.Response response;
     try {
-      response = await dispatch();
+      response = await dispatch(sentToken);
     } catch (error) {
       if (error is ApiException) rethrow;
       throw ApiException(0, 'Нет связи с сервером');
@@ -96,8 +69,9 @@ class ApiClient {
         }
       }
       if (retry) {
+        sentToken = readTokens()?.accessToken;
         try {
-          response = await dispatch();
+          response = await dispatch(sentToken);
         } catch (_) {
           throw ApiException(0, 'Нет связи с сервером');
         }
@@ -111,6 +85,40 @@ class ApiClient {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw ApiException(response.statusCode, _detail(response) ?? _fallback(response.statusCode));
     }
+    return response;
+  }
+
+  Future<Object?> send(
+    String path, {
+    String method = 'GET',
+    Object? body,
+    bool auth = true,
+  }) async {
+    final response = await _sendWithAuthRetry((sentToken) {
+      final headers = <String, String>{
+        'Accept': 'application/json',
+        'X-Locale': readLocale(),
+      };
+      if (body != null) headers['Content-Type'] = 'application/json';
+      if (sentToken != null && sentToken.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $sentToken';
+      }
+      final uri = Uri.parse('${ApiConfig.base}$path');
+      final encoded = body == null ? null : jsonEncode(body);
+      final Future<http.Response> req;
+      switch (method) {
+        case 'POST':
+          req = _http.post(uri, headers: headers, body: encoded);
+        case 'PATCH':
+          req = _http.patch(uri, headers: headers, body: encoded);
+        case 'DELETE':
+          req = _http.delete(uri, headers: headers, body: encoded);
+        default:
+          req = _http.get(uri, headers: headers);
+      }
+      return req.timeout(const Duration(seconds: 20));
+    }, auth: auth);
+
     if (response.statusCode == 204 || response.body.isEmpty) return null;
     try {
       return jsonDecode(utf8.decode(response.bodyBytes));
@@ -153,6 +161,21 @@ class ApiClient {
     } catch (_) {
       return null;
     }
+  }
+
+  /// Скачивает бинарный файл (например, чек в PDF или PNG) с автообновлением токена.
+  Future<Uint8List> downloadBytes(String path, {bool auth = true}) async {
+    final response = await _sendWithAuthRetry((sentToken) {
+      final headers = <String, String>{
+        'X-Locale': readLocale(),
+      };
+      if (sentToken != null && sentToken.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $sentToken';
+      }
+      final uri = Uri.parse('${ApiConfig.base}$path');
+      return _http.get(uri, headers: headers).timeout(const Duration(seconds: 30));
+    }, auth: auth);
+    return response.bodyBytes;
   }
 
   Future<void> _refresh() {

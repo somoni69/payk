@@ -6,6 +6,7 @@ import 'package:payk/core/theme/payk_theme.dart';
 import 'package:payk/data/models/models.dart';
 import 'package:payk/data/providers.dart';
 import 'package:payk/features/sizes/size_offers_screen.dart';
+import 'package:payk/features/sizes/sizes_screen.dart';
 
 void main() {
   test('sizes are complete only when shoe, pants and top are filled', () {
@@ -249,6 +250,68 @@ void main() {
     final buttonSize = tester.getSize(buttonFinder);
     expect(buttonSize.width, greaterThanOrEqualTo(180));
     expect(buttonSize.width, lessThan(350));
+  });
+
+  testWidgets('SizesScreen renders 3D icons for shoe, pants and top groups', (tester) async {
+    const account = Account(
+      store: 'MSX',
+      member: Member(
+        id: 1,
+        firstName: 'А',
+        lastName: 'Б',
+        phone: '+992900000000',
+        referralCode: 'A',
+      ),
+      wallet: Wallet(
+        status: 1,
+        balance: 0,
+        onHold: 0,
+        debt: 0,
+        spendMonth: 0,
+        spendSupermarket: 0,
+        spendClothes: 0,
+        daysLeft: 20,
+        keep: null,
+        up: null,
+        nextMonthStatus: 1,
+        rates: ProgramRates(
+          supermarket: Rate(earn: 0.03, burnCap: 0.5),
+          clothes: Rate(earn: 0.05, burnCap: 0.5),
+        ),
+        todaySupermarket: 0,
+        todayClothes: 0,
+      ),
+      programEnabled: true,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          meProvider.overrideWith((ref) => account),
+        ],
+        child: MaterialApp(
+          theme: PaykTheme.light,
+          home: const SizesScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    for (final asset in const [
+      'assets/3d/sneaker.webp',
+      'assets/3d/jeans.webp',
+      'assets/3d/shirt.webp',
+    ]) {
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Image &&
+              widget.image is AssetImage &&
+              (widget.image as AssetImage).assetName == asset,
+        ),
+        findsOneWidget,
+      );
+    }
   });
 }
 

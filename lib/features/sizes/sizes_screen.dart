@@ -142,6 +142,8 @@ class _SizesScreenState extends ConsumerState<SizesScreen> {
               const SizedBox(height: 16),
               _SizeGroup(
                 title: tr(locale, 'sizes.shoe'),
+                iconAsset: 'assets/3d/sneaker.webp',
+                fallbackIcon: Icons.ice_skating_outlined,
                 notSetLabel: tr(locale, 'sizes.notSet'),
                 rows: rowsWithCurrentSize(shoeSizeRows, _shoe),
                 selected: _shoe,
@@ -150,6 +152,8 @@ class _SizesScreenState extends ConsumerState<SizesScreen> {
               const SizedBox(height: 16),
               _SizeGroup(
                 title: tr(locale, 'sizes.pants'),
+                iconAsset: 'assets/3d/jeans.webp',
+                fallbackIcon: Icons.checkroom_outlined,
                 notSetLabel: tr(locale, 'sizes.notSet'),
                 rows: rowsWithCurrentSize(pantsSizeRows, _pants),
                 selected: _pants,
@@ -158,6 +162,8 @@ class _SizesScreenState extends ConsumerState<SizesScreen> {
               const SizedBox(height: 16),
               _SizeGroup(
                 title: tr(locale, 'sizes.top'),
+                iconAsset: 'assets/3d/shirt.webp',
+                fallbackIcon: Icons.checkroom_outlined,
                 notSetLabel: tr(locale, 'sizes.notSet'),
                 rows: rowsWithCurrentSize(topSizeRows, _top),
                 selected: _top,
@@ -188,6 +194,8 @@ class _SizesScreenState extends ConsumerState<SizesScreen> {
 class _SizeGroup extends StatelessWidget {
   const _SizeGroup({
     required this.title,
+    required this.iconAsset,
+    required this.fallbackIcon,
     required this.notSetLabel,
     required this.rows,
     required this.selected,
@@ -195,6 +203,8 @@ class _SizeGroup extends StatelessWidget {
   });
 
   final String title;
+  final String iconAsset;
+  final IconData fallbackIcon;
   final String notSetLabel;
   final List<List<String>> rows;
   final String? selected;
@@ -215,6 +225,27 @@ class _SizeGroup extends StatelessWidget {
         children: [
           Row(
             children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: PaykColors.surfaceNested,
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                alignment: Alignment.center,
+                child: Image.asset(
+                  iconAsset,
+                  width: 28,
+                  height: 28,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => Icon(
+                    fallbackIcon,
+                    size: 20,
+                    color: PaykColors.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   title,
@@ -226,6 +257,7 @@ class _SizeGroup extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
                 selected ?? notSetLabel,
                 style: TextStyle(

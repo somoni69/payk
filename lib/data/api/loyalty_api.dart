@@ -112,8 +112,19 @@ class LoyaltyApi {
     await _client.upload('/me/avatar', filePath);
   }
 
-  Future<CashierCode> code() async {
-    final json = await _client.send('/me/code', method: 'POST');
+  /// Новый код. [choice] — выбор на экране кода (касса 1С сразу получает готовые суммы);
+  /// без него — последний сохранённый выбор.
+  Future<CashierCode> code({CodeChoice? choice}) async {
+    final json = await _client.send(
+      '/me/code',
+      method: 'POST',
+      body: choice == null
+          ? null
+          : {
+              'spend': choice.spend.apiValue,
+              'coupon': choice.coupon,
+            },
+    );
     final parsed = CashierCode.fromJson(asMap(json));
     if (parsed.code.isEmpty || parsed.qr.isEmpty) {
       throw ApiException(0, 'Сервер не выдал код');

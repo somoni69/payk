@@ -29,6 +29,13 @@ String formatMoney(double value, {bool signed = false, bool decimals = true}) {
   return '${formatNumber(value, signed: signed, decimals: decimals)} смн';
 }
 
+/// «20 смн» для целых сумм, «20,50 смн» для дробных.
+String formatMoneyAuto(double value) {
+  final rounded = (value * 100).round() / 100;
+  final isWhole = (rounded - rounded.roundToDouble()).abs() < 0.001;
+  return formatMoney(rounded, decimals: !isWhole);
+}
+
 /// Доля с сервера: 0.02 → «2%», 0.015 → «1,5%».
 String formatPercent(double rate) {
   final pct = (rate * 10000).round() / 100;

@@ -3,6 +3,48 @@ import '../api/json_parse.dart';
 
 export 'receipt_models.dart';
 
+/// Выбор клиента на экране кода для кассы 1С: копить, потратить немного (кэшбэк сохраняется)
+/// или потратить максимум.
+enum SpendPref {
+  earn('earn'),
+  keep('keep'),
+  max('max');
+
+  const SpendPref(this.apiValue);
+  final String apiValue;
+}
+
+SpendPref? parseSpendPref(String? raw) {
+  return switch (raw) {
+    'earn' => SpendPref.earn,
+    'keep' => SpendPref.keep,
+    'max' => SpendPref.max,
+    _ => null,
+  };
+}
+
+/// Выбор списания и купона на экране кода, передаваемый в `POST /me/code`.
+class CodeChoice {
+  const CodeChoice({required this.spend, required this.coupon});
+
+  final SpendPref spend;
+  final bool coupon;
+
+  CodeChoice copyWith({SpendPref? spend, bool? coupon}) => CodeChoice(
+    spend: spend ?? this.spend,
+    coupon: coupon ?? this.coupon,
+  );
+
+  String get key => '${spend.apiValue}:${coupon ? 1 : 0}';
+
+  @override
+  bool operator ==(Object other) =>
+      other is CodeChoice && other.spend == spend && other.coupon == coupon;
+
+  @override
+  int get hashCode => Object.hash(spend, coupon);
+}
+
 class Member {
   const Member({
     required this.firstName,
@@ -19,6 +61,8 @@ class Member {
     this.messages = false,
     this.coinRounding = true,
     this.purchaseNotify = true,
+    this.spendPref = SpendPref.earn,
+    this.couponPref = true,
     this.telegram = false,
     this.shoeSize,
     this.pantsSize,
@@ -40,6 +84,12 @@ class Member {
 
   /// Сообщение после каждой покупки и возврата.
   final bool purchaseNotify;
+
+  /// Последний выбор списания на экране кода для кассы 1С.
+  final SpendPref spendPref;
+
+  /// Применять ли купон ко дню рождения на экране кода.
+  final bool couponPref;
   final String referralCode;
   final String? email;
 
@@ -85,6 +135,10 @@ class Member {
       purchaseNotify:
           !json.containsKey('purchase_notify') ||
           json['purchase_notify'] == true,
+      spendPref:
+          parseSpendPref(asStringOrNull(json['spend_pref'])) ?? SpendPref.earn,
+      couponPref:
+          !json.containsKey('coupon_pref') || json['coupon_pref'] == true,
       telegram: json['telegram'] == true,
       shoeSize: asStringOrNull(json['shoe_size']),
       pantsSize: asStringOrNull(json['pants_size']),
@@ -176,6 +230,7 @@ class Wallet {
   const Wallet({
     required this.status,
     required this.balance,
+    this.reserved = 0,
     required this.onHold,
     required this.debt,
     required this.spendMonth,
@@ -192,6 +247,9 @@ class Wallet {
 
   final int status;
   final double balance;
+
+  /// Отложено для покупки, которую сейчас проводит касса 1С.
+  final double reserved;
   final double onHold;
   final double debt;
   final double spendMonth;
@@ -249,6 +307,7 @@ class Account {
       wallet: Wallet(
         status: asInt(json['status']),
         balance: asMoney(json['balance']),
+        reserved: asMoney(json['reserved']),
         onHold: asMoney(json['on_hold']),
         debt: asMoney(json['debt']),
         spendMonth: asMoney(json['spend_month']),
@@ -415,19 +474,23 @@ class BirthdayCoupon {
     required this.minBillSm,
     required this.minBillCl,
     required this.validTo,
+    this.status = 'issued',
   });
 
   final double amount;
   final double minBillSm;
   final double minBillCl;
   final String validTo;
+  final String status;
 
   factory BirthdayCoupon.fromJson(Map<String, dynamic> json) {
+    final status = asString(json['status']);
     return BirthdayCoupon(
       amount: asMoney(json['amount']),
       minBillSm: asMoney(json['min_bill_sm']),
       minBillCl: asMoney(json['min_bill_cl']),
       validTo: asString(json['valid_to']),
+      status: status.isEmpty ? 'issued' : status,
     );
   }
 }
@@ -668,17 +731,30 @@ class PendingSnapshot {
 }
 
 class CashierCode {
-  const CashierCode({required this.qr, required this.code, required this.ttl});
+  const CashierCode({
+    required this.qr,
+    required this.code,
+    required this.ttl,
+    this.issuedAt,
+    this.spendPref,
+    this.useCoupon,
+  });
 
   final String qr;
   final String code;
   final int ttl;
+  final DateTime? issuedAt;
+  final SpendPref? spendPref;
+  final bool? useCoupon;
 
   factory CashierCode.fromJson(Map<String, dynamic> json) {
     return CashierCode(
       qr: asString(json['qr']),
       code: asString(json['code']),
       ttl: asInt(json['ttl']),
+      issuedAt: json['issued_at'] == null ? null : asDate(json['issued_at']),
+      spendPref: parseSpendPref(asStringOrNull(json['spend_pref'])),
+      useCoupon: json['use_coupon'] is bool ? json['use_coupon'] as bool : null,
     );
   }
 }

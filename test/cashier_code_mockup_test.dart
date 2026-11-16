@@ -27,7 +27,7 @@ class FakeLoyaltyApi extends Fake implements LoyaltyApi {
   int codeCallCount = 0;
 
   @override
-  Future<CashierCode> code() async {
+  Future<CashierCode> code({CodeChoice? choice}) async {
     codeCallCount++;
     return cashierCode;
   }

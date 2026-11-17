@@ -6,6 +6,7 @@ import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
+import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
 import '../../data/providers.dart';
@@ -198,11 +199,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             alignment: Alignment.center,
-                            child: const Icon(
-                              Icons.notifications_active_outlined,
-                              size: 20,
-                              color: PaykColors.primary,
-                            ),
+                            child: const Bell3dIcon(size: 24),
                           ),
                           const SizedBox(width: 12),
                           Expanded(

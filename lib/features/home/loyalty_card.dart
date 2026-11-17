@@ -436,15 +436,25 @@ class _AlmosiLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Image.asset('assets/images/almosi_blue.png', fit: BoxFit.contain),
-        ColorFiltered(
-          colorFilter: ColorFilter.mode(letter, BlendMode.srcIn),
-          child: Image.asset('assets/images/almosi_letter.png', fit: BoxFit.contain),
-        ),
-      ],
+    return RepaintBoundary(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/images/almosi_blue.png',
+            fit: BoxFit.contain,
+            cacheWidth: 420,
+          ),
+          ColorFiltered(
+            colorFilter: ColorFilter.mode(letter, BlendMode.srcIn),
+            child: Image.asset(
+              'assets/images/almosi_letter.png',
+              fit: BoxFit.contain,
+              cacheWidth: 420,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

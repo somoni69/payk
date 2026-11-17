@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
 import '../../core/i18n/locale_controller.dart';
@@ -182,95 +181,97 @@ class _DirectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PaykPressable(
-      scaleDown: PaykMotion.scaleSubtle,
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: PaykColors.sheet,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: PaykColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(16),
+    return RepaintBoundary(
+      child: PaykPressable(
+        scaleDown: PaykMotion.scaleSubtle,
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: PaykColors.sheet,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: PaykColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
               ),
-              alignment: Alignment.center,
-              child: Image.asset(
-                assetImage,
-                width: 40,
-                height: 40,
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => Icon(
-                  fallbackIcon,
-                  size: 28,
-                  color: PaykColors.primary,
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                alignment: Alignment.center,
+                child: Image.asset(
+                  assetImage,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => Icon(
+                    fallbackIcon,
+                    size: 28,
+                    color: PaykColors.primary,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontFamily: 'Manrope',
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: PaykColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontFamily: 'Manrope',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: PaykColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      _RateChip(
-                        label: tr(locale, 'store.rateEarnChip', {'pct': earnPct}),
-                        highlight: true,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: PaykColors.textPrimary,
                       ),
-                      _RateChip(
-                        label: tr(locale, 'store.rateBurnChip', {'pct': burnPct}),
-                        highlight: false,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontFamily: 'Manrope',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: PaykColors.textSecondary,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _RateChip(
+                          label: tr(locale, 'store.rateEarnChip', {'pct': earnPct}),
+                          highlight: true,
+                        ),
+                        _RateChip(
+                          label: tr(locale, 'store.rateBurnChip', {'pct': burnPct}),
+                          highlight: false,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(
-              Icons.chevron_right_rounded,
-              size: 22,
-              color: PaykColors.textMuted,
-            ),
-          ],
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 22,
+                color: PaykColors.textMuted,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -584,16 +585,11 @@ class AlmosiDirectionScreen extends ConsumerWidget {
                 child: FilledButton(
                   onPressed: () {
                     HapticFeedback.lightImpact();
-                    final router = GoRouter.maybeOf(context);
-                    if (router != null) {
-                      router.push('/code');
-                    } else {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const ClientCodeScreen(),
-                        ),
-                      );
-                    }
+                    PaykMotion.push<void>(
+                      context,
+                      '/code',
+                      fallback: () => const ClientCodeScreen(),
+                    );
                   },
                   child: Text(tr(locale, 'store.showCodeBtn')),
                 ),

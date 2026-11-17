@@ -13,6 +13,7 @@ import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/birth_date_fields.dart';
 import '../../core/widgets/message.dart';
+import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/payk_avatar.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
@@ -883,11 +884,8 @@ void _showStoreDialog(BuildContext context, Account account, String locale) {
                 color: PaykColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.storefront_rounded,
-                size: 32,
-                color: PaykColors.primary,
-              ),
+              alignment: Alignment.center,
+              child: const Gem3dIcon(size: 42),
             ),
             const SizedBox(height: 12),
             Text(
@@ -1118,6 +1116,7 @@ void _showAboutDialog(BuildContext context, String locale) {
                         child: Image.asset(
                           'assets/images/payk_icon.png',
                           fit: BoxFit.cover,
+                          cacheWidth: 228,
                           errorBuilder: (_, _, _) => Container(
                             color: PaykColors.primary,
                             alignment: Alignment.center,

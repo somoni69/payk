@@ -265,11 +265,13 @@ class StatusGrowthCard extends StatelessWidget {
       ),
     );
 
-    if (onTap == null) return card;
-    return PaykPressable(
-      scaleDown: PaykMotion.scaleSubtle,
-      onTap: onTap,
-      child: card,
+    if (onTap == null) return RepaintBoundary(child: card);
+    return RepaintBoundary(
+      child: PaykPressable(
+        scaleDown: PaykMotion.scaleSubtle,
+        onTap: onTap,
+        child: card,
+      ),
     );
   }
 }

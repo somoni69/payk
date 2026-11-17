@@ -214,6 +214,58 @@ void main() {
 
       expect(find.text('Fallback Screen'), findsOneWidget);
     });
+
+    testWidgets('Shared slide isolates screen in RepaintBoundary and settles opacity early to avoid saveLayer overhead', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => PaykMotion.push(
+                    context,
+                    '/slide-test',
+                    fallback: () => const Scaffold(body: Center(child: Text('New Screen Content'))),
+                  ),
+                  child: const Text('Push Page'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Push Page'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final contentFinder = find.text('New Screen Content');
+      expect(contentFinder, findsOneWidget);
+
+      final slideFinder = find.ancestor(
+        of: contentFinder,
+        matching: find.byType(SlideTransition),
+      );
+      expect(slideFinder, findsOneWidget);
+
+      expect(
+        find.descendant(
+          of: slideFinder,
+          matching: find.byType(RepaintBoundary),
+        ),
+        findsWidgets,
+      );
+
+      final fadeFinder = find.ancestor(
+        of: slideFinder,
+        matching: find.byType(FadeTransition),
+      );
+      expect(fadeFinder, findsOneWidget);
+      final fade = tester.widget<FadeTransition>(fadeFinder);
+      expect(fade.opacity.value, closeTo(1.0, 0.001));
+
+      await tester.pumpAndSettle();
+    });
   });
 
   group('iOS BouncingScrollPhysics Overscroll Bleed Guard (App Store)', () {

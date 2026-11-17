@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
 import '../../core/i18n/locale_controller.dart';
@@ -69,14 +68,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   void _openOffers(BuildContext context) {
-    final router = GoRouter.maybeOf(context);
-    if (router != null) {
-      router.push('/size-offers');
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const SizeOffersScreen()),
-      );
-    }
+    PaykMotion.push<void>(
+      context,
+      '/size-offers',
+      fallback: () => const SizeOffersScreen(),
+    );
   }
 
   @override
@@ -240,8 +236,9 @@ class _NotificationCard extends StatelessWidget {
     final isUnread = !item.read;
     final hasOffersLink = item.kind == 'size_flash' || item.kind == 'size_new';
 
-    return AnimatedContainer(
-      duration: PaykMotion.duration(context, PaykMotion.normal),
+    return RepaintBoundary(
+      child: AnimatedContainer(
+        duration: PaykMotion.duration(context, PaykMotion.normal),
       curve: PaykMotion.easeOut,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -371,6 +368,7 @@ class _NotificationCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
       ),
     );
   }

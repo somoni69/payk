@@ -250,7 +250,6 @@ class _PaykSharedSlideState extends State<_PaykSharedSlide> {
   late CurvedAnimation _fadeCurve;
   late Animation<double> _fade;
   late Animation<Offset> _slide;
-  late Animation<double> _scale;
 
   @override
   void initState() {
@@ -264,17 +263,18 @@ class _PaykSharedSlideState extends State<_PaykSharedSlide> {
       curve: PaykMotion.easeOut,
       reverseCurve: PaykMotion.easeOut,
     );
+    // Быстрое проявление за первые 35% перехода: после достижения alpha == 1.0
+    // RenderAnimatedOpacity перестаёт аллоцировать полноэкранный saveLayer.
     _fadeCurve = CurvedAnimation(
       parent: animation,
-      curve: const Interval(0.0, 0.8, curve: PaykMotion.easeOut),
-      reverseCurve: const Interval(0.2, 1.0, curve: PaykMotion.easeOut),
+      curve: const Interval(0.0, 0.35, curve: PaykMotion.easeOut),
+      reverseCurve: const Interval(0.65, 1.0, curve: PaykMotion.easeOut),
     );
-    _fade = Tween<double>(begin: 0.01, end: 1).animate(_fadeCurve);
+    _fade = Tween<double>(begin: 0.0, end: 1.0).animate(_fadeCurve);
     _slide = Tween<Offset>(
-      begin: const Offset(0.065, 0),
+      begin: const Offset(0.055, 0),
       end: Offset.zero,
     ).animate(_primary);
-    _scale = Tween<double>(begin: 0.985, end: 1).animate(_primary);
   }
 
   @override
@@ -303,7 +303,7 @@ class _PaykSharedSlideState extends State<_PaykSharedSlide> {
       opacity: _fade,
       child: SlideTransition(
         position: _slide,
-        child: ScaleTransition(scale: _scale, child: widget.child),
+        child: RepaintBoundary(child: widget.child),
       ),
     );
   }
@@ -321,6 +321,7 @@ class _PaykFadeScale extends StatefulWidget {
 
 class _PaykFadeScaleState extends State<_PaykFadeScale> {
   late CurvedAnimation _primary;
+  late CurvedAnimation _fadeCurve;
   late Animation<double> _fade;
   late Animation<double> _scale;
 
@@ -336,7 +337,12 @@ class _PaykFadeScaleState extends State<_PaykFadeScale> {
       curve: PaykMotion.easeOut,
       reverseCurve: PaykMotion.easeOut,
     );
-    _fade = Tween<double>(begin: 0.01, end: 1).animate(_primary);
+    _fadeCurve = CurvedAnimation(
+      parent: animation,
+      curve: const Interval(0.0, 0.45, curve: PaykMotion.easeOut),
+      reverseCurve: const Interval(0.55, 1.0, curve: PaykMotion.easeOut),
+    );
+    _fade = Tween<double>(begin: 0.0, end: 1.0).animate(_fadeCurve);
     _scale = Tween<double>(
       begin: PaykMotion.entranceScale,
       end: 1,
@@ -348,6 +354,7 @@ class _PaykFadeScaleState extends State<_PaykFadeScale> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.animation != widget.animation) {
       _primary.dispose();
+      _fadeCurve.dispose();
       _bind(widget.animation);
     }
   }
@@ -355,6 +362,7 @@ class _PaykFadeScaleState extends State<_PaykFadeScale> {
   @override
   void dispose() {
     _primary.dispose();
+    _fadeCurve.dispose();
     super.dispose();
   }
 
@@ -362,7 +370,10 @@ class _PaykFadeScaleState extends State<_PaykFadeScale> {
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _fade,
-      child: ScaleTransition(scale: _scale, child: widget.child),
+      child: ScaleTransition(
+        scale: _scale,
+        child: RepaintBoundary(child: widget.child),
+      ),
     );
   }
 }

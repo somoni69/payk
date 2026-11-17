@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,6 +14,7 @@ import '../../core/motion/payk_motion.dart';
 import '../../core/size_offers_logic.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/message.dart';
+import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/payk_avatar.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
@@ -1036,14 +1036,11 @@ void _openCertificatesModal(
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: PaykColors.primary,
+                          color: PaykColors.activePill,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
-                          Icons.card_giftcard_rounded,
-                          color: Colors.white,
-                          size: 24,
-                        ),
+                        alignment: Alignment.center,
+                        child: const Ticket3dIcon(size: 30),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -1089,11 +1086,7 @@ void _openCertificatesModal(
                   ),
                   child: Column(
                     children: [
-                      const Icon(
-                        Icons.confirmation_number_outlined,
-                        size: 40,
-                        color: PaykColors.textMuted,
-                      ),
+                      const Ticket3dIcon(size: 48),
                       const SizedBox(height: 8),
                       Text(
                         tr(locale, 'home.noCoupons'),
@@ -1154,16 +1147,11 @@ class _HomeOffersSectionState extends ConsumerState<_HomeOffersSection> {
   }
 
   void _openAll(BuildContext context, {int? focusId}) {
-    final router = GoRouter.maybeOf(context);
-    if (router != null) {
-      router.push(focusId != null ? '/size-offers?focus=$focusId' : '/size-offers');
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => SizeOffersScreen(focusOfferId: focusId),
-        ),
-      );
-    }
+    PaykMotion.push<void>(
+      context,
+      focusId != null ? '/size-offers?focus=$focusId' : '/size-offers',
+      fallback: () => SizeOffersScreen(focusOfferId: focusId),
+    );
   }
 
   @override
@@ -1266,44 +1254,49 @@ class _HomeOfferTile extends StatelessWidget {
     final left = offer.remainingAt(now);
     final hasCode = offer.claimed && (offer.promoCode ?? '').isNotEmpty;
 
-    return PaykPressable(
-      scaleDown: PaykMotion.scaleSubtle,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: PaykColors.sheet,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: PaykColors.border),
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: SizedBox(
-                width: 60,
-                height: 60,
-                child: photo != null
-                    ? Image.network(
-                        photo,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Container(
+    return RepaintBoundary(
+      child: PaykPressable(
+        scaleDown: PaykMotion.scaleSubtle,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: PaykColors.sheet,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: PaykColors.border),
+          ),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 60,
+                  height: 60,
+                  child: photo != null
+                      ? Image.network(
+                          photo,
+                          fit: BoxFit.cover,
+                          cacheWidth:
+                              (60 * MediaQuery.devicePixelRatioOf(context))
+                                  .round()
+                                  .clamp(120, 240),
+                          errorBuilder: (_, _, _) => Container(
+                            color: PaykColors.tile,
+                            child: const Icon(
+                              Icons.local_offer_outlined,
+                              color: PaykColors.primary,
+                            ),
+                          ),
+                        )
+                      : Container(
                           color: PaykColors.tile,
                           child: const Icon(
                             Icons.local_offer_outlined,
                             color: PaykColors.primary,
                           ),
                         ),
-                      )
-                    : Container(
-                        color: PaykColors.tile,
-                        child: const Icon(
-                          Icons.local_offer_outlined,
-                          color: PaykColors.primary,
-                        ),
-                      ),
+                ),
               ),
-            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -1420,6 +1413,7 @@ class _HomeOfferTile extends StatelessWidget {
             ),
           ],
         ),
+        ),
       ),
     );
   }
@@ -1474,14 +1468,11 @@ class _SizesHintCardState extends State<_SizesHintCard> {
   }
 
   void _openSizes(BuildContext context) {
-    final router = GoRouter.maybeOf(context);
-    if (router != null) {
-      router.push('/sizes');
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const SizesScreen()),
-      );
-    }
+    PaykMotion.push<void>(
+      context,
+      '/sizes',
+      fallback: () => const SizesScreen(),
+    );
   }
 
   @override

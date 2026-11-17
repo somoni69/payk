@@ -12,6 +12,9 @@ import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
+import 'receipts_tab.dart';
+
+enum HistoryTab { ops, bills }
 
 /// Категории фильтрации операций
 enum HistoryCategory {
@@ -40,9 +43,14 @@ enum HistoryCategory {
 /// 3. Фильтрация операций в реальном времени по выбранной категории и строке поиска.
 /// 4. Карточка пустого состояния с 3D-чеком («Ҳанӯз амалиёт нест») или список транзакций.
 class HistoryScreen extends ConsumerStatefulWidget {
-  const HistoryScreen({super.key, this.initialCategory});
+  const HistoryScreen({
+    super.key,
+    this.initialCategory,
+    this.initialTab = HistoryTab.ops,
+  });
 
   final String? initialCategory;
+  final HistoryTab initialTab;
 
   @override
   ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
@@ -50,6 +58,7 @@ class HistoryScreen extends ConsumerStatefulWidget {
 
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   final TextEditingController _searchController = TextEditingController();
+  late HistoryTab _tab;
   late HistoryCategory _selectedCategory;
   String _searchQuery = '';
   final List<HistoryEntry> _extra = [];
@@ -59,8 +68,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   @override
   void initState() {
     super.initState();
+    _tab = widget.initialTab;
     _selectedCategory = _parseCategory(widget.initialCategory);
     _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant HistoryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialTab != widget.initialTab) {
+      _tab = widget.initialTab;
+    }
   }
 
   static HistoryCategory _parseCategory(String? key) {
@@ -199,24 +217,68 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 ),
               )
             : null,
-        title: Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: _SearchField(
-            controller: _searchController,
-            hint: tr(locale, 'history.search'),
-            showClear: _searchQuery.isNotEmpty,
-            onClear: _clearSearch,
-            onSubmit: _searchOnServer,
-          ),
-        ),
+        title: _tab == HistoryTab.ops
+            ? _SearchField(
+                controller: _searchController,
+                hint: tr(locale, 'history.search'),
+                showClear: _searchQuery.isNotEmpty,
+                onClear: _clearSearch,
+                onSubmit: _searchOnServer,
+              )
+            : Text(
+                tr(locale, 'history.tab.bills'),
+                style: const TextStyle(
+                  fontFamily: 'Manrope',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: PaykColors.textPrimary,
+                ),
+              ),
       ),
       body: SafeArea(
         top: false,
-        child: AsyncView(
-          value: historyAsync,
-          onRetry: () => ref.invalidate(historyProvider),
-          loading: const HistorySkeleton(),
-          data: (allEntries) {
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: _HistoryTabBar(
+                tab: _tab,
+                opsLabel: tr(locale, 'history.tab.ops'),
+                billsLabel: tr(locale, 'history.tab.bills'),
+                onChanged: (next) {
+                  if (_tab == next) return;
+                  HapticFeedback.selectionClick();
+                  setState(() => _tab = next);
+                },
+              ),
+            ),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: PaykMotion.duration(context, PaykMotion.normal),
+                switchInCurve: PaykMotion.easeOut,
+                switchOutCurve: PaykMotion.easeOut,
+                transitionBuilder: (child, animation) {
+                  final offset = Tween<Offset>(
+                    begin: const Offset(0, 0.015),
+                    end: Offset.zero,
+                  ).animate(animation);
+                  return FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(position: offset, child: child),
+                  );
+                },
+                child: _tab == HistoryTab.bills
+                    ? const KeyedSubtree(
+                        key: ValueKey('tab_bills'),
+                        child: ReceiptsTab(),
+                      )
+                    : KeyedSubtree(
+                        key: const ValueKey('tab_ops'),
+                        child: AsyncView(
+                          value: historyAsync,
+                          onRetry: () => ref.invalidate(historyProvider),
+                          loading: const HistorySkeleton(),
+                          data: (allEntries) {
             final loaded = [...allEntries, ..._extra];
             final filteredEntries = _filterEntries(loaded);
             final showMore = !_moreDone && allEntries.length >= 50;
@@ -398,6 +460,125 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               ),
             );
           },
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryTabBar extends StatelessWidget {
+  const _HistoryTabBar({
+    required this.tab,
+    required this.opsLabel,
+    required this.billsLabel,
+    required this.onChanged,
+  });
+
+  final HistoryTab tab;
+  final String opsLabel;
+  final String billsLabel;
+  final ValueChanged<HistoryTab> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final isOps = tab == HistoryTab.ops;
+    final dur = PaykMotion.duration(context, PaykMotion.fast);
+
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: PaykColors.surfaceNested,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: PaykColors.border),
+      ),
+      child: Stack(
+        children: [
+          AnimatedAlign(
+            alignment: isOps ? Alignment.centerLeft : Alignment.centerRight,
+            duration: dur,
+            curve: PaykMotion.easeSpring,
+            child: FractionallySizedBox(
+              widthFactor: 0.5,
+              heightFactor: 1,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: PaykColors.sheet,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: PaykColors.primary.withValues(alpha: 0.14),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              _SegmentTab(
+                label: opsLabel,
+                selected: isOps,
+                duration: dur,
+                onTap: () => onChanged(HistoryTab.ops),
+              ),
+              _SegmentTab(
+                label: billsLabel,
+                selected: !isOps,
+                duration: dur,
+                onTap: () => onChanged(HistoryTab.bills),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SegmentTab extends StatelessWidget {
+  const _SegmentTab({
+    required this.label,
+    required this.selected,
+    required this.duration,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final Duration duration;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: PaykPressable(
+        scaleDown: PaykMotion.scaleButton,
+        onTap: onTap,
+        child: Container(
+          color: Colors.transparent,
+          alignment: Alignment.center,
+          child: AnimatedDefaultTextStyle(
+            duration: duration,
+            curve: PaykMotion.easeOut,
+            style: TextStyle(
+              fontFamily: 'Manrope',
+              fontSize: 13.5,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+              color: selected ? PaykColors.primary : PaykColors.textSecondary,
+            ),
+            child: Text(label, textAlign: TextAlign.center),
+          ),
         ),
       ),
     );

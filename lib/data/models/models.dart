@@ -1,12 +1,57 @@
 import '../api/api_client.dart';
 import '../api/json_parse.dart';
 
+export 'receipt_models.dart';
+
+/// Выбор клиента на экране кода для кассы 1С: копить, потратить немного (кэшбэк сохраняется)
+/// или потратить максимум.
+enum SpendPref {
+  earn('earn'),
+  keep('keep'),
+  max('max');
+
+  const SpendPref(this.apiValue);
+  final String apiValue;
+}
+
+SpendPref? parseSpendPref(String? raw) {
+  return switch (raw) {
+    'earn' => SpendPref.earn,
+    'keep' => SpendPref.keep,
+    'max' => SpendPref.max,
+    _ => null,
+  };
+}
+
+/// Выбор списания и купона на экране кода, передаваемый в `POST /me/code`.
+class CodeChoice {
+  const CodeChoice({required this.spend, required this.coupon});
+
+  final SpendPref spend;
+  final bool coupon;
+
+  CodeChoice copyWith({SpendPref? spend, bool? coupon}) => CodeChoice(
+    spend: spend ?? this.spend,
+    coupon: coupon ?? this.coupon,
+  );
+
+  String get key => '${spend.apiValue}:${coupon ? 1 : 0}';
+
+  @override
+  bool operator ==(Object other) =>
+      other is CodeChoice && other.spend == spend && other.coupon == coupon;
+
+  @override
+  int get hashCode => Object.hash(spend, coupon);
+}
+
 class Member {
   const Member({
     required this.firstName,
     required this.lastName,
     required this.phone,
     required this.referralCode,
+    this.id,
     this.birthYear,
     this.birthDate,
     this.country,
@@ -16,6 +61,8 @@ class Member {
     this.messages = false,
     this.coinRounding = true,
     this.purchaseNotify = true,
+    this.spendPref = SpendPref.earn,
+    this.couponPref = true,
     this.telegram = false,
     this.shoeSize,
     this.pantsSize,
@@ -27,6 +74,7 @@ class Member {
   final String firstName;
   final String lastName;
   final String phone;
+  final int? id;
   final int? birthYear;
   final String? birthDate;
   final String? country;
@@ -36,6 +84,12 @@ class Member {
 
   /// Сообщение после каждой покупки и возврата.
   final bool purchaseNotify;
+
+  /// Последний выбор списания на экране кода для кассы 1С.
+  final SpendPref spendPref;
+
+  /// Применять ли купон ко дню рождения на экране кода.
+  final bool couponPref;
   final String referralCode;
   final String? email;
 
@@ -63,6 +117,7 @@ class Member {
 
   factory Member.fromJson(Map<String, dynamic> json) {
     return Member(
+      id: asIntOrNull(json['id']),
       firstName: asString(json['first_name']),
       lastName: asString(json['last_name']),
       phone: asString(json['phone']),
@@ -80,6 +135,10 @@ class Member {
       purchaseNotify:
           !json.containsKey('purchase_notify') ||
           json['purchase_notify'] == true,
+      spendPref:
+          parseSpendPref(asStringOrNull(json['spend_pref'])) ?? SpendPref.earn,
+      couponPref:
+          !json.containsKey('coupon_pref') || json['coupon_pref'] == true,
       telegram: json['telegram'] == true,
       shoeSize: asStringOrNull(json['shoe_size']),
       pantsSize: asStringOrNull(json['pants_size']),
@@ -171,6 +230,7 @@ class Wallet {
   const Wallet({
     required this.status,
     required this.balance,
+    this.reserved = 0,
     required this.onHold,
     required this.debt,
     required this.spendMonth,
@@ -187,6 +247,9 @@ class Wallet {
 
   final int status;
   final double balance;
+
+  /// Отложено для покупки, которую сейчас проводит касса 1С.
+  final double reserved;
   final double onHold;
   final double debt;
   final double spendMonth;
@@ -244,6 +307,7 @@ class Account {
       wallet: Wallet(
         status: asInt(json['status']),
         balance: asMoney(json['balance']),
+        reserved: asMoney(json['reserved']),
         onHold: asMoney(json['on_hold']),
         debt: asMoney(json['debt']),
         spendMonth: asMoney(json['spend_month']),
@@ -410,19 +474,23 @@ class BirthdayCoupon {
     required this.minBillSm,
     required this.minBillCl,
     required this.validTo,
+    this.status = 'issued',
   });
 
   final double amount;
   final double minBillSm;
   final double minBillCl;
   final String validTo;
+  final String status;
 
   factory BirthdayCoupon.fromJson(Map<String, dynamic> json) {
+    final status = asString(json['status']);
     return BirthdayCoupon(
       amount: asMoney(json['amount']),
       minBillSm: asMoney(json['min_bill_sm']),
       minBillCl: asMoney(json['min_bill_cl']),
       validTo: asString(json['valid_to']),
+      status: status.isEmpty ? 'issued' : status,
     );
   }
 }
@@ -663,17 +731,30 @@ class PendingSnapshot {
 }
 
 class CashierCode {
-  const CashierCode({required this.qr, required this.code, required this.ttl});
+  const CashierCode({
+    required this.qr,
+    required this.code,
+    required this.ttl,
+    this.issuedAt,
+    this.spendPref,
+    this.useCoupon,
+  });
 
   final String qr;
   final String code;
   final int ttl;
+  final DateTime? issuedAt;
+  final SpendPref? spendPref;
+  final bool? useCoupon;
 
   factory CashierCode.fromJson(Map<String, dynamic> json) {
     return CashierCode(
       qr: asString(json['qr']),
       code: asString(json['code']),
       ttl: asInt(json['ttl']),
+      issuedAt: json['issued_at'] == null ? null : asDate(json['issued_at']),
+      spendPref: parseSpendPref(asStringOrNull(json['spend_pref'])),
+      useCoupon: json['use_coupon'] is bool ? json['use_coupon'] as bool : null,
     );
   }
 }
@@ -1012,10 +1093,14 @@ class SizeOffer {
     this.imageUrl,
     this.originalPrice,
     this.discountPrice,
+    this.currency = 'смн',
+    this.validHours,
     this.expiresAt,
     this.serverNow,
+    this.status = 'ACTIVE',
     this.promoCode,
     this.claimed = false,
+    this.issued = false,
     DateTime? fetchedAt,
   }) : fetchedAt = fetchedAt ?? DateTime.now();
 
@@ -1028,15 +1113,51 @@ class SizeOffer {
   final String? imageUrl;
   final double? originalPrice;
   final double? discountPrice;
+  final String currency;
+  final int? validHours;
   final DateTime? expiresAt;
 
   /// Часы сервера в момент ответа. Обратный отсчёт считаем от них.
   final DateTime? serverNow;
+  final String status;
   final String? promoCode;
   final bool claimed;
+
+  /// Кассир уже выдал товар по коду — код и «Забрать» больше не показываем.
+  final bool issued;
   final DateTime fetchedAt;
 
   bool get flash => type == 'FLASH_SALE';
+
+  SizeOffer copyWith({
+    String? status,
+    String? promoCode,
+    bool? claimed,
+    bool? issued,
+    DateTime? serverNow,
+    DateTime? fetchedAt,
+  }) {
+    return SizeOffer(
+      id: id,
+      type: type,
+      category: category,
+      title: title,
+      description: description,
+      size: size,
+      imageUrl: imageUrl,
+      originalPrice: originalPrice,
+      discountPrice: discountPrice,
+      currency: currency,
+      validHours: validHours,
+      expiresAt: expiresAt,
+      serverNow: serverNow ?? this.serverNow,
+      status: status ?? this.status,
+      promoCode: promoCode ?? this.promoCode,
+      claimed: claimed ?? this.claimed,
+      issued: issued ?? this.issued,
+      fetchedAt: fetchedAt ?? this.fetchedAt,
+    );
+  }
 
   Duration remainingAt(DateTime now) {
     final deadline = expiresAt;
@@ -1047,7 +1168,13 @@ class SizeOffer {
     return left;
   }
 
-  factory SizeOffer.fromJson(Map<String, dynamic> json) {
+  factory SizeOffer.fromJson(
+    Map<String, dynamic> json, {
+    DateTime? fallbackServerNow,
+    DateTime? fetchedAt,
+  }) {
+    final currency = asString(json['currency']);
+    final rawStatus = asString(json['status']);
     return SizeOffer(
       id: asInt(json['id']),
       type: asString(json['type']),
@@ -1058,11 +1185,42 @@ class SizeOffer {
       imageUrl: asStringOrNull(json['image_url']),
       originalPrice: asMoneyOrNull(json['original_price']),
       discountPrice: asMoneyOrNull(json['discount_price']),
+      currency: currency.isEmpty ? 'смн' : currency,
+      validHours: asIntOrNull(json['valid_hours']),
       expiresAt: _dateOrNull(json['expires_at']),
-      serverNow: _dateOrNull(json['server_now']),
+      serverNow: _dateOrNull(json['server_now']) ?? fallbackServerNow,
+      status: rawStatus.isEmpty ? 'ACTIVE' : rawStatus,
       promoCode: asStringOrNull(json['promo_code']),
       claimed: json['claimed'] == true,
+      issued: json['issued'] == true,
+      fetchedAt: fetchedAt,
     );
+  }
+}
+
+class SizeOffersResponse {
+  const SizeOffersResponse({required this.items, this.serverNow});
+
+  final List<SizeOffer> items;
+  final DateTime? serverNow;
+
+  factory SizeOffersResponse.fromJson(
+    Map<String, dynamic> json, {
+    DateTime? fetchedAt,
+  }) {
+    final serverNow = _dateOrNull(json['server_now']);
+    final raw = json['items'];
+    final items = raw is List
+        ? [
+            for (final item in raw)
+              SizeOffer.fromJson(
+                asMap(item),
+                fallbackServerNow: serverNow,
+                fetchedAt: fetchedAt,
+              ),
+          ]
+        : const <SizeOffer>[];
+    return SizeOffersResponse(items: items, serverNow: serverNow);
   }
 }
 

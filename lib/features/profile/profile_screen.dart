@@ -16,11 +16,13 @@ import '../../core/widgets/message.dart';
 import '../../core/widgets/payk_avatar.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
+import '../../core/widgets/telephone_3d_icon.dart';
 import '../../data/api/api_config.dart';
 import '../../data/api/api_exception.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
 import '../friends/friends_screen.dart';
+import '../history/history_screen.dart';
 import '../rules/rules_screen.dart';
 import '../sizes/size_offers_screen.dart';
 import '../sizes/sizes_screen.dart';
@@ -147,6 +149,18 @@ class ProfileScreen extends ConsumerWidget {
                         context,
                         '/sizes',
                         fallback: () => const SizesScreen(),
+                      );
+                    },
+                  ),
+                  _ProfileMenuItem(
+                    icon: Icons.receipt_long_outlined,
+                    title: tr(locale, 'profile.purchases'),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      PaykMotion.push<void>(
+                        context,
+                        '/receipts',
+                        fallback: () => const HistoryScreen(initialTab: HistoryTab.bills),
                       );
                     },
                   ),
@@ -1015,9 +1029,9 @@ void _showStoreContactDialog(
               ),
               const SizedBox(height: 10),
               _ContactActionTile(
-                icon: Icons.phone_in_talk_rounded,
-                iconColor: const Color(0xFF22C55E),
-                iconBg: const Color(0xFFE8F7ED),
+                iconWidget: const Telephone3dIcon(size: 26),
+                iconColor: PaykColors.primary,
+                iconBg: PaykColors.surfaceNested,
                 title: isTj ? 'Занг ба мағоза' : 'Звонок в магазин',
                 subtitle: '$formattedNumber · Телефон',
                 onTap: () {
@@ -1773,6 +1787,9 @@ class _ContactsCard extends StatelessWidget {
           _InfoRow(
             label: tr(locale, 'profile.phoneNumber'),
             value: formatPhone(member.phone),
+            valueLeading: member.phone.trim().isNotEmpty
+                ? const Telephone3dIcon(size: 18)
+                : null,
           ),
           Align(
             alignment: Alignment.centerRight,
@@ -1813,13 +1830,30 @@ class _ContactsCard extends StatelessWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value});
+  const _InfoRow({
+    required this.label,
+    required this.value,
+    this.valueLeading,
+  });
 
   final String label;
   final String value;
+  final Widget? valueLeading;
 
   @override
   Widget build(BuildContext context) {
+    final valueText = Text(
+      value,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.end,
+      style: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: PaykColors.textPrimary,
+      ),
+    );
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -1833,17 +1867,17 @@ class _InfoRow extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         Flexible(
-          child: Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.end,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: PaykColors.textPrimary,
-            ),
-          ),
+          child: valueLeading == null
+              ? valueText
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    valueLeading!,
+                    const SizedBox(width: 6),
+                    Flexible(child: valueText),
+                  ],
+                ),
         ),
       ],
     );

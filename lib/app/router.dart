@@ -23,6 +23,7 @@ import '../features/rules/rules_screen.dart';
 import '../features/showcase/payk_business_screen.dart';
 import '../features/sizes/size_offers_screen.dart';
 import '../features/sizes/sizes_screen.dart';
+import '../features/store/almosi_store_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final refresh = ValueNotifier<int>(0);
@@ -157,6 +158,31 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/rules',
         pageBuilder: (context, state) =>
             PaykMotion.buildPage(state: state, child: const RulesScreen()),
+      ),
+      GoRoute(
+        path: '/almosi',
+        pageBuilder: (context, state) => PaykMotion.buildPage(
+          state: state,
+          child: const AlmosiStoreScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/almosi/supermarket',
+        pageBuilder: (context, state) => PaykMotion.buildPage(
+          state: state,
+          child: const AlmosiDirectionScreen(
+            direction: StoreDirection.supermarket,
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/almosi/clothes',
+        pageBuilder: (context, state) => PaykMotion.buildPage(
+          state: state,
+          child: const AlmosiDirectionScreen(
+            direction: StoreDirection.clothes,
+          ),
+        ),
       ),
       GoRoute(
         path: '/profile/details',

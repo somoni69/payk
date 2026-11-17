@@ -36,6 +36,12 @@ String formatMoneyAuto(double value) {
   return formatMoney(rounded, decimals: !isWhole);
 }
 
+/// Целые сомони для подсказок прогресса: «1 800 смн» (вверх до целого, как считает сервер).
+String formatMoneyWhole(double value) {
+  final ceiled = (value - 1e-9).ceilToDouble();
+  return formatMoney(ceiled < 0 ? 0 : ceiled, decimals: false);
+}
+
 /// Доля с сервера: 0.02 → «2%», 0.015 → «1,5%».
 String formatPercent(double rate) {
   final pct = (rate * 10000).round() / 100;

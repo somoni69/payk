@@ -7,6 +7,7 @@ import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
+import '../../core/widgets/telephone_3d_icon.dart';
 import '../../data/api/api_exception.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
@@ -311,14 +312,11 @@ class _ContactCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: const BoxDecoration(
-              color: PaykColors.brandSoft,
+              color: PaykColors.surfaceNested,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.phone_rounded,
-              color: PaykColors.primary,
-              size: 20,
-            ),
+            alignment: Alignment.center,
+            child: const Telephone3dIcon(size: 26),
           ),
           const SizedBox(width: 12),
           Expanded(

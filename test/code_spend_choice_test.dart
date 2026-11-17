@@ -492,5 +492,93 @@ void main() {
         );
       },
     );
+
+    testWidgets(
+      'formats hour-scale TTL (up to 21600s / 6h) as h:mm:ss and hours in ru & tj',
+      (tester) async {
+        tester.view.physicalSize = const Size(1080, 2400);
+        tester.view.devicePixelRatio = 2.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        var fakeNow = DateTime(2026, 11, 17, 10, 55, 0);
+        final account = _sampleAccount();
+
+        await tester.pumpWidget(
+          buildScreen(
+            screenKey: const ValueKey('ru-21600'),
+            api: _QueuedCodeApi(ttl: 21600),
+            account: account,
+            nowProvider: () => fakeNow,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('6:00:00'), findsOneWidget);
+        expect(find.text('Код обновится через 6:00:00'), findsOneWidget);
+        expect(
+          find.text('Каждый код одноразовый и действует 6 часов'),
+          findsOneWidget,
+        );
+
+        fakeNow = fakeNow.add(const Duration(seconds: 2));
+        await tester.pump(const Duration(seconds: 2));
+        expect(find.text('5:59:58'), findsOneWidget);
+        expect(find.text('Код обновится через 5:59:58'), findsOneWidget);
+
+        await tester.pumpWidget(
+          buildScreen(
+            screenKey: const ValueKey('ru-3600'),
+            api: _QueuedCodeApi(ttl: 3600),
+            account: account,
+            nowProvider: () => fakeNow,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('1:00:00'), findsOneWidget);
+        expect(
+          find.text('Каждый код одноразовый и действует 1 час'),
+          findsOneWidget,
+        );
+
+        fakeNow = fakeNow.add(const Duration(seconds: 2));
+        await tester.pump(const Duration(seconds: 2));
+        expect(find.text('59:58'), findsOneWidget);
+        expect(find.text('Код обновится через 59:58'), findsOneWidget);
+
+        await tester.pumpWidget(
+          buildScreen(
+            screenKey: const ValueKey('ru-5400'),
+            api: _QueuedCodeApi(ttl: 5400),
+            account: account,
+            nowProvider: () => fakeNow,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('1:30:00'), findsOneWidget);
+        expect(
+          find.text('Каждый код одноразовый и действует 90 минут'),
+          findsOneWidget,
+        );
+
+        await tester.pumpWidget(
+          buildScreen(
+            screenKey: const ValueKey('tj-21600'),
+            api: _QueuedCodeApi(ttl: 21600),
+            account: account,
+            locale: 'tj',
+            nowProvider: () => fakeNow,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Рамз баъд аз 6:00:00 нав мешавад'), findsOneWidget);
+        expect(
+          find.text('Ҳар рамз як бор ва 6 соат амал мекунад'),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }

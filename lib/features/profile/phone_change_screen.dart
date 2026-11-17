@@ -11,6 +11,7 @@ import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/message.dart';
 import '../../core/widgets/tajik_phone_field.dart';
+import '../../core/widgets/telephone_3d_icon.dart';
 import '../../data/api/api_exception.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
@@ -182,10 +183,11 @@ class _PhoneChangeScreenState extends ConsumerState<PhoneChangeScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: PaykColors.primary.withValues(alpha: 0.1),
+                      color: PaykColors.surfaceNested,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.security_rounded, color: PaykColors.primary, size: 22),
+                    alignment: Alignment.center,
+                    child: const Telephone3dIcon(size: 28),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

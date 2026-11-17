@@ -8,6 +8,7 @@ import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
+import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
 import '../../data/models/models.dart';
@@ -156,7 +157,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
                 child: EmptyState(
-                  icon: Icons.notifications_none_rounded,
+                  iconWidget: const Bell3dIcon(size: 46),
                   title: 'Уведомлений пока нет',
                   body: 'Здесь будут появляться персональные акции, новости партнеров и начисления бонусов.',
                   actionLabel: 'На главную',
@@ -268,21 +269,23 @@ class _NotificationCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
                   color: isUnread ? const Color(0xFFF3F0FC) : const Color(0xFFEFF0F2),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(11),
                 ),
-                child: Icon(
-                  hasOffersLink
-                      ? Icons.local_offer_outlined
-                      : (isUnread
-                          ? Icons.notifications_active_rounded
-                          : Icons.notifications_none_rounded),
-                  color: isUnread ? PaykColors.primary : PaykColors.textSecondary,
-                  size: 20,
-                ),
+                alignment: Alignment.center,
+                child: hasOffersLink
+                    ? Icon(
+                        Icons.local_offer_outlined,
+                        color: isUnread ? PaykColors.primary : PaykColors.textSecondary,
+                        size: 20,
+                      )
+                    : Opacity(
+                        opacity: isUnread ? 1.0 : 0.72,
+                        child: const Bell3dIcon(size: 24),
+                      ),
               ),
               const SizedBox(width: 10),
               Expanded(

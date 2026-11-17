@@ -71,6 +71,7 @@ class EmptyState extends StatelessWidget {
     required this.title,
     required this.body,
     this.icon,
+    this.iconWidget,
     this.actionLabel,
     this.onAction,
   });
@@ -78,6 +79,7 @@ class EmptyState extends StatelessWidget {
   final String title;
   final String body;
   final IconData? icon;
+  final Widget? iconWidget;
   final String? actionLabel;
   final VoidCallback? onAction;
 
@@ -97,11 +99,12 @@ class EmptyState extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: Icon(
-                icon ?? Icons.inbox_outlined,
-                size: 38,
-                color: PaykColors.primary,
-              ),
+              child: iconWidget ??
+                  Icon(
+                    icon ?? Icons.inbox_outlined,
+                    size: 38,
+                    color: PaykColors.primary,
+                  ),
             ),
             const SizedBox(height: 20),
             Text(

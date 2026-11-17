@@ -154,7 +154,7 @@ class _LoyaltyCardBones extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 188,
+      height: 204,
       padding: const EdgeInsets.fromLTRB(22, 18, 20, 16),
       decoration: BoxDecoration(
         color: const Color(0xFF4A5164),

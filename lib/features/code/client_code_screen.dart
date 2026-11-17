@@ -374,11 +374,38 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen>
 
 bool _isLongCode(int ttlSeconds) => ttlSeconds >= 120;
 
+/// Короткий код (<2 мин): секунды «39»; от 2 минут — «29:58»; от часа — «5:59:58».
 String _countdownLabel(int secondsLeft, int totalTtl) {
-  if (!_isLongCode(totalTtl)) return '$secondsLeft';
-  final minutes = secondsLeft ~/ 60;
-  final seconds = secondsLeft % 60;
-  return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  final safeLeft = secondsLeft < 0 ? 0 : secondsLeft;
+  if (!_isLongCode(totalTtl)) return '$safeLeft';
+  String pad2(int value) => value.toString().padLeft(2, '0');
+  if (safeLeft >= 3600) {
+    final hours = safeLeft ~/ 3600;
+    final minutes = (safeLeft % 3600) ~/ 60;
+    final seconds = safeLeft % 60;
+    return '$hours:${pad2(minutes)}:${pad2(seconds)}';
+  }
+  final minutes = safeLeft ~/ 60;
+  final seconds = safeLeft % 60;
+  return '$minutes:${pad2(seconds)}';
+}
+
+String _oneTimeHintText(String locale, int totalTtl) {
+  if (totalTtl >= 3600 && totalTtl % 3600 == 0) {
+    final hours = totalTtl ~/ 3600;
+    return tr(locale, 'code.oneTimeHours', {
+      'h': '$hours',
+      'unit': plural(hours, 'час', 'часа', 'часов'),
+    });
+  }
+  if (_isLongCode(totalTtl)) {
+    final minutes = (totalTtl / 60).round();
+    return tr(locale, 'code.oneTimeMin', {
+      'm': '$minutes',
+      'unit': plural(minutes, 'минуту', 'минуты', 'минут'),
+    });
+  }
+  return tr(locale, 'code.oneTime', {'ttl': '$totalTtl'});
 }
 
 class _CodeCard extends StatelessWidget {
@@ -567,6 +594,7 @@ class _CountdownRing extends StatelessWidget {
         ? (secondsLeft / totalSeconds).clamp(0.0, 1.0)
         : 0.0;
     final compact = _isLongCode(totalSeconds);
+    final hasHours = compact && secondsLeft >= 3600;
     final label = _countdownLabel(secondsLeft, totalSeconds);
 
     return SizedBox(
@@ -583,14 +611,14 @@ class _CountdownRing extends StatelessWidget {
             strokeCap: StrokeCap.round,
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
+            padding: EdgeInsets.symmetric(horizontal: hasHours ? 5 : 6),
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
                 pendingText ? '…' : label,
                 maxLines: 1,
                 style: TextStyle(
-                  fontSize: compact ? 12.0 : 15.0,
+                  fontSize: hasHours ? 10.0 : (compact ? 12.0 : 15.0),
                   fontWeight: FontWeight.w700,
                   color: PaykColors.textPrimary,
                   fontFamily: 'Manrope',
@@ -1031,17 +1059,7 @@ class _BottomCashierHint extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  _isLongCode(totalTtl)
-                      ? tr(locale, 'code.oneTimeMin', {
-                          'm': '${(totalTtl / 60).round()}',
-                          'unit': plural(
-                            (totalTtl / 60).round(),
-                            'минуту',
-                            'минуты',
-                            'минут',
-                          ),
-                        })
-                      : tr(locale, 'code.oneTime', {'ttl': '$totalTtl'}),
+                  _oneTimeHintText(locale, totalTtl),
                   style: const TextStyle(
                     fontFamily: 'Manrope',
                     fontSize: 13,

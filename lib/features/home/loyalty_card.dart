@@ -102,7 +102,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
   };
 }
 
-/// Карта лояльности на главной: баланс, имя и код. Вид берётся из статуса.
+/// Карта лояльности и магазина «Алмоси» на главной: бренд, баланс, имя и код.
+/// Вид берётся из статуса.
 class LoyaltyCard extends StatelessWidget {
   const LoyaltyCard({
     super.key,
@@ -110,15 +111,17 @@ class LoyaltyCard extends StatelessWidget {
     required this.wallet,
     required this.locale,
     this.tiers = 5,
+    this.onTap,
   });
 
   final Member member;
   final Wallet wallet;
   final String locale;
   final int tiers;
+  final VoidCallback? onTap;
 
   static const _radius = 26.0;
-  static const _height = 188.0;
+  static const _minHeight = 204.0;
 
   @override
   Widget build(BuildContext context) {
@@ -127,7 +130,7 @@ class LoyaltyCard extends StatelessWidget {
     final name = _holderName(member);
     final code = member.referralCode.trim();
 
-    return AnimatedSwitcher(
+    final card = AnimatedSwitcher(
       duration: reduce ? Duration.zero : PaykMotion.page,
       switchInCurve: PaykMotion.easeOut,
       switchOutCurve: PaykMotion.easeOut,
@@ -148,10 +151,24 @@ class LoyaltyCard extends StatelessWidget {
         key: ValueKey('loyalty-face-$level'),
         face: loyaltyCardFace(level),
         tier: tierLabel(locale, wallet.status, tiers: tiers),
+        storeLabel: tr(locale, 'store.label'),
+        brandTitle: tr(locale, 'store.brand'),
         balanceLabel: tr(locale, 'home.balance'),
         amount: formatNumber(wallet.balance),
         name: name,
         code: code,
+        showChevron: onTap != null,
+      ),
+    );
+
+    if (onTap == null) return card;
+    return Semantics(
+      button: true,
+      label: '${tr(locale, 'store.label')} ${tr(locale, 'store.brand')}',
+      child: PaykPressable(
+        scaleDown: PaykMotion.scaleSubtle,
+        onTap: onTap,
+        child: card,
       ),
     );
   }
@@ -162,24 +179,30 @@ class _LoyaltyCardSurface extends StatelessWidget {
     super.key,
     required this.face,
     required this.tier,
+    required this.storeLabel,
+    required this.brandTitle,
     required this.balanceLabel,
     required this.amount,
     required this.name,
     required this.code,
+    required this.showChevron,
   });
 
   final LoyaltyCardFace face;
   final String tier;
+  final String storeLabel;
+  final String brandTitle;
   final String balanceLabel;
   final String amount;
   final String name;
   final String code;
+  final bool showChevron;
 
   @override
   Widget build(BuildContext context) {
     return RepaintBoundary(
       child: Container(
-        height: LoyaltyCard._height,
+        constraints: const BoxConstraints(minHeight: LoyaltyCard._minHeight),
         width: double.infinity,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(LoyaltyCard._radius),
@@ -191,22 +214,24 @@ class _LoyaltyCardSurface extends StatelessWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(LoyaltyCard._radius),
           child: Stack(
-            fit: StackFit.expand,
             children: [
               if (face.sheen != null)
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomCenter,
-                      colors: [face.sheen!, const Color(0x00FFFFFF)],
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomCenter,
+                        colors: [face.sheen!, const Color(0x00FFFFFF)],
+                      ),
                     ),
                   ),
                 ),
-              _WatermarkSlot(letter: face.ink),
+              Positioned.fill(child: _WatermarkSlot(letter: face.ink)),
               Padding(
                 padding: const EdgeInsets.fromLTRB(22, 18, 20, 16),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
@@ -226,17 +251,79 @@ class _LoyaltyCardSurface extends StatelessWidget {
                             letterSpacing: 0.8,
                           ),
                         ),
-                        const Spacer(),
                         const SizedBox(width: 8),
-                        _StatusPill(label: tier, fill: face.pill, ink: face.pillInk),
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerRight,
+                              child: _StatusPill(
+                                label: tier,
+                                fill: face.pill,
+                                ink: face.pillInk,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                    const Spacer(),
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.storefront_rounded,
+                          size: 13,
+                          color: face.inkSoft,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          storeLabel.toUpperCase(),
+                          style: _cardText(
+                            color: face.inkSoft,
+                            size: 11,
+                            weight: FontWeight.w700,
+                            letterSpacing: 0.9,
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            brandTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: _cardText(
+                              color: face.ink,
+                              size: 22,
+                              weight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                              height: 1.1,
+                            ),
+                          ),
+                        ),
+                        if (showChevron) ...[
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: 20,
+                            color: face.inkSoft,
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 12),
                     Text(
                       balanceLabel,
                       style: _cardText(
                         color: face.inkSoft,
-                        size: 14,
+                        size: 13,
                         weight: FontWeight.w500,
                         height: 1.1,
                       ),
@@ -252,7 +339,7 @@ class _LoyaltyCardSurface extends StatelessWidget {
                               text: amount,
                               style: _cardText(
                                 color: face.ink,
-                                size: 36,
+                                size: 34,
                                 weight: FontWeight.w800,
                                 letterSpacing: -1.1,
                                 features: const [FontFeature.tabularFigures()],
@@ -271,7 +358,7 @@ class _LoyaltyCardSurface extends StatelessWidget {
                         style: const TextStyle(inherit: false),
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(height: 14),
                     Row(
                       children: [
                         Expanded(

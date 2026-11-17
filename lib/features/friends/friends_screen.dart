@@ -11,6 +11,7 @@ import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/message.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
+import '../../core/widgets/telephone_3d_icon.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
 
@@ -610,16 +611,28 @@ class _InviteeRow extends StatelessWidget {
                     color: PaykColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  invitee.phone,
-                  style: const TextStyle(
-                    fontFamily: 'Manrope',
-                    fontSize: 13,
-                    color: PaykColors.textSecondary,
-                    fontFeatures: [FontFeature.tabularFigures()],
+                if (invitee.phone.trim().isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      const Telephone3dIcon(size: 16),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          invitee.phone,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Manrope',
+                            fontSize: 13,
+                            color: PaykColors.textSecondary,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                ],
                 const SizedBox(height: 2),
                 Text(
                   '${own ? tr(locale, 'friends.level2') : tr(locale, 'friends.level3')} · ${tr(locale, 'friends.activeUntil', {'date': formatShortDate(invitee.activeUntil)})}',

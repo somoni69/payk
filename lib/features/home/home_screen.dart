@@ -20,14 +20,15 @@ import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
-import '../categories/categories_screen.dart';
 import '../code/client_code_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../profile/profile_screen.dart';
 import '../sizes/size_offers_screen.dart';
 import '../sizes/sizes_screen.dart';
+import '../store/almosi_store_screen.dart';
 import 'home_header.dart';
 import 'loyalty_card.dart';
+import 'status_growth_card.dart';
 
 /// Главный экран мобильного приложения Payk в стиле UDC (Milestone 2):
 /// - Фиолетовая шапка с градиентом #9F72E7 -> #8574E6 и скруглением 24 dp.
@@ -161,7 +162,7 @@ class _HomeBody extends ConsumerWidget {
               ),
             ),
 
-          // 1. Карта статуса: вид меняется вместе с уровнем кошелька
+          // 1. Карта статуса и магазина «Алмоси»: при нажатии открывает направления магазина
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: LoyaltyCard(
@@ -169,6 +170,21 @@ class _HomeBody extends ConsumerWidget {
               wallet: wallet,
               locale: locale,
               tiers: account.tierCount,
+              onTap: () => _openAlmosi(context),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Компактная подсказка по росту статуса до следующего уровня
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: StatusGrowthCard(
+              wallet: wallet,
+              locale: locale,
+              tierCount: account.tierCount,
+              compact: true,
+              onTap: () => _openAlmosi(context),
             ),
           ),
 
@@ -893,11 +909,7 @@ void _openCompaniesModal(BuildContext context, Account account, String locale) {
               onTap: () {
                 HapticFeedback.lightImpact();
                 Navigator.pop(sheetContext);
-                PaykMotion.go(
-                  context,
-                  '/categories',
-                  fallback: () => const CategoriesScreen(),
-                );
+                _openDirection(context, StoreDirection.supermarket);
               },
             ),
             const SizedBox(height: 10),
@@ -911,17 +923,33 @@ void _openCompaniesModal(BuildContext context, Account account, String locale) {
               onTap: () {
                 HapticFeedback.lightImpact();
                 Navigator.pop(sheetContext);
-                PaykMotion.go(
-                  context,
-                  '/categories',
-                  fallback: () => const CategoriesScreen(),
-                );
+                _openDirection(context, StoreDirection.clothes);
               },
             ),
           ],
         ),
       );
     },
+  );
+}
+
+void _openAlmosi(BuildContext context) {
+  HapticFeedback.lightImpact();
+  PaykMotion.push<void>(
+    context,
+    '/almosi',
+    fallback: () => const AlmosiStoreScreen(),
+  );
+}
+
+void _openDirection(BuildContext context, StoreDirection direction) {
+  final path = direction == StoreDirection.supermarket
+      ? '/almosi/supermarket'
+      : '/almosi/clothes';
+  PaykMotion.push<void>(
+    context,
+    path,
+    fallback: () => AlmosiDirectionScreen(direction: direction),
   );
 }
 

@@ -8,6 +8,7 @@ import '../core/notifications/push_notification_service.dart';
 import '../core/theme/payk_colors.dart';
 import '../core/theme/payk_theme.dart';
 import '../data/providers.dart';
+import '../features/auth/splash_screen.dart';
 import '../features/code/pending_payment_host.dart';
 import 'router.dart';
 
@@ -19,6 +20,9 @@ class PaykApp extends ConsumerStatefulWidget {
 }
 
 class _PaykAppState extends ConsumerState<PaykApp> {
+  String? _pendingNotificationRoute;
+  var _flushScheduled = false;
+
   @override
   void initState() {
     super.initState();
@@ -30,15 +34,11 @@ class _PaykAppState extends ConsumerState<PaykApp> {
   }
 
   void _initNotifications() {
-    final router = ref.read(routerProvider);
     ref
         .read(pushNotificationServiceProvider)
         .initialize(
-          onNotificationTap: (route) {
-            if (mounted) {
-              router.push(route);
-            }
-          },
+          onNotificationTap: _handleNotificationTap,
+          onForegroundMessage: _refreshNotificationData,
           onTokenUpdate: (token) async {
             try {
               if (ref.read(sessionProvider).loggedIn) {
@@ -51,6 +51,61 @@ class _PaykAppState extends ConsumerState<PaykApp> {
         );
   }
 
+  void _refreshNotificationData() {
+    if (!mounted || !ref.read(sessionProvider).loggedIn) return;
+    ref.invalidate(messagesProvider);
+    ref.invalidate(meProvider);
+  }
+
+  void _handleNotificationTap(String route) {
+    if (!mounted) return;
+    final target = route.startsWith('/') ? route : '/notifications';
+    final session = ref.read(sessionProvider);
+    final splashDone = ref.read(splashFinishedProvider);
+
+    if (!session.ready || !splashDone || !session.loggedIn) {
+      _pendingNotificationRoute = target;
+      return;
+    }
+
+    _openNotificationRoute(target);
+  }
+
+  void _flushPendingNotification() {
+    if (_pendingNotificationRoute == null || _flushScheduled || !mounted) {
+      return;
+    }
+    final session = ref.read(sessionProvider);
+    final splashDone = ref.read(splashFinishedProvider);
+    if (!session.ready || !splashDone || !session.loggedIn) {
+      return;
+    }
+
+    _flushScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _flushScheduled = false;
+      if (!mounted) return;
+      final currentSession = ref.read(sessionProvider);
+      if (!currentSession.ready ||
+          !currentSession.loggedIn ||
+          !ref.read(splashFinishedProvider)) {
+        return;
+      }
+      final target = _pendingNotificationRoute;
+      if (target == null) return;
+      _pendingNotificationRoute = null;
+      _openNotificationRoute(target);
+    });
+  }
+
+  void _openNotificationRoute(String target) {
+    _refreshNotificationData();
+    final router = ref.read(routerProvider);
+    if (router.state.matchedLocation != target) {
+      router.push(target);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen(sessionProvider, (prev, next) {
@@ -60,6 +115,15 @@ class _PaykAppState extends ConsumerState<PaykApp> {
           ref.read(loyaltyApiProvider).updateMe({'fcm_token': token}).ignore();
         }
       }
+      if (prev?.loggedIn == true && !next.loggedIn) {
+        _pendingNotificationRoute = null;
+      } else {
+        _flushPendingNotification();
+      }
+    });
+
+    ref.listen(splashFinishedProvider, (prev, next) {
+      if (next) _flushPendingNotification();
     });
 
     final router = ref.watch(routerProvider);

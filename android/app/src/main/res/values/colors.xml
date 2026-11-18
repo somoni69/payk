@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="payk_splash">#FF362CD1</color>
+    <color name="payk_notification">#FF372CD2</color>
 </resources>

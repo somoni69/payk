@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../firebase_options.dart';
+import '../theme/payk_colors.dart';
 
 void _log(String message) {
   if (kDebugMode) debugPrint(message);
@@ -45,6 +46,7 @@ class PushNotificationService {
   bool _isInitialized = false;
   String? _fcmToken;
   void Function(String route)? _onNotificationTap;
+  VoidCallback? _onForegroundMessage;
 
   String? get fcmToken => _fcmToken;
 
@@ -52,9 +54,11 @@ class PushNotificationService {
   Future<void> initialize({
     void Function(String route)? onNotificationTap,
     Future<void> Function(String token)? onTokenUpdate,
+    VoidCallback? onForegroundMessage,
   }) async {
+    _onNotificationTap = onNotificationTap ?? _onNotificationTap;
+    _onForegroundMessage = onForegroundMessage ?? _onForegroundMessage;
     if (_isInitialized) return;
-    _onNotificationTap = onNotificationTap;
 
     // 1. Проверяем доступность Firebase в текущем окружении (в тестах или без плагина пропускаем безопасно)
     try {
@@ -82,7 +86,7 @@ class PushNotificationService {
       _listenForegroundMessages();
 
       // 6. Обработка клика по уведомлению (фоновое или закрытое приложение)
-      _setupInteractedMessage();
+      await _setupInteractedMessage();
 
       // 7. Получение FCM-токена и подписка на топик
       await _setupTokenAndTopics(onTokenUpdate);
@@ -120,7 +124,7 @@ class PushNotificationService {
 
   /// Инициализация канала и плагина локальных уведомлений
   Future<void> _setupLocalNotifications() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings('@drawable/ic_notification');
     const darwinSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -135,10 +139,7 @@ class PushNotificationService {
     await _localNotifications.initialize(
       settings: initSettings,
       onDidReceiveNotificationResponse: (response) {
-        final payload = response.payload;
-        if (payload != null && payload.isNotEmpty) {
-          _onNotificationTap?.call(payload);
-        }
+        _onNotificationTap?.call(_normalizeRoute(response.payload));
       },
     );
 
@@ -153,14 +154,26 @@ class PushNotificationService {
   void _listenForegroundMessages() {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       _log('[PushNotificationService] Foreground message: ${message.data}');
-      final notification = message.notification;
-      final route = message.data['route'] as String? ?? '/notifications';
+      _onForegroundMessage?.call();
 
-      if (notification != null) {
+      final notification = message.notification;
+      final title = notification?.title ?? _stringData(message.data['title']);
+      final body = notification?.body ?? _stringData(message.data['body']);
+      final route = _normalizeRoute(_stringData(message.data['route']));
+
+      // На iOS системный баннер с notification-полями уже показывает сам FCM
+      // (setForegroundNotificationPresentationOptions), поэтому локальное
+      // уведомление рисуем только на Android или для data-only сообщений.
+      final shouldShowLocal =
+          (title != null || body != null) &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              notification == null);
+
+      if (shouldShowLocal) {
         _localNotifications.show(
-          id: notification.hashCode,
-          title: notification.title ?? 'Payk',
-          body: notification.body,
+          id: message.messageId?.hashCode ?? notification?.hashCode ?? message.hashCode,
+          title: title ?? 'Payk',
+          body: body,
           notificationDetails: NotificationDetails(
             android: AndroidNotificationDetails(
               _defaultChannel.id,
@@ -168,7 +181,8 @@ class PushNotificationService {
               channelDescription: _defaultChannel.description,
               importance: Importance.max,
               priority: Priority.high,
-              icon: '@mipmap/ic_launcher',
+              icon: '@drawable/ic_notification',
+              color: PaykColors.primary,
             ),
             iOS: const DarwinNotificationDetails(
               presentAlert: true,
@@ -183,24 +197,52 @@ class PushNotificationService {
   }
 
   /// Обработка клика по пушу (из трея / фонового состояния)
-  void _setupInteractedMessage() {
-    // 1. Приложение было закрыто и открыто по клику на уведомление
-    _fcm.getInitialMessage().then((RemoteMessage? message) {
-      if (message != null) {
-        _handleMessageClick(message);
-      }
-    });
+  Future<void> _setupInteractedMessage() async {
+    var handledInitial = false;
 
-    // 2. Приложение было в фоне и открыто по клику на уведомление
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      _handleMessageClick(message);
-    });
+    // 1. Приложение было закрыто и открыто по клику на FCM-уведомление
+    final initialMessage = await _fcm.getInitialMessage();
+    if (initialMessage != null) {
+      handledInitial = true;
+      _handleMessageClick(initialMessage);
+    }
+
+    // 2. Приложение было выгружено и открыто по клику на локальное уведомление
+    if (!handledInitial) {
+      try {
+        final launchDetails =
+            await _localNotifications.getNotificationAppLaunchDetails();
+        if (launchDetails?.didNotificationLaunchApp == true) {
+          final payload = launchDetails?.notificationResponse?.payload;
+          _onNotificationTap?.call(_normalizeRoute(payload));
+        }
+      } catch (e) {
+        _log('[PushNotificationService] Launch details error: $e');
+      }
+    }
+
+    // 3. Приложение было в фоне и открыто по клику на уведомление
+    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageClick);
   }
 
   void _handleMessageClick(RemoteMessage message) {
     _log('[PushNotificationService] Notification opened: ${message.data}');
-    final route = message.data['route'] as String? ?? '/notifications';
+    final route = _normalizeRoute(_stringData(message.data['route']));
     _onNotificationTap?.call(route);
+  }
+
+  String _normalizeRoute(String? raw) {
+    final trimmed = raw?.trim() ?? '';
+    if (trimmed.isEmpty || !trimmed.startsWith('/')) {
+      return '/notifications';
+    }
+    return trimmed;
+  }
+
+  String? _stringData(Object? value) {
+    if (value == null) return null;
+    final text = value.toString().trim();
+    return text.isEmpty ? null : text;
   }
 
   /// Получение FCM-токена устройства и подписка на broadcast-топики.

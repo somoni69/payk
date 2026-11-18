@@ -4,7 +4,6 @@ import '../../core/format.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
-import '../../core/widgets/payk_mark.dart';
 import '../../data/models/models.dart';
 
 /// Уровень карты с тем же сжатием, что и подпись статуса:
@@ -121,7 +120,7 @@ class LoyaltyCard extends StatelessWidget {
   final VoidCallback? onTap;
 
   static const _radius = 26.0;
-  static const _minHeight = 204.0;
+  static const _minHeight = 192.0;
 
   @override
   Widget build(BuildContext context) {
@@ -229,96 +228,91 @@ class _LoyaltyCardSurface extends StatelessWidget {
                 ),
               Positioned.fill(child: _WatermarkSlot(letter: face.ink)),
               Padding(
-                padding: const EdgeInsets.fromLTRB(22, 18, 20, 16),
+                padding: const EdgeInsets.fromLTRB(22, 18, 20, 18),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(
-                          width: 16,
-                          height: 20,
-                          child: PaykGlyph(color: face.ink),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'ПАЙК',
-                          style: _cardText(
-                            color: face.ink,
-                            size: 15,
-                            weight: FontWeight.w800,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
                         Expanded(
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerRight,
-                              child: _StatusPill(
-                                label: tier,
-                                fill: face.pill,
-                                ink: face.pillInk,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.storefront_rounded,
+                                    size: 13,
+                                    color: face.inkSoft,
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Flexible(
+                                    child: Text(
+                                      storeLabel.toUpperCase(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: _cardText(
+                                        color: face.inkSoft,
+                                        size: 11,
+                                        weight: FontWeight.w700,
+                                        letterSpacing: 0.9,
+                                        height: 1.1,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
+                              const SizedBox(height: 3),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      brandTitle,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: _cardText(
+                                        color: face.ink,
+                                        size: 22,
+                                        weight: FontWeight.w800,
+                                        letterSpacing: -0.3,
+                                        height: 1.1,
+                                      ),
+                                    ),
+                                  ),
+                                  if (showChevron) ...[
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.chevron_right_rounded,
+                                      size: 20,
+                                      color: face.inkSoft,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 136),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: _StatusPill(
+                              label: tier,
+                              fill: face.pill,
+                              ink: face.pillInk,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.storefront_rounded,
-                          size: 13,
-                          color: face.inkSoft,
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          storeLabel.toUpperCase(),
-                          style: _cardText(
-                            color: face.inkSoft,
-                            size: 11,
-                            weight: FontWeight.w700,
-                            letterSpacing: 0.9,
-                            height: 1.1,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            brandTitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: _cardText(
-                              color: face.ink,
-                              size: 22,
-                              weight: FontWeight.w800,
-                              letterSpacing: -0.3,
-                              height: 1.1,
-                            ),
-                          ),
-                        ),
-                        if (showChevron) ...[
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.chevron_right_rounded,
-                            size: 20,
-                            color: face.inkSoft,
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 24),
                     Text(
                       balanceLabel,
                       style: _cardText(
@@ -358,7 +352,7 @@ class _LoyaltyCardSurface extends StatelessWidget {
                         style: const TextStyle(inherit: false),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 24),
                     Row(
                       children: [
                         Expanded(

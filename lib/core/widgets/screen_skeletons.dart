@@ -154,8 +154,8 @@ class _LoyaltyCardBones extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 204,
-      padding: const EdgeInsets.fromLTRB(22, 18, 20, 16),
+      height: 192,
+      padding: const EdgeInsets.fromLTRB(22, 18, 20, 18),
       decoration: BoxDecoration(
         color: const Color(0xFF4A5164),
         borderRadius: BorderRadius.circular(26),
@@ -164,21 +164,27 @@ class _LoyaltyCardBones extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SkeletonBox(
-                width: 18,
-                height: 22,
-                radius: 4,
-                color: _headerBone,
-                highlight: _headerShine,
-              ),
-              SizedBox(width: 8),
-              SkeletonBox(
-                width: 64,
-                height: 14,
-                radius: 6,
-                color: _headerBone,
-                highlight: _headerShine,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SkeletonBox(
+                    width: 68,
+                    height: 11,
+                    radius: 4,
+                    color: _headerBone,
+                    highlight: _headerShine,
+                  ),
+                  SizedBox(height: 6),
+                  SkeletonBox(
+                    width: 96,
+                    height: 20,
+                    radius: 6,
+                    color: _headerBone,
+                    highlight: _headerShine,
+                  ),
+                ],
               ),
               Spacer(),
               SkeletonBox(

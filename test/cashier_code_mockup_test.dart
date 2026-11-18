@@ -46,8 +46,8 @@ void main() {
   setUp(() {
     fakeApi = FakeLoyaltyApi(
       cashierCode: const CashierCode(
-        qr: 'payk://code/42447996',
-        code: '42447996',
+        qr: 'payk://code/424796',
+        code: '424796',
         ttl: 40,
       ),
     );
@@ -86,8 +86,8 @@ void main() {
       // 2. Метка над кодом: «Рамз барои ворид кардан»
       expect(find.text('Рамз барои ворид кардан'), findsOneWidget);
 
-      // 3. Форматированные 8 цифр: «4244 7996»
-      expect(find.text('4244 7996'), findsOneWidget);
+      // 3. Форматированные 6 цифр: «424 796»
+      expect(find.text('424 796'), findsOneWidget);
 
       // 4. Плашка обратного отсчета
       expect(find.textContaining('Рамз баъд аз'), findsOneWidget);
@@ -99,7 +99,7 @@ void main() {
       // 5. Нижняя карточка с 3D-корзиной и подсказкой кассиру
       expect(find.text('Ба кассир нишон диҳед'), findsOneWidget);
       expect(
-        find.text('Кассир QR-ро скан мекунад ё 8 рақамро ворид мекунад'),
+        find.text('Кассир QR-ро скан мекунад ё рақамҳои рамзро ворид мекунад'),
         findsOneWidget,
       );
       expect(
@@ -127,7 +127,7 @@ void main() {
       // Header RU
       expect(find.text('Код для кассы'), findsOneWidget);
       expect(find.text('Код для ввода'), findsOneWidget);
-      expect(find.text('4244 7996'), findsOneWidget);
+      expect(find.text('424 796'), findsOneWidget);
 
       // Таймер RU
       expect(find.textContaining('Код обновится через'), findsOneWidget);
@@ -135,7 +135,7 @@ void main() {
       // Подсказка RU
       expect(find.text('Покажите кассиру'), findsOneWidget);
       expect(
-        find.text('Кассир сканирует QR или вводит 8 цифр'),
+        find.text('Кассир сканирует QR или вводит цифры кода'),
         findsOneWidget,
       );
       expect(

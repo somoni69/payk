@@ -107,7 +107,9 @@ void main() {
       expect(find.textContaining('750,00'), findsOneWidget);
       expect(find.text('СОМОНИ ФАРЗОД'), findsOneWidget);
       expect(find.text('SO-4654'), findsOneWidget);
-      expect(find.text('ПАЙК'), findsOneWidget);
+      expect(find.text('МАҒОЗА'), findsOneWidget);
+      expect(find.text('Алмоси'), findsOneWidget);
+      expect(find.text('ПАЙК'), findsNothing);
       expect(find.text('Статуси ман'), findsNothing);
       expect(find.byType(LinearProgressIndicator), findsNothing);
 
@@ -241,9 +243,10 @@ void main() {
 
     expect(find.text('Стандарт'), findsOneWidget);
     expect(find.text('Баланс'), findsOneWidget);
-    final word = tester.widget<Text>(find.text('ПАЙК'));
-    expect(word.style?.fontFamily, isNull);
-    expect(word.style?.inherit, isFalse);
+    expect(find.text('ПАЙК'), findsNothing);
+    final brand = tester.widget<Text>(find.text('Алмоси'));
+    expect(brand.style?.fontFamily, isNull);
+    expect(brand.style?.inherit, isFalse);
     expect(find.textContaining('0,00'), findsOneWidget);
     expect(find.byKey(const ValueKey('loyalty-face-1')), findsOneWidget);
 

@@ -513,7 +513,7 @@ class _CodeCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
 
-          // Крупные цифры кода «4244 7996»
+          // Крупные цифры кода («123 456» или «1234 5678»)
           AnimatedOpacity(
             opacity: isStale ? 0.35 : 1.0,
             duration: fadeDuration,

@@ -1786,9 +1786,6 @@ class _ContactsCard extends StatelessWidget {
           _InfoRow(
             label: tr(locale, 'profile.phoneNumber'),
             value: formatPhone(member.phone),
-            valueLeading: member.phone.trim().isNotEmpty
-                ? const Telephone3dIcon(size: 18)
-                : null,
           ),
           Align(
             alignment: Alignment.centerRight,
@@ -1832,27 +1829,13 @@ class _InfoRow extends StatelessWidget {
   const _InfoRow({
     required this.label,
     required this.value,
-    this.valueLeading,
   });
 
   final String label;
   final String value;
-  final Widget? valueLeading;
 
   @override
   Widget build(BuildContext context) {
-    final valueText = Text(
-      value,
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      textAlign: TextAlign.end,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: PaykColors.textPrimary,
-      ),
-    );
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -1866,17 +1849,17 @@ class _InfoRow extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         Flexible(
-          child: valueLeading == null
-              ? valueText
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    valueLeading!,
-                    const SizedBox(width: 6),
-                    Flexible(child: valueText),
-                  ],
-                ),
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.end,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: PaykColors.textPrimary,
+            ),
+          ),
         ),
       ],
     );

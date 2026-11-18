@@ -29,8 +29,6 @@ class ClientCodeScreen extends ConsumerStatefulWidget {
   ConsumerState<ClientCodeScreen> createState() => _ClientCodeScreenState();
 }
 
-const _screenChannel = MethodChannel('app.payk.payk/screen');
-
 class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen>
     with WidgetsBindingObserver {
   Timer? _clock;
@@ -59,7 +57,6 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    unawaited(_shield(true));
     if (ref.read(sessionProvider).loggedIn) {
       Future.microtask(() {
         if (mounted) ref.invalidate(meProvider);
@@ -81,7 +78,6 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    unawaited(_shield(false));
     _clock?.cancel();
     _poll?.cancel();
     super.dispose();
@@ -100,12 +96,6 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen>
     if (deadline != null && _now().isAfter(deadline)) {
       unawaited(_loadCode());
     }
-  }
-
-  Future<void> _shield(bool on) async {
-    try {
-      await _screenChannel.invokeMethod<void>('setSecure', on);
-    } catch (_) {}
   }
 
   Future<void> _loadCode() async {

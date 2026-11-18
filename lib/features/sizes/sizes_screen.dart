@@ -104,7 +104,7 @@ class _SizesScreenState extends ConsumerState<SizesScreen> {
             color: PaykColors.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
           ),
         ),
       ),
@@ -121,7 +121,7 @@ class _SizesScreenState extends ConsumerState<SizesScreen> {
               Text(
                 tr(locale, 'sizes.lead'),
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 14,
                   height: 1.35,
                   fontWeight: FontWeight.w500,
@@ -132,7 +132,7 @@ class _SizesScreenState extends ConsumerState<SizesScreen> {
               Text(
                 tr(locale, 'sizes.tapAgain'),
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 12,
                   height: 1.35,
                   fontWeight: FontWeight.w500,
@@ -250,7 +250,7 @@ class _SizeGroup extends StatelessWidget {
                 child: Text(
                   title,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: PaykColors.textPrimary,
@@ -261,7 +261,7 @@ class _SizeGroup extends StatelessWidget {
               Text(
                 selected ?? notSetLabel,
                 style: TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: selected != null ? PaykColors.primary : PaykColors.textMuted,
@@ -316,7 +316,7 @@ class _SizeChip extends StatelessWidget {
         child: Text(
           label,
           style: TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 14,
             fontWeight: FontWeight.w700,
             color: selected ? Colors.white : PaykColors.textPrimary,

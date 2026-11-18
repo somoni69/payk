@@ -169,7 +169,7 @@ class _SizeOffersScreenState extends ConsumerState<SizeOffersScreen> {
                   tr(locale, 'sizes.codeTitle'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: PaykColors.textPrimary,
@@ -180,7 +180,7 @@ class _SizeOffersScreenState extends ConsumerState<SizeOffersScreen> {
                   tr(locale, 'sizes.codeHint'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: PaykColors.textSecondary,
@@ -198,7 +198,7 @@ class _SizeOffersScreenState extends ConsumerState<SizeOffersScreen> {
                     formatted,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 2,
@@ -292,7 +292,7 @@ class _SizeOffersScreenState extends ConsumerState<SizeOffersScreen> {
             color: PaykColors.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
           ),
         ),
       ),
@@ -448,7 +448,7 @@ class _OfferCardState extends State<_OfferCard> {
                         child: Text(
                           '-$pct%',
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
@@ -487,7 +487,7 @@ class _OfferCardState extends State<_OfferCard> {
                   Text(
                     offer.title,
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
                       color: PaykColors.textPrimary,
@@ -500,7 +500,7 @@ class _OfferCardState extends State<_OfferCard> {
                       maxLines: _expanded ? null : 4,
                       overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 14,
                         height: 1.35,
                         color: PaykColors.textSecondary,
@@ -513,7 +513,7 @@ class _OfferCardState extends State<_OfferCard> {
                         child: Text(
                           tr(locale, _expanded ? 'offers.less' : 'offers.more'),
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: PaykColors.primary,
@@ -530,7 +530,7 @@ class _OfferCardState extends State<_OfferCard> {
                           Text(
                             formatMoney(offer.originalPrice!, decimals: false),
                             style: const TextStyle(
-                              fontFamily: 'Manrope',
+                              fontFamily: 'Inter',
                               fontSize: 14,
                               color: PaykColors.textMuted,
                               decoration: TextDecoration.lineThrough,
@@ -541,7 +541,7 @@ class _OfferCardState extends State<_OfferCard> {
                         Text(
                           formatMoney(offer.discountPrice!, decimals: false),
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
                             color: PaykColors.textPrimary,
@@ -559,7 +559,7 @@ class _OfferCardState extends State<_OfferCard> {
                           ),
                         }),
                         style: const TextStyle(
-                          fontFamily: 'Manrope',
+                          fontFamily: 'Inter',
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: PaykColors.accentAmber,
@@ -584,7 +584,7 @@ class _OfferCardState extends State<_OfferCard> {
                             Text(
                               tr(locale, 'offers.issued'),
                               style: const TextStyle(
-                                fontFamily: 'Manrope',
+                                fontFamily: 'Inter',
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: PaykColors.success,
@@ -609,7 +609,7 @@ class _OfferCardState extends State<_OfferCard> {
                               Text(
                                 formatPromoCode(offer.promoCode!),
                                 style: const TextStyle(
-                                  fontFamily: 'Manrope',
+                                  fontFamily: 'Inter',
                                   fontSize: 20,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 1.5,
@@ -620,7 +620,7 @@ class _OfferCardState extends State<_OfferCard> {
                               Text(
                                 tr(locale, 'offers.showCashier'),
                                 style: const TextStyle(
-                                  fontFamily: 'Manrope',
+                                  fontFamily: 'Inter',
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: PaykColors.textSecondary,
@@ -657,7 +657,7 @@ class _OfferCardState extends State<_OfferCard> {
                           ),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: PaykColors.textMuted,
@@ -713,7 +713,7 @@ class _Badge extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontFamily: 'Manrope',
+          fontFamily: 'Inter',
           fontSize: 12,
           fontWeight: FontWeight.w700,
           color: fg,

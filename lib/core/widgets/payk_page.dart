@@ -60,7 +60,7 @@ class PaykPage extends StatelessWidget {
         title: Text(
           title,
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 22,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.4,

@@ -313,7 +313,7 @@ class _ReceiptsHeaderCard extends StatelessWidget {
                 child: Text(
                   formatMonthTitle(header.month, locale),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: PaykColors.textPrimary,
@@ -323,7 +323,7 @@ class _ReceiptsHeaderCard extends StatelessWidget {
               Text(
                 receiptsCountLabel(locale, header.bills),
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: PaykColors.primary,
@@ -412,7 +412,7 @@ class _HeaderStat extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: PaykColors.textSecondary,
@@ -422,7 +422,7 @@ class _HeaderStat extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 15,
               fontWeight: FontWeight.w800,
               color: color,
@@ -476,7 +476,7 @@ class _FilterBar extends StatelessWidget {
                   controller: controller,
                   textInputAction: TextInputAction.search,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: PaykColors.textPrimary,
@@ -499,7 +499,7 @@ class _FilterBar extends StatelessWidget {
                         : null,
                     hintText: tr(locale, 'receipts.search'),
                     hintStyle: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
                       color: PaykColors.textSecondary,
@@ -563,7 +563,7 @@ class _FilterBar extends StatelessWidget {
                       Text(
                         '$activeCount',
                         style: const TextStyle(
-                          fontFamily: 'Manrope',
+                          fontFamily: 'Inter',
                           fontSize: 13,
                           fontWeight: FontWeight.w800,
                           color: PaykColors.primary,
@@ -624,7 +624,7 @@ class _FilterBar extends StatelessWidget {
                         Text(
                           tr(locale, 'receipts.fmt'),
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: PaykColors.textSecondary,
@@ -679,7 +679,7 @@ class _FilterBar extends StatelessWidget {
                               child: Text(
                                 tr(locale, 'receipts.reset'),
                                 style: const TextStyle(
-                                  fontFamily: 'Manrope',
+                                  fontFamily: 'Inter',
                                   fontWeight: FontWeight.w700,
                                   color: PaykColors.primary,
                                 ),
@@ -726,7 +726,7 @@ class _DateButton extends StatelessWidget {
             Text(
               '$label: ',
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 color: PaykColors.textSecondary,
@@ -737,7 +737,7 @@ class _DateButton extends StatelessWidget {
                 value.isEmpty ? '—' : value,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                   color: PaykColors.textPrimary,
@@ -826,7 +826,7 @@ class _FormatTile extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
                   height: 1.2,
@@ -871,6 +871,7 @@ class _EmptyReceiptsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 42, horizontal: 24),
       decoration: BoxDecoration(
         color: PaykColors.sheet,
@@ -908,7 +909,7 @@ class _EmptyReceiptsCard extends StatelessWidget {
             tr(locale, filtered ? 'receipts.notFound' : 'receipts.empty'),
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 17,
               fontWeight: FontWeight.w700,
               color: PaykColors.textPrimary,
@@ -919,7 +920,7 @@ class _EmptyReceiptsCard extends StatelessWidget {
             tr(locale, filtered ? 'receipts.notFoundText' : 'receipts.emptyText'),
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 14,
               color: PaykColors.textSecondary,
               height: 1.4,
@@ -970,7 +971,7 @@ class _MonthHeaderRow extends StatelessWidget {
                 child: Text(
                   formatMonthTitle(monthKey, locale),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: PaykColors.textPrimary,
@@ -981,7 +982,7 @@ class _MonthHeaderRow extends StatelessWidget {
                 Text(
                   '${receiptsCountLabel(locale, s.bills)} · ${formatMoney(s.amount)}',
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: PaykColors.textSecondary,
@@ -1000,7 +1001,7 @@ class _MonthHeaderRow extends StatelessWidget {
                       'amount': '+${formatMoney(s.earned)}',
                     }),
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: PaykColors.success,
@@ -1012,7 +1013,7 @@ class _MonthHeaderRow extends StatelessWidget {
                       'amount': formatMoney(s.spent),
                     }),
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: PaykColors.textSecondary,
@@ -1072,7 +1073,7 @@ class _ReceiptRowCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                             color: PaykColors.textPrimary,
@@ -1090,7 +1091,7 @@ class _ReceiptRowCard extends StatelessWidget {
                           child: Text(
                             fmtLabel,
                             style: const TextStyle(
-                              fontFamily: 'Manrope',
+                              fontFamily: 'Inter',
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: PaykColors.primary,
@@ -1105,7 +1106,7 @@ class _ReceiptRowCard extends StatelessWidget {
                 Text(
                   formatMoney(row.amount),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: PaykColors.textPrimary,
@@ -1123,7 +1124,7 @@ class _ReceiptRowCard extends StatelessWidget {
                       '${formatShortDate(row.ts)} ${formatTime(row.ts)}',
                     ].join(' · '),
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: PaykColors.textSecondary,
@@ -1145,7 +1146,7 @@ class _ReceiptRowCard extends StatelessWidget {
                             : 'receipts.row.partial',
                       ),
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: PaykColors.danger,
@@ -1215,7 +1216,7 @@ class _RowChip extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontFamily: 'Manrope',
+          fontFamily: 'Inter',
           fontSize: 11,
           fontWeight: FontWeight.w700,
           color: color,

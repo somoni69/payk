@@ -302,7 +302,7 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen>
         title: Text(
           tr(locale, 'code.title'),
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 22,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.4,
@@ -495,7 +495,7 @@ class _CodeCard extends StatelessWidget {
           Text(
             tr(locale, 'code.digitsLabel'),
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               color: PaykColors.textSecondary,
               fontSize: 14.0,
               fontWeight: FontWeight.w500,
@@ -511,7 +511,7 @@ class _CodeCard extends StatelessWidget {
             child: Text(
               spaced,
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 36,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 2.5,
@@ -542,7 +542,7 @@ class _CodeCard extends StatelessWidget {
                   child: Text(
                     statusText,
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 14.0,
                       fontWeight: FontWeight.w500,
                       color: PaykColors.textSecondary,
@@ -588,30 +588,32 @@ class _CountdownRing extends StatelessWidget {
     final label = _countdownLabel(secondsLeft, totalSeconds);
 
     return SizedBox(
-      width: 46,
-      height: 46,
+      width: 54,
+      height: 54,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          CircularProgressIndicator(
-            value: progress,
-            backgroundColor: PaykColors.border,
-            color: PaykColors.primary,
-            strokeWidth: 3.5,
-            strokeCap: StrokeCap.round,
+          SizedBox.expand(
+            child: CircularProgressIndicator(
+              value: progress,
+              backgroundColor: PaykColors.border,
+              color: PaykColors.primary,
+              strokeWidth: 3.5,
+              strokeCap: StrokeCap.round,
+            ),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: hasHours ? 5 : 6),
+            padding: EdgeInsets.symmetric(horizontal: hasHours ? 9 : 8),
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
                 pendingText ? '…' : label,
                 maxLines: 1,
                 style: TextStyle(
-                  fontSize: hasHours ? 10.0 : (compact ? 12.0 : 15.0),
+                  fontSize: hasHours ? 10.5 : (compact ? 12.0 : 15.0),
                   fontWeight: FontWeight.w700,
                   color: PaykColors.textPrimary,
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
@@ -670,7 +672,7 @@ class _SpendChoiceCard extends StatelessWidget {
           Text(
             tr(locale, 'code.spend.title'),
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 16,
               fontWeight: FontWeight.w800,
               color: PaykColors.textPrimary,
@@ -683,7 +685,7 @@ class _SpendChoiceCard extends StatelessWidget {
                 'amount': formatMoney(wallet.balance),
               }),
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: PaykColors.textSecondary,
@@ -727,7 +729,7 @@ class _SpendChoiceCard extends StatelessWidget {
           Text(
             tr(locale, 'code.spend.${choice.spend.apiValue}Text'),
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 13,
               fontWeight: FontWeight.w500,
               height: 1.35,
@@ -748,7 +750,7 @@ class _SpendChoiceCard extends StatelessWidget {
               child: Text(
                 tr(locale, 'code.spend.debt'),
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   height: 1.35,
@@ -772,7 +774,7 @@ class _SpendChoiceCard extends StatelessWidget {
                   'amount': formatMoney(wallet.reserved),
                 }),
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   height: 1.35,
@@ -811,7 +813,7 @@ class _SpendChoiceCard extends StatelessWidget {
                                 'amount': formatMoneyAuto(coupon.amount),
                               }),
                               style: const TextStyle(
-                                fontFamily: 'Manrope',
+                                fontFamily: 'Inter',
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: PaykColors.textPrimary,
@@ -824,7 +826,7 @@ class _SpendChoiceCard extends StatelessWidget {
                                 'mins': couponMins,
                               }),
                               style: const TextStyle(
-                                fontFamily: 'Manrope',
+                                fontFamily: 'Inter',
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w500,
                                 height: 1.3,
@@ -861,7 +863,7 @@ class _SpendChoiceCard extends StatelessWidget {
           Text(
             tr(locale, 'code.spend.note'),
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 12,
               fontWeight: FontWeight.w500,
               height: 1.35,
@@ -925,7 +927,7 @@ class _SpendOptionButton extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 13,
                   height: 1.2,
                   fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
@@ -1030,7 +1032,7 @@ class _BottomCashierHint extends StatelessWidget {
                 Text(
                   tr(locale, 'code.hint'),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 16.0,
                     fontWeight: FontWeight.w700,
                     color: PaykColors.textPrimary,
@@ -1040,7 +1042,7 @@ class _BottomCashierHint extends StatelessWidget {
                 Text(
                   tr(locale, 'code.hintSub'),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 13,
                     fontWeight: FontWeight.w400,
                     color: PaykColors.textSecondary,
@@ -1051,7 +1053,7 @@ class _BottomCashierHint extends StatelessWidget {
                 Text(
                   _oneTimeHintText(locale, totalTtl),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 13,
                     fontWeight: FontWeight.w400,
                     color: PaykColors.textSecondary,

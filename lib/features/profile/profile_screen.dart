@@ -294,7 +294,7 @@ class _UserProfileHeaderCard extends StatelessWidget {
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: PaykColors.textPrimary,
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -304,7 +304,7 @@ class _UserProfileHeaderCard extends StatelessWidget {
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
                             color: PaykColors.textSecondary,
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                           ),
                         ),
                       ],
@@ -365,7 +365,7 @@ class _LoginMethodsBanner extends StatelessWidget {
                   fontSize: 17,
                   fontWeight: FontWeight.w700,
                   color: PaykColors.textPrimary,
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                 ),
               ),
               GestureDetector(
@@ -376,7 +376,7 @@ class _LoginMethodsBanner extends StatelessWidget {
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: PaykColors.primary,
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                   ),
                 ),
               ),
@@ -641,7 +641,7 @@ class _BannerSlideCard extends StatelessWidget {
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
-                              fontFamily: 'Manrope',
+                              fontFamily: 'Inter',
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -653,7 +653,7 @@ class _BannerSlideCard extends StatelessWidget {
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
                               color: Colors.white.withValues(alpha: 0.92),
-                              fontFamily: 'Manrope',
+                              fontFamily: 'Inter',
                               height: 1.25,
                             ),
                           ),
@@ -728,7 +728,7 @@ class _ProfileMenuItem extends StatelessWidget {
                         fontSize: 16.0,
                         fontWeight: FontWeight.w700,
                         color: PaykColors.textPrimary,
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                       ),
                     ),
                     if (subtitle != null) ...[
@@ -739,7 +739,7 @@ class _ProfileMenuItem extends StatelessWidget {
                           fontSize: 13,
                           fontWeight: FontWeight.w400,
                           color: PaykColors.textSecondary,
-                          fontFamily: 'Manrope',
+                          fontFamily: 'Inter',
                         ),
                       ),
                     ],
@@ -813,7 +813,7 @@ class _ProfileNotificationToggleCardState
             child: Text(
               tr(widget.locale, 'home.notificationsPrompt'),
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 14.0,
                 fontWeight: FontWeight.w600,
                 color: PaykColors.textPrimary,
@@ -873,7 +873,7 @@ void _showStoreDialog(BuildContext context, Account account, String locale) {
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: PaykColors.textPrimary,
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
               ),
             ),
             const SizedBox(height: 16),
@@ -894,7 +894,7 @@ void _showStoreDialog(BuildContext context, Account account, String locale) {
               style: TextStyle(
                 fontSize: 14,
                 color: PaykColors.textSecondary,
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 height: 1.4,
               ),
             ),
@@ -980,7 +980,7 @@ void _showStoreContactDialog(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
                             color: PaykColors.textPrimary,
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -989,7 +989,7 @@ void _showStoreContactDialog(
                           style: const TextStyle(
                             fontSize: 13,
                             color: PaykColors.textSecondary,
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                           ),
                         ),
                       ],
@@ -1136,7 +1136,7 @@ void _showAboutDialog(BuildContext context, String locale) {
                     const Text(
                       'Payk',
                       style: TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         color: PaykColors.textPrimary,
@@ -1147,7 +1147,7 @@ void _showAboutDialog(BuildContext context, String locale) {
                     Text(
                       tr(locale, 'profile.aboutLead'),
                       style: TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: PaykColors.textSecondary,
@@ -1167,7 +1167,7 @@ void _showAboutDialog(BuildContext context, String locale) {
                       child: const Text(
                         'Версия 1.0.0 (Build 1)',
                         style: TextStyle(
-                          fontFamily: 'Manrope',
+                          fontFamily: 'Inter',
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: PaykColors.textSecondary,
@@ -1262,7 +1262,7 @@ void _showAboutDialog(BuildContext context, String locale) {
                 child: Text(
                   tr(locale, 'profile.gotIt'),
                   style: TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1350,7 +1350,7 @@ class _ContactActionTile extends StatelessWidget {
                     Text(
                       title,
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: PaykColors.textPrimary,
@@ -1360,7 +1360,7 @@ class _ContactActionTile extends StatelessWidget {
                     Text(
                       subtitle,
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 12,
                         color: PaykColors.textSecondary,
                         fontWeight: FontWeight.w500,
@@ -1410,7 +1410,7 @@ class _AboutInfoRow extends StatelessWidget {
               child: Text(
                 title,
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: PaykColors.textPrimary,
@@ -1420,7 +1420,7 @@ class _AboutInfoRow extends StatelessWidget {
             Text(
               value,
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: PaykColors.primary,
@@ -1488,7 +1488,7 @@ class ProfileDetailsScreen extends ConsumerWidget {
             color: PaykColors.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
           ),
         ),
         actions: [
@@ -1806,7 +1806,7 @@ class _ContactsCard extends StatelessWidget {
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: PaykColors.primary,
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                   ),
                 ),
               ),
@@ -1911,7 +1911,7 @@ class _LoginMethodsCard extends ConsumerWidget {
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: PaykColors.textPrimary,
-                          fontFamily: 'Manrope',
+                          fontFamily: 'Inter',
                         ),
                       ),
                       Text(
@@ -1920,7 +1920,7 @@ class _LoginMethodsCard extends ConsumerWidget {
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: PaykColors.primary,
-                          fontFamily: 'Manrope',
+                          fontFamily: 'Inter',
                         ),
                       ),
                     ],

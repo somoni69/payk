@@ -62,7 +62,7 @@ class AlmosiStoreScreen extends ConsumerWidget {
         title: Text(
           tr(locale, 'store.almosiTitle'),
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: PaykColors.textPrimary,
@@ -103,7 +103,7 @@ class AlmosiStoreScreen extends ConsumerWidget {
                 Text(
                   tr(locale, 'store.directionsTitle'),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
                     color: PaykColors.textPrimary,
@@ -113,7 +113,7 @@ class AlmosiStoreScreen extends ConsumerWidget {
                 Text(
                   tr(locale, 'store.directionsSub'),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     height: 1.35,
@@ -230,7 +230,7 @@ class _DirectionCard extends StatelessWidget {
                     Text(
                       title,
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 17,
                         fontWeight: FontWeight.w800,
                         color: PaykColors.textPrimary,
@@ -240,7 +240,7 @@ class _DirectionCard extends StatelessWidget {
                     Text(
                       subtitle,
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: PaykColors.textSecondary,
@@ -300,7 +300,7 @@ class _RateChip extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontFamily: 'Manrope',
+          fontFamily: 'Inter',
           fontSize: 12,
           fontWeight: FontWeight.w700,
           color: highlight ? PaykColors.primary : PaykColors.textSecondary,
@@ -359,7 +359,7 @@ class AlmosiDirectionScreen extends ConsumerWidget {
         title: Text(
           title,
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: PaykColors.textPrimary,
@@ -439,7 +439,7 @@ class AlmosiDirectionScreen extends ConsumerWidget {
                               Text(
                                 '${tr(locale, 'store.label')} «${tr(locale, 'store.brand')}»',
                                 style: const TextStyle(
-                                  fontFamily: 'Manrope',
+                                  fontFamily: 'Inter',
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   color: PaykColors.primary,
@@ -449,7 +449,7 @@ class AlmosiDirectionScreen extends ConsumerWidget {
                               Text(
                                 subtitle,
                                 style: const TextStyle(
-                                  fontFamily: 'Manrope',
+                                  fontFamily: 'Inter',
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800,
                                   color: PaykColors.textPrimary,
@@ -478,7 +478,7 @@ class AlmosiDirectionScreen extends ConsumerWidget {
                                 child: Text(
                                   tr(locale, 'store.yourStatus'),
                                   style: const TextStyle(
-                                    fontFamily: 'Manrope',
+                                    fontFamily: 'Inter',
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                     color: PaykColors.textSecondary,
@@ -498,7 +498,7 @@ class AlmosiDirectionScreen extends ConsumerWidget {
                           Text(
                             '${tr(locale, 'store.monthInStore')}: ${formatMoney(monthSpend, decimals: false)}',
                             style: const TextStyle(
-                              fontFamily: 'Manrope',
+                              fontFamily: 'Inter',
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                               color: PaykColors.textPrimary,
@@ -619,7 +619,7 @@ class _TierBadge extends StatelessWidget {
       child: Text(
         label,
         style: const TextStyle(
-          fontFamily: 'Manrope',
+          fontFamily: 'Inter',
           fontSize: 13,
           fontWeight: FontWeight.w800,
           color: Colors.white,
@@ -665,7 +665,7 @@ class _MetricTile extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 12,
                 height: 1.3,
                 fontWeight: FontWeight.w700,
@@ -681,7 +681,7 @@ class _MetricTile extends StatelessWidget {
               value,
               maxLines: 1,
               style: TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.3,
@@ -693,7 +693,7 @@ class _MetricTile extends StatelessWidget {
           Text(
             hint,
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 11.5,
               fontWeight: FontWeight.w500,
               height: 1.3,
@@ -746,7 +746,7 @@ class _PrinciplesCard extends StatelessWidget {
                 child: Text(
                   title,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     color: PaykColors.textPrimary,
@@ -775,7 +775,7 @@ class _PrinciplesCard extends StatelessWidget {
                   child: Text(
                     items[i],
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 13.5,
                       fontWeight: FontWeight.w500,
                       height: 1.4,
@@ -860,7 +860,7 @@ class _DirectionTiersCard extends StatelessWidget {
               Text(
                 tr(locale, 'store.allTiersTitle'),
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: PaykColors.textPrimary,
@@ -929,7 +929,7 @@ class _TierRow extends StatelessWidget {
                     Text(
                       label,
                       style: TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
                         color: isCurrent
@@ -951,7 +951,7 @@ class _TierRow extends StatelessWidget {
                         child: Text(
                           tr(locale, 'store.currentBadge'),
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 10.5,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -965,7 +965,7 @@ class _TierRow extends StatelessWidget {
                 Text(
                   threshold,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: PaykColors.textSecondary,
@@ -983,7 +983,7 @@ class _TierRow extends StatelessWidget {
                   'pct': formatPercent(rate.earn),
                 }),
                 style: TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                   color: isCurrent
@@ -997,7 +997,7 @@ class _TierRow extends StatelessWidget {
                   'pct': formatPercent(rate.burnCap),
                 }),
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
                   color: PaykColors.textSecondary,

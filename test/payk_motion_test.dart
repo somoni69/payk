@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -265,6 +266,58 @@ void main() {
       expect(fade.opacity.value, closeTo(1.0, 0.001));
 
       await tester.pumpAndSettle();
+    });
+
+    testWidgets(
+      'iOS edge swipe-back pops GoRouter and Navigator routes pushed via PaykMotion',
+      variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+      (tester) async {
+      expect(
+        PaykMotion.pageTransitionsTheme.builders[TargetPlatform.iOS],
+        isA<CupertinoPageTransitionsBuilder>(),
+      );
+      expect(
+        PaykMotion.pageTransitionsTheme.builders[TargetPlatform.android],
+        isA<PaykPageTransitionsBuilder>(),
+      );
+
+      final router = GoRouter(
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => PaykMotion.push(context, '/details'),
+                  child: const Text('Open Details'),
+                ),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/details',
+            pageBuilder: (context, state) => PaykMotion.buildPage(
+              state: state,
+              child: const Scaffold(body: Center(child: Text('iOS Swipe Target'))),
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Open Details'));
+      await tester.pumpAndSettle();
+      expect(find.text('iOS Swipe Target'), findsOneWidget);
+
+      // Системный свайп с левого края экрана вправо (iOS interactive pop gesture)
+      await tester.dragFrom(const Offset(5, 300), const Offset(500, 0));
+      await tester.pumpAndSettle();
+
+      expect(find.text('iOS Swipe Target'), findsNothing);
+      expect(find.text('Open Details'), findsOneWidget);
     });
   });
 

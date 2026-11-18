@@ -484,7 +484,7 @@ class _StatusPill extends StatelessWidget {
   }
 }
 
-/// Системный шрифт. Manrope с темы сюда не проходит: `inherit: false`.
+/// Системный шрифт. Inter с темы сюда не проходит: `inherit: false`.
 TextStyle _cardText({
   required Color color,
   required double size,

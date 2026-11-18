@@ -91,7 +91,7 @@ class HomeHeader extends StatelessWidget {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
-                                      fontFamily: 'Manrope',
+                                      fontFamily: 'Inter',
                                       fontSize: 15.0,
                                       fontWeight: FontWeight.w700,
                                       letterSpacing: -0.1,
@@ -102,7 +102,7 @@ class HomeHeader extends StatelessWidget {
                                   Text(
                                     tr(locale, 'home.welcomeBack'),
                                     style: const TextStyle(
-                                      fontFamily: 'Manrope',
+                                      fontFamily: 'Inter',
                                       fontSize: 12.0,
                                       fontWeight: FontWeight.w500,
                                       color: PaykColors.textOnHeaderSubtitle,

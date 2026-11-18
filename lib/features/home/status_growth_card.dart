@@ -65,7 +65,7 @@ class StatusGrowthCard extends StatelessWidget {
                     ? Text(
                         '${tr(locale, 'home.monthSpend')}: ${formatMoney(wallet.spendMonth, decimals: false)}',
                         style: const TextStyle(
-                          fontFamily: 'Manrope',
+                          fontFamily: 'Inter',
                           fontSize: 13.5,
                           fontWeight: FontWeight.w700,
                           color: PaykColors.textPrimary,
@@ -78,7 +78,7 @@ class StatusGrowthCard extends StatelessWidget {
                           Text(
                             tr(locale, 'home.monthSpend'),
                             style: const TextStyle(
-                              fontFamily: 'Manrope',
+                              fontFamily: 'Inter',
                               fontSize: 12.5,
                               fontWeight: FontWeight.w600,
                               color: PaykColors.textSecondary,
@@ -88,7 +88,7 @@ class StatusGrowthCard extends StatelessWidget {
                           Text(
                             formatMoney(wallet.spendMonth, decimals: false),
                             style: const TextStyle(
-                              fontFamily: 'Manrope',
+                              fontFamily: 'Inter',
                               fontSize: 19,
                               fontWeight: FontWeight.w800,
                               color: PaykColors.textPrimary,
@@ -111,7 +111,7 @@ class StatusGrowthCard extends StatelessWidget {
                 child: Text(
                   daysText,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: PaykColors.textSecondary,
@@ -160,7 +160,7 @@ class StatusGrowthCard extends StatelessWidget {
                 'gap': formatMoneyWhole(up.gap),
               }),
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 height: 1.3,
@@ -175,7 +175,7 @@ class StatusGrowthCard extends StatelessWidget {
                   'amount': formatMoneyWhole(up.perDay),
                 }),
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                   color: PaykColors.textSecondary,
@@ -196,7 +196,7 @@ class StatusGrowthCard extends StatelessWidget {
                   child: Text(
                     tr(locale, 'home.topTier'),
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: PaykColors.primary,
@@ -236,7 +236,7 @@ class StatusGrowthCard extends StatelessWidget {
                           }),
                       ].join(' · '),
                 style: TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
                   height: 1.35,
@@ -253,7 +253,7 @@ class StatusGrowthCard extends StatelessWidget {
             Text(
               tr(locale, 'store.monthlyNote'),
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 12.5,
                 fontWeight: FontWeight.w500,
                 height: 1.35,

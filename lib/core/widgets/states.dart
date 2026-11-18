@@ -111,7 +111,7 @@ class EmptyState extends StatelessWidget {
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.3,
@@ -125,7 +125,7 @@ class EmptyState extends StatelessWidget {
                 body,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   color: PaykColors.textSecondary,
                   fontWeight: FontWeight.w500,
                   fontSize: 14,
@@ -149,7 +149,7 @@ class EmptyState extends StatelessWidget {
                 child: Text(
                   actionLabel!,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),

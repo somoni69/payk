@@ -163,7 +163,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: PaykColors.textPrimary,
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
           ),
         ),
         bottom: PreferredSize(
@@ -224,7 +224,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
                               color: PaykColors.textPrimary,
-                              fontFamily: 'Manrope',
+                              fontFamily: 'Inter',
                             ),
                           ),
                           const SizedBox(height: 2),
@@ -233,7 +233,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
                             style: const TextStyle(
                               fontSize: 14.0,
                               color: PaykColors.textSecondary,
-                              fontFamily: 'Manrope',
+                              fontFamily: 'Inter',
                             ),
                           ),
                         ],
@@ -283,7 +283,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
                                   color: PaykColors.textPrimary,
-                                  fontFamily: 'Manrope',
+                                  fontFamily: 'Inter',
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -294,7 +294,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
                                 style: const TextStyle(
                                   fontSize: 14.0,
                                   color: PaykColors.textSecondary,
-                                  fontFamily: 'Manrope',
+                                  fontFamily: 'Inter',
                                   height: 1.3,
                                 ),
                               ),
@@ -344,7 +344,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w700,
                                       fontSize: 15,
-                                      fontFamily: 'Manrope',
+                                      fontFamily: 'Inter',
                                     ),
                                   ),
                           ),
@@ -371,7 +371,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,
-                                fontFamily: 'Manrope',
+                                fontFamily: 'Inter',
                               ),
                             ),
                           ),
@@ -403,7 +403,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
                                       style: const TextStyle(
                                         color: PaykColors.primary,
                                         fontWeight: FontWeight.w700,
-                                        fontFamily: 'Manrope',
+                                        fontFamily: 'Inter',
                                       ),
                                     ),
                             ),
@@ -427,7 +427,7 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
                                 style: const TextStyle(
                                   fontSize: 13.0,
                                   color: PaykColors.textSecondary,
-                                  fontFamily: 'Manrope',
+                                  fontFamily: 'Inter',
                                   height: 1.35,
                                 ),
                               ),

@@ -1,3 +1,5 @@
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -111,24 +113,37 @@ abstract final class PaykMotion {
   // ===========================================================================
 
   /// Глобальная тема переходов для `ThemeData.pageTransitionsTheme`.
-  /// Гарантирует единую плавную анимацию для всех `MaterialPageRoute` на всех платформах.
+  /// На iOS/macOS использует системный переход Cupertino с edge-swipe назад,
+  /// на остальных платформах — фирменный композиторный переход Payk.
   static const PageTransitionsTheme pageTransitionsTheme = PageTransitionsTheme(
     builders: {
       TargetPlatform.android: PaykPageTransitionsBuilder(),
-      TargetPlatform.iOS: PaykPageTransitionsBuilder(),
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
       TargetPlatform.windows: PaykPageTransitionsBuilder(),
-      TargetPlatform.macOS: PaykPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
       TargetPlatform.linux: PaykPageTransitionsBuilder(),
       TargetPlatform.fuchsia: PaykPageTransitionsBuilder(),
     },
   );
 
+  static bool get _useCupertinoSwipeBack =>
+      defaultTargetPlatform == TargetPlatform.iOS ||
+      defaultTargetPlatform == TargetPlatform.macOS;
+
   /// Строит плавный пространственный переход для `GoRoute` (push/pop).
-  /// Использует исключительно GPU-свойства `transform` (translate + scale) и `opacity`.
-  static CustomTransitionPage<T> buildPage<T>({
+  /// На iOS/macOS возвращает `CupertinoPage` для нативного системного свайпа назад от края экрана.
+  /// На остальных платформах использует GPU-свойства `transform` и `opacity`.
+  static Page<T> buildPage<T>({
     required GoRouterState state,
     required Widget child,
   }) {
+    if (_useCupertinoSwipeBack) {
+      return CupertinoPage<T>(
+        key: state.pageKey,
+        name: state.name ?? state.path,
+        child: child,
+      );
+    }
     return CustomTransitionPage<T>(
       key: state.pageKey,
       name: state.name ?? state.path,
@@ -155,11 +170,17 @@ abstract final class PaykMotion {
     );
   }
 
-  /// Создаёт `PageRoute` с фирменной плавной анимацией Payk (для прямого `Navigator.push`).
-  static PageRouteBuilder<T> route<T>(
+  /// Создаёт `PageRoute` с нативным свайпом назад на iOS и фирменной анимацией Payk на Android.
+  static PageRoute<T> route<T>(
     Widget pageWidget, {
     RouteSettings? settings,
   }) {
+    if (_useCupertinoSwipeBack) {
+      return CupertinoPageRoute<T>(
+        settings: settings,
+        builder: (context) => pageWidget,
+      );
+    }
     return PageRouteBuilder<T>(
       settings: settings,
       transitionDuration: page,

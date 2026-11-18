@@ -105,7 +105,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         title: Text(
           tr(locale, 'home.notifications'),
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: PaykColors.textPrimary,
@@ -292,7 +292,7 @@ class _NotificationCard extends StatelessWidget {
                     Text(
                       _kindTitle(),
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         color: PaykColors.textPrimary,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -302,7 +302,7 @@ class _NotificationCard extends StatelessWidget {
                     Text(
                       formatDate(item.createdAt),
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         color: PaykColors.textSecondary,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -326,7 +326,7 @@ class _NotificationCard extends StatelessWidget {
           Text(
             item.text,
             style: TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 15,
               fontWeight: isUnread ? FontWeight.w700 : FontWeight.w500,
               height: 1.4,
@@ -350,7 +350,7 @@ class _NotificationCard extends StatelessWidget {
                     Text(
                       tr(locale, 'messages.openOffers'),
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: PaykColors.primary,

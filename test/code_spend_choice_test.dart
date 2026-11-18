@@ -514,6 +514,12 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('6:00:00'), findsOneWidget);
+        final ringRect = tester.getRect(find.byType(CircularProgressIndicator));
+        final labelRect = tester.getRect(find.text('6:00:00'));
+        expect(ringRect.width, greaterThanOrEqualTo(52));
+        expect(ringRect.height, greaterThanOrEqualTo(52));
+        expect(labelRect.left - ringRect.left, greaterThanOrEqualTo(6));
+        expect(ringRect.right - labelRect.right, greaterThanOrEqualTo(6));
         expect(find.text('Код обновится через 6:00:00'), findsOneWidget);
         expect(
           find.text('Каждый код одноразовый и действует 6 часов'),

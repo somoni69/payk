@@ -97,12 +97,12 @@ void main() {
   group('UDC Design System — Theme Configuration (PaykTheme.light)', () {
     final theme = PaykTheme.light;
 
-    test('Theme basic properties configure Material 3 and Manrope font', () {
+    test('Theme basic properties configure Material 3 and Inter font', () {
       expect(theme.useMaterial3, isTrue);
       expect(theme.brightness, equals(Brightness.light));
       expect(theme.scaffoldBackgroundColor, equals(PaykColors.canvas));
-      expect(theme.textTheme.bodyMedium?.fontFamily, equals('Manrope'));
-      expect(theme.textTheme.titleLarge?.fontFamily, equals('Manrope'));
+      expect(theme.textTheme.bodyMedium?.fontFamily, equals('Inter'));
+      expect(theme.textTheme.titleLarge?.fontFamily, equals('Inter'));
     });
 
     test('ColorScheme properly binds UDC tokens', () {
@@ -124,7 +124,7 @@ void main() {
       expect(shape.side.width, equals(1.0));
     });
 
-    test('Button themes enforce Manrope font, 16dp radius and proper colors', () {
+    test('Button themes enforce Inter font, 16dp radius and proper colors', () {
       final filledStyle = theme.filledButtonTheme.style;
       expect(filledStyle, isNotNull);
       final shape = filledStyle!.shape?.resolve({}) as RoundedRectangleBorder?;
@@ -136,11 +136,11 @@ void main() {
       expect(outlinedShape?.borderRadius, equals(BorderRadius.circular(16.0)));
     });
 
-    test('InputDecorationTheme configures clean borders and Manrope hint', () {
+    test('InputDecorationTheme configures clean borders and Inter hint', () {
       final inputTheme = theme.inputDecorationTheme;
       expect(inputTheme.filled, isTrue);
       expect(inputTheme.fillColor, equals(PaykColors.sheet));
-      expect(inputTheme.hintStyle?.fontFamily, equals('Manrope'));
+      expect(inputTheme.hintStyle?.fontFamily, equals('Inter'));
       expect(inputTheme.hintStyle?.color, equals(PaykColors.textSecondary));
       expect(inputTheme.border, isA<OutlineInputBorder>());
       final border = inputTheme.border as OutlineInputBorder;

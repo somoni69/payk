@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'payk_colors.dart';
 
-/// Единая типографическая дизайн-система Payk (iOS HIG / Material 3 & Manrope).
+/// Единая типографическая дизайн-система Payk (iOS HIG / Material 3 & Inter).
 ///
 /// Устраняет дробные и случайные размеры шрифтов, обеспечивая строгую
 /// иерархию, выверенный line-height (высоту строки) и letterSpacing (межбуквенный интервал).
 abstract final class PaykTypography {
-  static const String fontFamily = 'Manrope';
+  static const String fontFamily = 'Inter';
 
   // ---------------------------------------------------------------------------
   // 1. КАНОНИЧЕСКИЕ РАЗМЕРЫ ШРИФТОВ (FONT SIZE TOKENS)

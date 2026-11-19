@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,6 +14,7 @@ import '../../core/motion/payk_motion.dart';
 import '../../core/size_offers_logic.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/message.dart';
+import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/payk_avatar.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
@@ -263,7 +263,7 @@ class _BirthdayCouponCard extends StatelessWidget {
           Text(
             tr(locale, 'home.couponTitle'),
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 16,
               fontWeight: FontWeight.w800,
             ),
@@ -278,7 +278,7 @@ class _BirthdayCouponCard extends StatelessWidget {
                 }),
             ].join(' · '),
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 14,
               fontWeight: FontWeight.w700,
               color: PaykColors.primary,
@@ -351,7 +351,7 @@ class _DobPromptCard extends StatelessWidget {
             Text(
               tr(locale, 'home.dobPrompt', {'bonus': '+${formatMoney(bonus)}'}),
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
                 height: 1.3,
@@ -428,7 +428,7 @@ class _InviteFriendsCard extends StatelessWidget {
           Text(
             tr(locale, 'home.inviteFriends'),
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 16,
               fontWeight: FontWeight.w800,
               color: PaykColors.textPrimary,
@@ -456,7 +456,7 @@ class _InviteFriendsCard extends StatelessWidget {
                     child: Text(
                       displayCode,
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.2,
@@ -551,7 +551,7 @@ class _NotificationToggleCardState
             child: Text(
               tr(widget.locale, 'home.notificationsPrompt'),
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 14.0,
                 fontWeight: FontWeight.w600,
                 color: PaykColors.textPrimary,
@@ -652,7 +652,7 @@ class _StoreRateCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 14.0,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 0.2,
@@ -668,7 +668,7 @@ class _StoreRateCard extends StatelessWidget {
                                   'pct': cashbackPercent,
                                 }),
                                 style: const TextStyle(
-                                  fontFamily: 'Manrope',
+                                  fontFamily: 'Inter',
                                   fontSize: 12.0,
                                   fontWeight: FontWeight.w700,
                                   color: PaykColors.primary,
@@ -686,7 +686,7 @@ class _StoreRateCard extends StatelessWidget {
                                   'pct': burnCapPercent,
                                 }),
                                 style: const TextStyle(
-                                  fontFamily: 'Manrope',
+                                  fontFamily: 'Inter',
                                   fontSize: 12.0,
                                   fontWeight: FontWeight.w500,
                                   color: PaykColors.textSecondary,
@@ -814,7 +814,7 @@ void _openCompaniesModal(BuildContext context, Account account, String locale) {
                   child: Text(
                     tr(locale, 'home.companies'),
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
                       letterSpacing: -0.3,
@@ -864,7 +864,7 @@ void _openCompaniesModal(BuildContext context, Account account, String locale) {
                         Text(
                           tr(locale, 'home.bonusBalance'),
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: PaykColors.textSecondary,
@@ -874,7 +874,7 @@ void _openCompaniesModal(BuildContext context, Account account, String locale) {
                         Text(
                           '${formatNumber(wallet.balance)} смн',
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.3,
@@ -891,7 +891,7 @@ void _openCompaniesModal(BuildContext context, Account account, String locale) {
             Text(
               tr(locale, 'home.stores'),
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.2,
@@ -1036,14 +1036,11 @@ void _openCertificatesModal(
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: PaykColors.primary,
+                          color: PaykColors.activePill,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(
-                          Icons.card_giftcard_rounded,
-                          color: Colors.white,
-                          size: 24,
-                        ),
+                        alignment: Alignment.center,
+                        child: const Ticket3dIcon(size: 30),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -1089,11 +1086,7 @@ void _openCertificatesModal(
                   ),
                   child: Column(
                     children: [
-                      const Icon(
-                        Icons.confirmation_number_outlined,
-                        size: 40,
-                        color: PaykColors.textMuted,
-                      ),
+                      const Ticket3dIcon(size: 48),
                       const SizedBox(height: 8),
                       Text(
                         tr(locale, 'home.noCoupons'),
@@ -1154,16 +1147,11 @@ class _HomeOffersSectionState extends ConsumerState<_HomeOffersSection> {
   }
 
   void _openAll(BuildContext context, {int? focusId}) {
-    final router = GoRouter.maybeOf(context);
-    if (router != null) {
-      router.push(focusId != null ? '/size-offers?focus=$focusId' : '/size-offers');
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => SizeOffersScreen(focusOfferId: focusId),
-        ),
-      );
-    }
+    PaykMotion.push<void>(
+      context,
+      focusId != null ? '/size-offers?focus=$focusId' : '/size-offers',
+      fallback: () => SizeOffersScreen(focusOfferId: focusId),
+    );
   }
 
   @override
@@ -1196,7 +1184,7 @@ class _HomeOffersSectionState extends ConsumerState<_HomeOffersSection> {
                 child: Text(
                   tr(locale, 'home.offers'),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     color: PaykColors.textPrimary,
@@ -1211,7 +1199,7 @@ class _HomeOffersSectionState extends ConsumerState<_HomeOffersSection> {
                     Text(
                       '${tr(locale, 'home.offersAll')} (${activeOffers.length})',
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: PaykColors.primary,
@@ -1266,44 +1254,49 @@ class _HomeOfferTile extends StatelessWidget {
     final left = offer.remainingAt(now);
     final hasCode = offer.claimed && (offer.promoCode ?? '').isNotEmpty;
 
-    return PaykPressable(
-      scaleDown: PaykMotion.scaleSubtle,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: PaykColors.sheet,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: PaykColors.border),
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: SizedBox(
-                width: 60,
-                height: 60,
-                child: photo != null
-                    ? Image.network(
-                        photo,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => Container(
+    return RepaintBoundary(
+      child: PaykPressable(
+        scaleDown: PaykMotion.scaleSubtle,
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: PaykColors.sheet,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: PaykColors.border),
+          ),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: SizedBox(
+                  width: 60,
+                  height: 60,
+                  child: photo != null
+                      ? Image.network(
+                          photo,
+                          fit: BoxFit.cover,
+                          cacheWidth:
+                              (60 * MediaQuery.devicePixelRatioOf(context))
+                                  .round()
+                                  .clamp(120, 240),
+                          errorBuilder: (_, _, _) => Container(
+                            color: PaykColors.tile,
+                            child: const Icon(
+                              Icons.local_offer_outlined,
+                              color: PaykColors.primary,
+                            ),
+                          ),
+                        )
+                      : Container(
                           color: PaykColors.tile,
                           child: const Icon(
                             Icons.local_offer_outlined,
                             color: PaykColors.primary,
                           ),
                         ),
-                      )
-                    : Container(
-                        color: PaykColors.tile,
-                        child: const Icon(
-                          Icons.local_offer_outlined,
-                          color: PaykColors.primary,
-                        ),
-                      ),
+                ),
               ),
-            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -1322,7 +1315,7 @@ class _HomeOfferTile extends StatelessWidget {
                         child: Text(
                           sizeLabel,
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                             color: PaykColors.primary,
@@ -1339,7 +1332,7 @@ class _HomeOfferTile extends StatelessWidget {
                           child: Text(
                             '-$pct%',
                             style: const TextStyle(
-                              fontFamily: 'Manrope',
+                              fontFamily: 'Inter',
                               fontSize: 11,
                               fontWeight: FontWeight.w800,
                               color: PaykColors.danger,
@@ -1354,7 +1347,7 @@ class _HomeOfferTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: PaykColors.textPrimary,
@@ -1367,7 +1360,7 @@ class _HomeOfferTile extends StatelessWidget {
                         Text(
                           formatMoney(offer.discountPrice!, decimals: false),
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
                             color: PaykColors.textPrimary,
@@ -1379,7 +1372,7 @@ class _HomeOfferTile extends StatelessWidget {
                         Text(
                           '${tr(locale, 'offers.code')}: ${formatPromoCode(offer.promoCode!)}',
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: PaykColors.primary,
@@ -1392,7 +1385,7 @@ class _HomeOfferTile extends StatelessWidget {
                             tr(locale, 'offers.dayShort'),
                           ),
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: PaykColors.accentAmber,
@@ -1402,7 +1395,7 @@ class _HomeOfferTile extends StatelessWidget {
                         Text(
                           tr(locale, 'offers.claim'),
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: PaykColors.primary,
@@ -1419,6 +1412,7 @@ class _HomeOfferTile extends StatelessWidget {
               size: 20,
             ),
           ],
+        ),
         ),
       ),
     );
@@ -1474,14 +1468,11 @@ class _SizesHintCardState extends State<_SizesHintCard> {
   }
 
   void _openSizes(BuildContext context) {
-    final router = GoRouter.maybeOf(context);
-    if (router != null) {
-      router.push('/sizes');
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const SizesScreen()),
-      );
-    }
+    PaykMotion.push<void>(
+      context,
+      '/sizes',
+      fallback: () => const SizesScreen(),
+    );
   }
 
   @override
@@ -1523,7 +1514,7 @@ class _SizesHintCardState extends State<_SizesHintCard> {
                     Text(
                       tr(locale, 'home.sizesHint'),
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: PaykColors.textPrimary,
@@ -1533,7 +1524,7 @@ class _SizesHintCardState extends State<_SizesHintCard> {
                     Text(
                       tr(locale, 'home.sizesHintText'),
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: PaykColors.textSecondary,

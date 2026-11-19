@@ -170,7 +170,7 @@ class _FriendsBody extends StatelessWidget {
                                   child: Text(
                                     tr(locale, 'friends.heroTitle'),
                                     style: const TextStyle(
-                                      fontFamily: 'Manrope',
+                                      fontFamily: 'Inter',
                                       fontSize: 28,
                                       fontWeight: FontWeight.w800,
                                       color: Colors.white,
@@ -189,7 +189,7 @@ class _FriendsBody extends StatelessWidget {
                                       'months': '${friends.months}',
                                     }),
                                     style: TextStyle(
-                                      fontFamily: 'Manrope',
+                                      fontFamily: 'Inter',
                                       fontSize: 14.0,
                                       fontWeight: FontWeight.w500,
                                       color: Colors.white.withValues(alpha: 0.92),
@@ -226,7 +226,7 @@ class _FriendsBody extends StatelessWidget {
                     Text(
                       tr(locale, 'friends.yourCode'),
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: PaykColors.textSecondary,
@@ -258,7 +258,7 @@ class _FriendsBody extends StatelessWidget {
                               child: Text(
                                 friends.code,
                                 style: const TextStyle(
-                                  fontFamily: 'Manrope',
+                                  fontFamily: 'Inter',
                                   fontSize: 24,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 1.8,
@@ -307,7 +307,7 @@ class _FriendsBody extends StatelessWidget {
                            label: Text(
                              tr(locale, 'friends.share'),
                              style: const TextStyle(
-                               fontFamily: 'Manrope',
+                               fontFamily: 'Inter',
                                fontSize: 16,
                                fontWeight: FontWeight.w700,
                              ),
@@ -376,7 +376,7 @@ class _FriendsBody extends StatelessWidget {
           child: Text(
           tr(locale, 'friends.list'),
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 18,
             fontWeight: FontWeight.w800,
             color: PaykColors.textPrimary,
@@ -447,7 +447,7 @@ class _StatCard extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 13,
               fontWeight: FontWeight.w500,
               color: PaykColors.textSecondary,
@@ -457,7 +457,7 @@ class _StatCard extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: isIncome ? PaykColors.success : PaykColors.textPrimary,
@@ -504,7 +504,7 @@ class _EmptyFriends extends StatelessWidget {
             tr(locale, 'friends.empty'),
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: PaykColors.textPrimary,
@@ -515,7 +515,7 @@ class _EmptyFriends extends StatelessWidget {
             tr(locale, 'friends.emptyText'),
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: PaykColors.textSecondary,
@@ -589,7 +589,7 @@ class _InviteeRow extends StatelessWidget {
               child: Text(
                 initial,
                 style: TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
                   color: own ? PaykColors.primary : PaykColors.textSecondary,
@@ -605,7 +605,7 @@ class _InviteeRow extends StatelessWidget {
                 Text(
                   invitee.firstName,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                     color: PaykColors.textPrimary,
@@ -623,7 +623,7 @@ class _InviteeRow extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 13,
                             color: PaykColors.textSecondary,
                             fontFeatures: [FontFeature.tabularFigures()],
@@ -637,7 +637,7 @@ class _InviteeRow extends StatelessWidget {
                 Text(
                   '${own ? tr(locale, 'friends.level2') : tr(locale, 'friends.level3')} · ${tr(locale, 'friends.activeUntil', {'date': formatShortDate(invitee.activeUntil)})}',
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 12,
                     color: PaykColors.textMuted,
                   ),
@@ -649,7 +649,7 @@ class _InviteeRow extends StatelessWidget {
           Text(
             formatMoney(invitee.earned, signed: true),
             style: TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 15,
               fontWeight: FontWeight.w700,
               color: invitee.earned > 0

@@ -131,6 +131,7 @@ class _Mark extends StatelessWidget {
       'assets/images/payk_icon.png',
       width: 260,
       height: 260,
+      cacheWidth: 520,
       fit: BoxFit.contain,
       semanticLabel: 'PAYK',
     );

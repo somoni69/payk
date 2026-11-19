@@ -50,7 +50,7 @@ class _QueuedCodeApi extends Fake implements LoyaltyApi {
     _seq++;
     final spend = choice?.spend ?? initialSpend;
     final coupon = choice?.coupon ?? initialCoupon;
-    final digits = (42447990 + _seq).toString();
+    final digits = (424790 + _seq).toString();
     return Future.value(
       CashierCode(
         qr: 'PAYK-L:tok_$_seq',
@@ -190,7 +190,7 @@ void main() {
           return http.Response(
             jsonEncode({
               'qr': 'PAYK-L:abc',
-              'code': '12345678',
+              'code': '123456',
               'issued_at': '2026-11-16T10:00:00Z',
               'expires_at': '2026-11-16T10:00:40Z',
               'ttl': 40,
@@ -514,6 +514,12 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('6:00:00'), findsOneWidget);
+        final ringRect = tester.getRect(find.byType(CircularProgressIndicator));
+        final labelRect = tester.getRect(find.text('6:00:00'));
+        expect(ringRect.width, greaterThanOrEqualTo(52));
+        expect(ringRect.height, greaterThanOrEqualTo(52));
+        expect(labelRect.left - ringRect.left, greaterThanOrEqualTo(6));
+        expect(ringRect.right - labelRect.right, greaterThanOrEqualTo(6));
         expect(find.text('Код обновится через 6:00:00'), findsOneWidget);
         expect(
           find.text('Каждый код одноразовый и действует 6 часов'),

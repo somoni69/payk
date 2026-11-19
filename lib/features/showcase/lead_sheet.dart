@@ -116,7 +116,7 @@ class _PaykLeadSheetState extends ConsumerState<PaykLeadSheet> {
         Text(
           tr(locale, 'payk.sheetTitle'),
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 20,
             fontWeight: FontWeight.w800,
             height: 1.2,
@@ -127,7 +127,7 @@ class _PaykLeadSheetState extends ConsumerState<PaykLeadSheet> {
         Text(
           tr(locale, 'payk.sheetText'),
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 15,
             fontWeight: FontWeight.w500,
             height: 1.45,
@@ -151,7 +151,7 @@ class _PaykLeadSheetState extends ConsumerState<PaykLeadSheet> {
             ],
           ),
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 15,
             fontWeight: FontWeight.w600,
             color: PaykColors.textSecondary,
@@ -166,7 +166,7 @@ class _PaykLeadSheetState extends ConsumerState<PaykLeadSheet> {
           textCapitalization: TextCapitalization.sentences,
           textInputAction: TextInputAction.send,
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -232,7 +232,7 @@ class _PaykLeadSheetState extends ConsumerState<PaykLeadSheet> {
           tr(locale, sent ? 'payk.doneTitle' : 'payk.alreadyTitle'),
           textAlign: TextAlign.center,
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 22,
             fontWeight: FontWeight.w800,
             height: 1.2,
@@ -246,7 +246,7 @@ class _PaykLeadSheetState extends ConsumerState<PaykLeadSheet> {
           }),
           textAlign: TextAlign.center,
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 15,
             fontWeight: FontWeight.w500,
             height: 1.45,
@@ -326,7 +326,7 @@ class _ContactCard extends StatelessWidget {
                 Text(
                   tr(locale, 'payk.callTo'),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: PaykColors.textSecondary,
@@ -338,7 +338,7 @@ class _ContactCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: PaykColors.textPrimary,
@@ -348,7 +348,7 @@ class _ContactCard extends StatelessWidget {
                   phone,
                   maxLines: 1,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: PaykColors.textPrimary,

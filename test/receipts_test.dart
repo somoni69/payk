@@ -231,5 +231,27 @@ void main() {
     expect(searchRect.right, 784.0);
     expect(tabBarRect.left, greaterThanOrEqualTo(searchRect.left));
     expect(billsTabRect.right, lessThanOrEqualTo(searchRect.right));
+
+    Finder emptyCardFinder(String title) => find.ancestor(
+      of: find.text(title),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is Container &&
+            w.decoration is BoxDecoration &&
+            (w.decoration as BoxDecoration).border != null,
+      ),
+    ).first;
+
+    final emptyAllRect = tester.getRect(emptyCardFinder('Операций пока нет'));
+    expect(emptyAllRect.left, 16.0);
+    expect(emptyAllRect.right, 784.0);
+
+    await tester.tap(find.text('Кэшбэк'));
+    await tester.pumpAndSettle();
+
+    final emptyFilteredRect = tester.getRect(emptyCardFinder('Ничего не найдено'));
+    expect(emptyFilteredRect.width, emptyAllRect.width);
+    expect(emptyFilteredRect.left, emptyAllRect.left);
+    expect(emptyFilteredRect.right, emptyAllRect.right);
   });
 }

@@ -157,7 +157,7 @@ void main() {
 
       expect(find.text('МАГАЗИН'), findsOneWidget);
       expect(find.text('Алмоси'), findsOneWidget);
-      expect(find.text('ПАЙК'), findsOneWidget);
+      expect(find.text('ПАЙК'), findsNothing);
       expect(find.text('Стандарт'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },

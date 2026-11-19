@@ -6,6 +6,7 @@ import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
+import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
 import '../../data/providers.dart';
@@ -92,7 +93,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: Text(
           tr(locale, 'profile.menuSettings'),
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: PaykColors.textPrimary,
@@ -140,7 +141,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             child: Text(
                               tr(locale, 'lang.label'),
                               style: const TextStyle(
-                                fontFamily: 'Manrope',
+                                fontFamily: 'Inter',
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: PaykColors.textPrimary,
@@ -198,18 +199,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             alignment: Alignment.center,
-                            child: const Icon(
-                              Icons.notifications_active_outlined,
-                              size: 20,
-                              color: PaykColors.primary,
-                            ),
+                            child: const Bell3dIcon(size: 24),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
                               tr(locale, 'settings.notifications'),
                               style: const TextStyle(
-                                fontFamily: 'Manrope',
+                                fontFamily: 'Inter',
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
                                 color: PaykColors.textPrimary,
@@ -222,7 +219,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Text(
                         tr(locale, 'settings.notificationsDesc'),
                         style: const TextStyle(
-                          fontFamily: 'Manrope',
+                          fontFamily: 'Inter',
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
                           color: PaykColors.textSecondary,
@@ -245,7 +242,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 Text(
                                   tr(locale, 'profile.messages'),
                                   style: const TextStyle(
-                                    fontFamily: 'Manrope',
+                                    fontFamily: 'Inter',
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                     color: PaykColors.textPrimary,
@@ -255,7 +252,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 Text(
                                   tr(locale, 'profile.messagesHint'),
                                   style: const TextStyle(
-                                    fontFamily: 'Manrope',
+                                    fontFamily: 'Inter',
                                     fontSize: 13.0,
                                     fontWeight: FontWeight.w500,
                                     color: PaykColors.textSecondary,
@@ -294,7 +291,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Text(
                         tr(locale, 'settings.purchases'),
                         style: const TextStyle(
-                          fontFamily: 'Manrope',
+                          fontFamily: 'Inter',
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: PaykColors.textPrimary,
@@ -362,7 +359,7 @@ class _SettingSwitch extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: PaykColors.textPrimary,
@@ -372,7 +369,7 @@ class _SettingSwitch extends StatelessWidget {
                 Text(
                   hint,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: PaykColors.textSecondary,
@@ -468,7 +465,7 @@ class _LanguageOption extends StatelessWidget {
             child: Text(
               label,
               style: TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 15.0,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
                 color: isSelected

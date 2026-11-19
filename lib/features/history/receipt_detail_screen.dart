@@ -108,7 +108,7 @@ class _ReceiptDetailScreenState extends ConsumerState<ReceiptDetailScreen> {
         title: Text(
           appBarTitle,
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: PaykColors.textPrimary,
@@ -196,7 +196,7 @@ class _ReceiptDetailBody extends StatelessWidget {
                         Text(
                           store,
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 17,
                             fontWeight: FontWeight.w800,
                             color: PaykColors.textPrimary,
@@ -207,7 +207,7 @@ class _ReceiptDetailBody extends StatelessWidget {
                           Text(
                             fmtLabel,
                             style: const TextStyle(
-                              fontFamily: 'Manrope',
+                              fontFamily: 'Inter',
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
                               color: PaykColors.primary,
@@ -232,7 +232,7 @@ class _ReceiptDetailBody extends StatelessWidget {
                               : 'receipts.state.partial',
                         ),
                         style: const TextStyle(
-                          fontFamily: 'Manrope',
+                          fontFamily: 'Inter',
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: PaykColors.danger,
@@ -245,7 +245,7 @@ class _ReceiptDetailBody extends StatelessWidget {
               Text(
                 '${formatDate(receipt.ts)} · ${formatTimeSeconds(receipt.ts)}',
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 13,
                   color: PaykColors.textSecondary,
                 ),
@@ -255,7 +255,7 @@ class _ReceiptDetailBody extends StatelessWidget {
                 Text(
                   tr(locale, 'receipts.terminal', {'terminal': receipt.terminal!}),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 12,
                     color: PaykColors.textMuted,
                   ),
@@ -274,7 +274,7 @@ class _ReceiptDetailBody extends StatelessWidget {
               Text(
                 tr(locale, 'receipts.lines'),
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
                   color: PaykColors.textPrimary,
@@ -292,7 +292,7 @@ class _ReceiptDetailBody extends StatelessWidget {
                   child: Text(
                     tr(locale, 'receipts.linesPending'),
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 13,
                       color: PaykColors.textSecondary,
                     ),
@@ -394,7 +394,7 @@ class _ReceiptDetailBody extends StatelessWidget {
                     'pct': formatRatePct(receipt.rate!.pct),
                   }),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: PaykColors.textSecondary,
@@ -420,7 +420,7 @@ class _ReceiptDetailBody extends StatelessWidget {
                           'amount': formatMoney(receipt.spendContribution!),
                         }),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: PaykColors.primary,
@@ -441,7 +441,7 @@ class _ReceiptDetailBody extends StatelessWidget {
                 Text(
                   tr(locale, 'receipts.returns'),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: PaykColors.textPrimary,
@@ -529,7 +529,7 @@ class _ReceiptDetailBody extends StatelessWidget {
             child: Text(
               tr(locale, 'receipts.claim.open'),
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
                 color: PaykColors.primary,
@@ -583,7 +583,7 @@ class _KeyValueRow extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: bold ? 15 : 13,
               fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
               color: bold ? PaykColors.textPrimary : PaykColors.textSecondary,
@@ -594,7 +594,7 @@ class _KeyValueRow extends StatelessWidget {
         Text(
           value,
           style: TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: bold ? 16 : 14,
             fontWeight: bold ? FontWeight.w800 : FontWeight.w700,
             color: valueColor,
@@ -625,7 +625,7 @@ class _ReceiptLineTile extends StatelessWidget {
               Text(
                 line.name,
                 style: TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: fullRet ? PaykColors.textMuted : PaykColors.textPrimary,
@@ -636,7 +636,7 @@ class _ReceiptLineTile extends StatelessWidget {
               Text(
                 '${formatQty(line.qty, line.unit)} × ${formatMoney(line.price)}',
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 12,
                   color: PaykColors.textSecondary,
                 ),
@@ -657,7 +657,7 @@ class _ReceiptLineTile extends StatelessWidget {
                             'amount': formatMoney(line.returnedAmount),
                           }),
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
                       color: PaykColors.danger,
@@ -672,7 +672,7 @@ class _ReceiptLineTile extends StatelessWidget {
         Text(
           formatMoney(line.amount),
           style: TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 14,
             fontWeight: FontWeight.w700,
             color: fullRet ? PaykColors.textMuted : PaykColors.textPrimary,
@@ -698,7 +698,7 @@ class _ReturnBlock extends StatelessWidget {
         Text(
           '${formatShortDate(ret.ts)} · ${formatTime(ret.ts)}',
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 12,
             fontWeight: FontWeight.w600,
             color: PaykColors.textSecondary,
@@ -738,7 +738,7 @@ class _ReturnBlock extends StatelessWidget {
           Text(
             tr(locale, 'receipts.ret.linesPending'),
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 12,
               color: PaykColors.textMuted,
             ),
@@ -748,7 +748,7 @@ class _ReturnBlock extends StatelessWidget {
           Text(
             tr(locale, 'receipts.ret.lines'),
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: PaykColors.textSecondary,
@@ -762,7 +762,7 @@ class _ReturnBlock extends StatelessWidget {
                   child: Text(
                     '${line.name} · ${formatQty(line.qty, line.unit)}',
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 12,
                       color: PaykColors.textPrimary,
                     ),
@@ -771,7 +771,7 @@ class _ReturnBlock extends StatelessWidget {
                 Text(
                   '−${formatMoney(line.amount)}',
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: PaykColors.danger,
@@ -816,7 +816,7 @@ class _ClaimStatusCard extends StatelessWidget {
                 child: Text(
                   tr(locale, 'receipts.claim.status'),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
                     color: PaykColors.textPrimary,
@@ -832,7 +832,7 @@ class _ClaimStatusCard extends StatelessWidget {
                 child: Text(
                   statusText,
                   style: TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: statusColor,
@@ -845,7 +845,7 @@ class _ClaimStatusCard extends StatelessWidget {
           Text(
             kindText,
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: PaykColors.textPrimary,
@@ -856,7 +856,7 @@ class _ClaimStatusCard extends StatelessWidget {
             Text(
               claim.text!,
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 13,
                 color: PaykColors.textSecondary,
               ),
@@ -869,7 +869,7 @@ class _ClaimStatusCard extends StatelessWidget {
                 'date': formatDate(claim.dueAt!),
               }),
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 12,
                 color: PaykColors.textMuted,
               ),
@@ -887,7 +887,7 @@ class _ClaimStatusCard extends StatelessWidget {
               child: Text(
                 tr(locale, 'receipts.claim.answer', {'text': claim.answer!}),
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: PaykColors.textPrimary,
@@ -979,7 +979,7 @@ class _ClaimSheetState extends ConsumerState<_ClaimSheet> {
             Text(
               tr(locale, 'receipts.claim.title'),
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: PaykColors.textPrimary,
@@ -989,7 +989,7 @@ class _ClaimSheetState extends ConsumerState<_ClaimSheet> {
             Text(
               tr(locale, 'receipts.claim.kind'),
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: PaykColors.textSecondary,
@@ -1026,7 +1026,7 @@ class _ClaimSheetState extends ConsumerState<_ClaimSheet> {
                         child: Text(
                           tr(locale, 'receipts.claim.$kind'),
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: PaykColors.textPrimary,
@@ -1042,7 +1042,7 @@ class _ClaimSheetState extends ConsumerState<_ClaimSheet> {
             Text(
               '${tr(locale, 'receipts.claim.text')} (${tr(locale, 'common.optional')})',
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
                 color: PaykColors.textSecondary,
@@ -1072,7 +1072,7 @@ class _ClaimSheetState extends ConsumerState<_ClaimSheet> {
               Text(
                 _error!,
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: PaykColors.danger,

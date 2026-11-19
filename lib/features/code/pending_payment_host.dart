@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
+import '../../core/motion/payk_motion.dart';
 import '../../core/payment_choice.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/message.dart';
@@ -26,6 +27,7 @@ class PendingPaymentHost extends ConsumerStatefulWidget {
 class _PendingPaymentHostState extends ConsumerState<PendingPaymentHost> {
   Timer? _poll;
   Timer? _clock;
+  Timer? _routeTimer;
   GoRouter? _router;
   PendingCheck? _pending;
   DateTime _fetchedAt = DateTime.now();
@@ -56,11 +58,21 @@ class _PendingPaymentHostState extends ConsumerState<PendingPaymentHost> {
   void dispose() {
     _poll?.cancel();
     _clock?.cancel();
+    _routeTimer?.cancel();
     _router?.routerDelegate.removeListener(_onRoute);
     super.dispose();
   }
 
-  void _onRoute() => _tick();
+  /// Не запускаем сетевой опрос и перестройку прямо во время 250мс анимации перехода.
+  void _onRoute() {
+    _routeTimer?.cancel();
+    _routeTimer = Timer(
+      PaykMotion.page + const Duration(milliseconds: 60),
+      () {
+        if (mounted) unawaited(_tick());
+      },
+    );
+  }
 
   bool get _onCode {
     final path = _router?.state.uri.path ?? '';
@@ -76,11 +88,13 @@ class _PendingPaymentHostState extends ConsumerState<PendingPaymentHost> {
       if (!mounted || _onCode) return;
       final previous = _pending;
       final next = snapshot.pending;
-      setState(() {
-        if (next?.id != _pending?.id) _hidden = false;
-        _pending = next;
-        _fetchedAt = DateTime.now();
-      });
+      if (previous != null || next != null) {
+        setState(() {
+          if (next?.id != _pending?.id) _hidden = false;
+          _pending = next;
+          _fetchedAt = DateTime.now();
+        });
+      }
       _noteClosed(snapshot.lastClosed, previous);
       _syncClock();
     } catch (_) {
@@ -124,7 +138,7 @@ class _PendingPaymentHostState extends ConsumerState<PendingPaymentHost> {
     final open = check != null && needsChoice(check) && !_hidden && !_onCode;
     return Stack(
       children: [
-        widget.child,
+        RepaintBoundary(child: widget.child),
         if (check != null && needsChoice(check) && _hidden && !_onCode)
           Positioned(
             left: 16,

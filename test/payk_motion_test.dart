@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -213,6 +214,110 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Fallback Screen'), findsOneWidget);
+    });
+
+    testWidgets('Shared slide isolates screen in RepaintBoundary and settles opacity early to avoid saveLayer overhead', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => PaykMotion.push(
+                    context,
+                    '/slide-test',
+                    fallback: () => const Scaffold(body: Center(child: Text('New Screen Content'))),
+                  ),
+                  child: const Text('Push Page'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Push Page'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final contentFinder = find.text('New Screen Content');
+      expect(contentFinder, findsOneWidget);
+
+      final slideFinder = find.ancestor(
+        of: contentFinder,
+        matching: find.byType(SlideTransition),
+      );
+      expect(slideFinder, findsOneWidget);
+
+      expect(
+        find.descendant(
+          of: slideFinder,
+          matching: find.byType(RepaintBoundary),
+        ),
+        findsWidgets,
+      );
+
+      final fadeFinder = find.ancestor(
+        of: slideFinder,
+        matching: find.byType(FadeTransition),
+      );
+      expect(fadeFinder, findsOneWidget);
+      final fade = tester.widget<FadeTransition>(fadeFinder);
+      expect(fade.opacity.value, closeTo(1.0, 0.001));
+
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets(
+      'iOS edge swipe-back pops GoRouter and Navigator routes pushed via PaykMotion',
+      variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+      (tester) async {
+      expect(
+        PaykMotion.pageTransitionsTheme.builders[TargetPlatform.iOS],
+        isA<CupertinoPageTransitionsBuilder>(),
+      );
+      expect(
+        PaykMotion.pageTransitionsTheme.builders[TargetPlatform.android],
+        isA<PaykPageTransitionsBuilder>(),
+      );
+
+      final router = GoRouter(
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => PaykMotion.push(context, '/details'),
+                  child: const Text('Open Details'),
+                ),
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/details',
+            pageBuilder: (context, state) => PaykMotion.buildPage(
+              state: state,
+              child: const Scaffold(body: Center(child: Text('iOS Swipe Target'))),
+            ),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Open Details'));
+      await tester.pumpAndSettle();
+      expect(find.text('iOS Swipe Target'), findsOneWidget);
+
+      // Системный свайп с левого края экрана вправо (iOS interactive pop gesture)
+      await tester.dragFrom(const Offset(5, 300), const Offset(500, 0));
+      await tester.pumpAndSettle();
+
+      expect(find.text('iOS Swipe Target'), findsNothing);
+      expect(find.text('Open Details'), findsOneWidget);
     });
   });
 

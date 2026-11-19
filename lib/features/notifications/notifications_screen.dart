@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
 import '../../core/i18n/locale_controller.dart';
@@ -69,14 +68,11 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 
   void _openOffers(BuildContext context) {
-    final router = GoRouter.maybeOf(context);
-    if (router != null) {
-      router.push('/size-offers');
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const SizeOffersScreen()),
-      );
-    }
+    PaykMotion.push<void>(
+      context,
+      '/size-offers',
+      fallback: () => const SizeOffersScreen(),
+    );
   }
 
   @override
@@ -109,7 +105,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
         title: Text(
           tr(locale, 'home.notifications'),
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: PaykColors.textPrimary,
@@ -240,8 +236,9 @@ class _NotificationCard extends StatelessWidget {
     final isUnread = !item.read;
     final hasOffersLink = item.kind == 'size_flash' || item.kind == 'size_new';
 
-    return AnimatedContainer(
-      duration: PaykMotion.duration(context, PaykMotion.normal),
+    return RepaintBoundary(
+      child: AnimatedContainer(
+        duration: PaykMotion.duration(context, PaykMotion.normal),
       curve: PaykMotion.easeOut,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -295,7 +292,7 @@ class _NotificationCard extends StatelessWidget {
                     Text(
                       _kindTitle(),
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         color: PaykColors.textPrimary,
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -305,7 +302,7 @@ class _NotificationCard extends StatelessWidget {
                     Text(
                       formatDate(item.createdAt),
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         color: PaykColors.textSecondary,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -329,7 +326,7 @@ class _NotificationCard extends StatelessWidget {
           Text(
             item.text,
             style: TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 15,
               fontWeight: isUnread ? FontWeight.w700 : FontWeight.w500,
               height: 1.4,
@@ -353,7 +350,7 @@ class _NotificationCard extends StatelessWidget {
                     Text(
                       tr(locale, 'messages.openOffers'),
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: PaykColors.primary,
@@ -371,6 +368,7 @@ class _NotificationCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
       ),
     );
   }

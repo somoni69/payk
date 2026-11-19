@@ -103,15 +103,17 @@ class SkeletonBox extends StatelessWidget {
             (constraints.maxWidth.isFinite ? constraints.maxWidth : height);
         final painted = animation == null || reduce
             ? bone(null)
-            : CustomPaint(
-                painter: _BonePainter(
-                  animation: animation,
-                  base: base,
-                  shine: shine,
-                  radius: radius,
-                  circle: circle,
+            : RepaintBoundary(
+                child: CustomPaint(
+                  painter: _BonePainter(
+                    animation: animation,
+                    base: base,
+                    shine: shine,
+                    radius: radius,
+                    circle: circle,
+                  ),
+                  child: const SizedBox.expand(),
                 ),
-                child: const SizedBox.expand(),
               );
         return SizedBox(width: resolved, height: height, child: painted);
       },

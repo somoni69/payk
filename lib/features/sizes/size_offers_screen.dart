@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
 import '../../core/i18n/locale_controller.dart';
@@ -38,13 +37,15 @@ class _SizeOffersScreenState extends ConsumerState<SizeOffersScreen> {
   BuildContext? _sheetContext;
   int? _busyOfferId;
 
-  @override
-  void initState() {
-    super.initState();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      setState(() => _now = DateTime.now());
-    });
+  void _syncTicker(bool needTicker) {
+    if (needTicker && _ticker == null) {
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() => _now = DateTime.now());
+      });
+    } else if (!needTicker && _ticker != null) {
+      _ticker?.cancel();
+      _ticker = null;
+    }
   }
 
   @override
@@ -68,8 +69,8 @@ class _SizeOffersScreenState extends ConsumerState<SizeOffersScreen> {
       if (ctx != null) {
         Scrollable.ensureVisible(
           ctx,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeOutCubic,
+          duration: PaykMotion.duration(context, PaykMotion.normal),
+          curve: PaykMotion.easeOut,
           alignment: 0.1,
         );
       }
@@ -168,7 +169,7 @@ class _SizeOffersScreenState extends ConsumerState<SizeOffersScreen> {
                   tr(locale, 'sizes.codeTitle'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: PaykColors.textPrimary,
@@ -179,7 +180,7 @@ class _SizeOffersScreenState extends ConsumerState<SizeOffersScreen> {
                   tr(locale, 'sizes.codeHint'),
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     color: PaykColors.textSecondary,
@@ -197,7 +198,7 @@ class _SizeOffersScreenState extends ConsumerState<SizeOffersScreen> {
                     formatted,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 28,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 2,
@@ -257,14 +258,11 @@ class _SizeOffersScreenState extends ConsumerState<SizeOffersScreen> {
   }
 
   void _openSizes(BuildContext context) {
-    final router = GoRouter.maybeOf(context);
-    if (router != null) {
-      router.push('/sizes');
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const SizesScreen()),
-      );
-    }
+    PaykMotion.push<void>(
+      context,
+      '/sizes',
+      fallback: () => const SizesScreen(),
+    );
   }
 
   @override
@@ -294,7 +292,7 @@ class _SizeOffersScreenState extends ConsumerState<SizeOffersScreen> {
             color: PaykColors.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
           ),
         ),
       ),
@@ -306,6 +304,7 @@ class _SizeOffersScreenState extends ConsumerState<SizeOffersScreen> {
           _checkAutoCloseCodeSheet(offers);
           _maybeScrollToFocus(offers);
           if (offers.isEmpty) {
+            _syncTicker(false);
             final noSizes = member != null && isSizesEmpty(member);
             return EmptyState(
               title: tr(locale, 'offers.empty'),
@@ -315,25 +314,38 @@ class _SizeOffersScreenState extends ConsumerState<SizeOffersScreen> {
               onAction: noSizes ? () => _openSizes(context) : null,
             );
           }
+          _syncTicker(
+            offers.any(
+              (o) =>
+                  o.flash &&
+                  o.expiresAt != null &&
+                  liveOfferStatus(o, _now) == 'ACTIVE',
+            ),
+          );
           return RefreshIndicator(
             color: PaykColors.violet,
             backgroundColor: Colors.white,
             onRefresh: () => ref.read(sizeOffersFeedProvider.notifier).reload(),
             child: ListView.separated(
               padding: EdgeInsets.fromLTRB(20, 8, 20, 24 + MediaQuery.paddingOf(context).bottom),
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
+              ),
               itemCount: offers.length,
               separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final offer = offers[index];
-                return _OfferCard(
-                  key: _keyFor(offer.id),
-                  offer: offer,
-                  locale: locale,
-                  now: _now,
-                  busy: _busyOfferId == offer.id,
-                  highlighted: widget.focusOfferId == offer.id,
-                  onClaim: () => _claimOffer(offer, locale),
-                  onOpenCode: () => _showCodeSheet(offer, locale),
+                return RepaintBoundary(
+                  child: _OfferCard(
+                    key: _keyFor(offer.id),
+                    offer: offer,
+                    locale: locale,
+                    now: _now,
+                    busy: _busyOfferId == offer.id,
+                    highlighted: widget.focusOfferId == offer.id,
+                    onClaim: () => _claimOffer(offer, locale),
+                    onOpenCode: () => _showCodeSheet(offer, locale),
+                  ),
                 );
               },
             ),
@@ -387,7 +399,8 @@ class _OfferCardState extends State<_OfferCard> {
     final longDesc = offer.description.length > 140;
 
     return AnimatedOpacity(
-      duration: const Duration(milliseconds: 200),
+      duration: PaykMotion.duration(context, PaykMotion.fast),
+      curve: PaykMotion.easeOut,
       opacity: active ? 1.0 : 0.68,
       child: Container(
         decoration: BoxDecoration(
@@ -410,6 +423,11 @@ class _OfferCardState extends State<_OfferCard> {
                     height: 180,
                     width: double.infinity,
                     fit: BoxFit.cover,
+                    cacheWidth:
+                        (MediaQuery.sizeOf(context).width *
+                                MediaQuery.devicePixelRatioOf(context))
+                            .round()
+                            .clamp(480, 1280),
                     errorBuilder: (_, _, _) => const SizedBox(
                       height: 120,
                       child: Center(
@@ -430,7 +448,7 @@ class _OfferCardState extends State<_OfferCard> {
                         child: Text(
                           '-$pct%',
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
@@ -469,7 +487,7 @@ class _OfferCardState extends State<_OfferCard> {
                   Text(
                     offer.title,
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
                       color: PaykColors.textPrimary,
@@ -482,7 +500,7 @@ class _OfferCardState extends State<_OfferCard> {
                       maxLines: _expanded ? null : 4,
                       overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 14,
                         height: 1.35,
                         color: PaykColors.textSecondary,
@@ -495,7 +513,7 @@ class _OfferCardState extends State<_OfferCard> {
                         child: Text(
                           tr(locale, _expanded ? 'offers.less' : 'offers.more'),
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: PaykColors.primary,
@@ -512,7 +530,7 @@ class _OfferCardState extends State<_OfferCard> {
                           Text(
                             formatMoney(offer.originalPrice!, decimals: false),
                             style: const TextStyle(
-                              fontFamily: 'Manrope',
+                              fontFamily: 'Inter',
                               fontSize: 14,
                               color: PaykColors.textMuted,
                               decoration: TextDecoration.lineThrough,
@@ -523,7 +541,7 @@ class _OfferCardState extends State<_OfferCard> {
                         Text(
                           formatMoney(offer.discountPrice!, decimals: false),
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
                             color: PaykColors.textPrimary,
@@ -541,7 +559,7 @@ class _OfferCardState extends State<_OfferCard> {
                           ),
                         }),
                         style: const TextStyle(
-                          fontFamily: 'Manrope',
+                          fontFamily: 'Inter',
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: PaykColors.accentAmber,
@@ -566,7 +584,7 @@ class _OfferCardState extends State<_OfferCard> {
                             Text(
                               tr(locale, 'offers.issued'),
                               style: const TextStyle(
-                                fontFamily: 'Manrope',
+                                fontFamily: 'Inter',
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
                                 color: PaykColors.success,
@@ -591,7 +609,7 @@ class _OfferCardState extends State<_OfferCard> {
                               Text(
                                 formatPromoCode(offer.promoCode!),
                                 style: const TextStyle(
-                                  fontFamily: 'Manrope',
+                                  fontFamily: 'Inter',
                                   fontSize: 20,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 1.5,
@@ -602,7 +620,7 @@ class _OfferCardState extends State<_OfferCard> {
                               Text(
                                 tr(locale, 'offers.showCashier'),
                                 style: const TextStyle(
-                                  fontFamily: 'Manrope',
+                                  fontFamily: 'Inter',
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: PaykColors.textSecondary,
@@ -639,7 +657,7 @@ class _OfferCardState extends State<_OfferCard> {
                           ),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: PaykColors.textMuted,
@@ -695,7 +713,7 @@ class _Badge extends StatelessWidget {
       child: Text(
         text,
         style: TextStyle(
-          fontFamily: 'Manrope',
+          fontFamily: 'Inter',
           fontSize: 12,
           fontWeight: FontWeight.w700,
           color: fg,

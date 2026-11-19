@@ -6,10 +6,10 @@ import 'package:payk/core/theme/payk_theme.dart';
 import 'package:payk/features/auth/onboarding_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<void> _loadManrope() async {
-  final loader = FontLoader('Manrope');
-  for (final file in ['Regular', 'Medium', 'SemiBold', 'Bold']) {
-    loader.addFont(rootBundle.load('assets/fonts/Manrope-$file.ttf'));
+Future<void> _loadInter() async {
+  final loader = FontLoader('Inter');
+  for (final file in ['Regular', 'Medium', 'SemiBold', 'Bold', 'ExtraBold']) {
+    loader.addFont(rootBundle.load('assets/fonts/Inter-$file.ttf'));
   }
   await loader.load();
 }
@@ -22,7 +22,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     SharedPreferences.setMockInitialValues({});
-    await _loadManrope();
+    await _loadInter();
 
     await tester.pumpWidget(
       ProviderScope(

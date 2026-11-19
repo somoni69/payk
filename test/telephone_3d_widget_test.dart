@@ -72,16 +72,17 @@ void main() {
     );
   }
 
-  testWidgets('ProfileDetailsScreen renders 3D telephone icon next to user phone', (
-    tester,
-  ) async {
-    await tester.pumpWidget(wrap(const ProfileDetailsScreen()));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'ProfileDetailsScreen hides telephone icon next to user phone',
+    (tester) async {
+      await tester.pumpWidget(wrap(const ProfileDetailsScreen()));
+      await tester.pumpAndSettle();
 
-    expect(find.text('+992 90 000 00 00'), findsOneWidget);
-    expect(find.byType(Telephone3dIcon), findsOneWidget);
-    expect(_findTelephoneAsset(), findsOneWidget);
-  });
+      expect(find.text('+992 90 000 00 00'), findsOneWidget);
+      expect(find.byType(Telephone3dIcon), findsNothing);
+      expect(_findTelephoneAsset(), findsNothing);
+    },
+  );
 
   testWidgets('Store contact sheet uses 3D telephone icon for phone call tile', (
     tester,

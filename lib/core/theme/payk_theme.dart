@@ -18,7 +18,7 @@ abstract final class PaykTheme {
     final base = ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      fontFamily: 'Manrope',
+      fontFamily: 'Inter',
       scaffoldBackgroundColor: PaykColors.canvas,
       colorScheme: const ColorScheme.light(
         primary: PaykColors.primary,
@@ -39,7 +39,7 @@ abstract final class PaykTheme {
         scrolledUnderElevation: 0,
         centerTitle: true,
         titleTextStyle: TextStyle(
-          fontFamily: 'Manrope',
+          fontFamily: 'Inter',
           fontWeight: FontWeight.w700,
           fontSize: 18,
           color: PaykColors.textPrimary,
@@ -64,7 +64,7 @@ abstract final class PaykTheme {
             borderRadius: BorderRadius.circular(radius),
           ),
           textStyle: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontWeight: FontWeight.w700,
             fontSize: 16,
           ),
@@ -79,7 +79,7 @@ abstract final class PaykTheme {
             borderRadius: BorderRadius.circular(radius),
           ),
           textStyle: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontWeight: FontWeight.w700,
             fontSize: 16,
           ),
@@ -93,7 +93,7 @@ abstract final class PaykTheme {
           vertical: 16,
         ),
         hintStyle: const TextStyle(
-          fontFamily: 'Manrope',
+          fontFamily: 'Inter',
           color: PaykColors.textSecondary,
           fontSize: 15,
           fontWeight: FontWeight.w400,

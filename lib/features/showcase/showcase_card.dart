@@ -85,7 +85,7 @@ class ShowcaseCardView extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                     height: 1.25,
@@ -97,7 +97,7 @@ class ShowcaseCardView extends StatelessWidget {
                   Text(
                     text,
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                       height: 1.45,
@@ -150,7 +150,7 @@ class WantButton extends StatelessWidget {
             Text(
               tr(locale, 'payk.sentBadge'),
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: PaykColors.success,
@@ -180,7 +180,7 @@ class WantButton extends StatelessWidget {
           label: Text(
             tr(locale, 'payk.want'),
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
@@ -287,7 +287,7 @@ class _PaykBadge extends StatelessWidget {
           Text(
             'PAYK',
             style: TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 13,
               fontWeight: FontWeight.w800,
               color: PaykColors.primary,

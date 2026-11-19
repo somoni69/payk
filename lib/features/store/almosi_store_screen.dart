@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
 import '../../core/i18n/locale_controller.dart';
@@ -63,7 +62,7 @@ class AlmosiStoreScreen extends ConsumerWidget {
         title: Text(
           tr(locale, 'store.almosiTitle'),
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: PaykColors.textPrimary,
@@ -104,7 +103,7 @@ class AlmosiStoreScreen extends ConsumerWidget {
                 Text(
                   tr(locale, 'store.directionsTitle'),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
                     color: PaykColors.textPrimary,
@@ -114,7 +113,7 @@ class AlmosiStoreScreen extends ConsumerWidget {
                 Text(
                   tr(locale, 'store.directionsSub'),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                     height: 1.35,
@@ -182,95 +181,97 @@ class _DirectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PaykPressable(
-      scaleDown: PaykMotion.scaleSubtle,
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: PaykColors.sheet,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: PaykColors.border),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: iconBg,
-                borderRadius: BorderRadius.circular(16),
+    return RepaintBoundary(
+      child: PaykPressable(
+        scaleDown: PaykMotion.scaleSubtle,
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: PaykColors.sheet,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: PaykColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
               ),
-              alignment: Alignment.center,
-              child: Image.asset(
-                assetImage,
-                width: 40,
-                height: 40,
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => Icon(
-                  fallbackIcon,
-                  size: 28,
-                  color: PaykColors.primary,
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: iconBg,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                alignment: Alignment.center,
+                child: Image.asset(
+                  assetImage,
+                  width: 40,
+                  height: 40,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => Icon(
+                    fallbackIcon,
+                    size: 28,
+                    color: PaykColors.primary,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontFamily: 'Manrope',
-                      fontSize: 17,
-                      fontWeight: FontWeight.w800,
-                      color: PaykColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontFamily: 'Manrope',
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: PaykColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      _RateChip(
-                        label: tr(locale, 'store.rateEarnChip', {'pct': earnPct}),
-                        highlight: true,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: PaykColors.textPrimary,
                       ),
-                      _RateChip(
-                        label: tr(locale, 'store.rateBurnChip', {'pct': burnPct}),
-                        highlight: false,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: PaykColors.textSecondary,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _RateChip(
+                          label: tr(locale, 'store.rateEarnChip', {'pct': earnPct}),
+                          highlight: true,
+                        ),
+                        _RateChip(
+                          label: tr(locale, 'store.rateBurnChip', {'pct': burnPct}),
+                          highlight: false,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(
-              Icons.chevron_right_rounded,
-              size: 22,
-              color: PaykColors.textMuted,
-            ),
-          ],
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right_rounded,
+                size: 22,
+                color: PaykColors.textMuted,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -299,7 +300,7 @@ class _RateChip extends StatelessWidget {
       child: Text(
         label,
         style: TextStyle(
-          fontFamily: 'Manrope',
+          fontFamily: 'Inter',
           fontSize: 12,
           fontWeight: FontWeight.w700,
           color: highlight ? PaykColors.primary : PaykColors.textSecondary,
@@ -358,7 +359,7 @@ class AlmosiDirectionScreen extends ConsumerWidget {
         title: Text(
           title,
           style: const TextStyle(
-            fontFamily: 'Manrope',
+            fontFamily: 'Inter',
             fontSize: 18,
             fontWeight: FontWeight.w700,
             color: PaykColors.textPrimary,
@@ -438,7 +439,7 @@ class AlmosiDirectionScreen extends ConsumerWidget {
                               Text(
                                 '${tr(locale, 'store.label')} «${tr(locale, 'store.brand')}»',
                                 style: const TextStyle(
-                                  fontFamily: 'Manrope',
+                                  fontFamily: 'Inter',
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   color: PaykColors.primary,
@@ -448,7 +449,7 @@ class AlmosiDirectionScreen extends ConsumerWidget {
                               Text(
                                 subtitle,
                                 style: const TextStyle(
-                                  fontFamily: 'Manrope',
+                                  fontFamily: 'Inter',
                                   fontSize: 16,
                                   fontWeight: FontWeight.w800,
                                   color: PaykColors.textPrimary,
@@ -477,7 +478,7 @@ class AlmosiDirectionScreen extends ConsumerWidget {
                                 child: Text(
                                   tr(locale, 'store.yourStatus'),
                                   style: const TextStyle(
-                                    fontFamily: 'Manrope',
+                                    fontFamily: 'Inter',
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
                                     color: PaykColors.textSecondary,
@@ -497,7 +498,7 @@ class AlmosiDirectionScreen extends ConsumerWidget {
                           Text(
                             '${tr(locale, 'store.monthInStore')}: ${formatMoney(monthSpend, decimals: false)}',
                             style: const TextStyle(
-                              fontFamily: 'Manrope',
+                              fontFamily: 'Inter',
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
                               color: PaykColors.textPrimary,
@@ -584,16 +585,11 @@ class AlmosiDirectionScreen extends ConsumerWidget {
                 child: FilledButton(
                   onPressed: () {
                     HapticFeedback.lightImpact();
-                    final router = GoRouter.maybeOf(context);
-                    if (router != null) {
-                      router.push('/code');
-                    } else {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const ClientCodeScreen(),
-                        ),
-                      );
-                    }
+                    PaykMotion.push<void>(
+                      context,
+                      '/code',
+                      fallback: () => const ClientCodeScreen(),
+                    );
                   },
                   child: Text(tr(locale, 'store.showCodeBtn')),
                 ),
@@ -623,7 +619,7 @@ class _TierBadge extends StatelessWidget {
       child: Text(
         label,
         style: const TextStyle(
-          fontFamily: 'Manrope',
+          fontFamily: 'Inter',
           fontSize: 13,
           fontWeight: FontWeight.w800,
           color: Colors.white,
@@ -669,7 +665,7 @@ class _MetricTile extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 12,
                 height: 1.3,
                 fontWeight: FontWeight.w700,
@@ -685,7 +681,7 @@ class _MetricTile extends StatelessWidget {
               value,
               maxLines: 1,
               style: TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.3,
@@ -697,7 +693,7 @@ class _MetricTile extends StatelessWidget {
           Text(
             hint,
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 11.5,
               fontWeight: FontWeight.w500,
               height: 1.3,
@@ -750,7 +746,7 @@ class _PrinciplesCard extends StatelessWidget {
                 child: Text(
                   title,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                     color: PaykColors.textPrimary,
@@ -779,7 +775,7 @@ class _PrinciplesCard extends StatelessWidget {
                   child: Text(
                     items[i],
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 13.5,
                       fontWeight: FontWeight.w500,
                       height: 1.4,
@@ -864,7 +860,7 @@ class _DirectionTiersCard extends StatelessWidget {
               Text(
                 tr(locale, 'store.allTiersTitle'),
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: PaykColors.textPrimary,
@@ -933,7 +929,7 @@ class _TierRow extends StatelessWidget {
                     Text(
                       label,
                       style: TextStyle(
-                        fontFamily: 'Manrope',
+                        fontFamily: 'Inter',
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
                         color: isCurrent
@@ -955,7 +951,7 @@ class _TierRow extends StatelessWidget {
                         child: Text(
                           tr(locale, 'store.currentBadge'),
                           style: const TextStyle(
-                            fontFamily: 'Manrope',
+                            fontFamily: 'Inter',
                             fontSize: 10.5,
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -969,7 +965,7 @@ class _TierRow extends StatelessWidget {
                 Text(
                   threshold,
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                     color: PaykColors.textSecondary,
@@ -987,7 +983,7 @@ class _TierRow extends StatelessWidget {
                   'pct': formatPercent(rate.earn),
                 }),
                 style: TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 13,
                   fontWeight: FontWeight.w800,
                   color: isCurrent
@@ -1001,7 +997,7 @@ class _TierRow extends StatelessWidget {
                   'pct': formatPercent(rate.burnCap),
                 }),
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 11.5,
                   fontWeight: FontWeight.w600,
                   color: PaykColors.textSecondary,

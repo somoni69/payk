@@ -221,7 +221,7 @@ class _Hero extends StatelessWidget {
                 Text(
                   tr(locale, 'payk.title'),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -233,7 +233,7 @@ class _Hero extends StatelessWidget {
                 Text(
                   tr(locale, 'payk.subtitle'),
                   style: TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: Colors.white.withValues(alpha: 0.92),
@@ -266,7 +266,7 @@ class _PoweredBy extends ConsumerWidget {
             child: Text(
               tr(locale, 'payk.poweredBy'),
               style: const TextStyle(
-                fontFamily: 'Manrope',
+                fontFamily: 'Inter',
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 color: PaykColors.textMuted,
@@ -331,7 +331,7 @@ class _FallbackCard extends StatelessWidget {
             tr(locale, 'payk.fallbackTitle'),
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 16,
               fontWeight: FontWeight.w700,
               color: PaykColors.textPrimary,
@@ -342,7 +342,7 @@ class _FallbackCard extends StatelessWidget {
             tr(locale, 'payk.fallbackText'),
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: PaykColors.textSecondary,

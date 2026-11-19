@@ -228,7 +228,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             : Text(
                 tr(locale, 'history.tab.bills'),
                 style: const TextStyle(
-                  fontFamily: 'Manrope',
+                  fontFamily: 'Inter',
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: PaykColors.textPrimary,
@@ -309,7 +309,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   Text(
                     tr(locale, 'history.categories'),
                     style: const TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: PaykColors.textPrimary,
@@ -391,6 +391,15 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     duration: PaykMotion.duration(context, PaykMotion.normal),
                     switchInCurve: PaykMotion.easeOut,
                     switchOutCurve: PaykMotion.easeOut,
+                    layoutBuilder: (currentChild, previousChildren) {
+                      return Stack(
+                        alignment: Alignment.topCenter,
+                        children: <Widget>[
+                          ...previousChildren,
+                          ?currentChild,
+                        ],
+                      );
+                    },
                     child: filteredEntries.isEmpty
                         ? KeyedSubtree(
                             key: ValueKey(
@@ -572,7 +581,7 @@ class _SegmentTab extends StatelessWidget {
             duration: duration,
             curve: PaykMotion.easeOut,
             style: TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 13.5,
               fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
               color: selected ? PaykColors.primary : PaykColors.textSecondary,
@@ -704,7 +713,7 @@ class _CategoryTile extends StatelessWidget {
                   child: Text(
                     title,
                     style: TextStyle(
-                      fontFamily: 'Manrope',
+                      fontFamily: 'Inter',
                       fontSize: 13.0,
                       fontWeight: FontWeight.w700,
                       color: isSelected
@@ -751,6 +760,7 @@ class _EmptyHistoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 42, horizontal: 24),
       decoration: BoxDecoration(
         color: PaykColors.sheet,
@@ -788,7 +798,7 @@ class _EmptyHistoryCard extends StatelessWidget {
             tr(locale, isFiltered ? 'history.notFound' : 'history.empty'),
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 17,
               fontWeight: FontWeight.w800,
               color: PaykColors.textPrimary,
@@ -802,7 +812,7 @@ class _EmptyHistoryCard extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
             style: const TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontSize: 14,
               fontWeight: FontWeight.w500,
               color: PaykColors.textSecondary,
@@ -854,7 +864,7 @@ class _HistoryRow extends StatelessWidget {
                 Text(
                   tr(locale, 'history.type.${_known(entry.type)}'),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
                     color: PaykColors.textPrimary,
@@ -873,7 +883,7 @@ class _HistoryRow extends StatelessWidget {
                     if (entry.format == 'CL') tr(locale, 'format.CL'),
                   ].join(' · '),
                   style: const TextStyle(
-                    fontFamily: 'Manrope',
+                    fontFamily: 'Inter',
                     color: PaykColors.textSecondary,
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -886,7 +896,7 @@ class _HistoryRow extends StatelessWidget {
           Text(
             formatMoney(entry.amount, signed: true),
             style: TextStyle(
-              fontFamily: 'Manrope',
+              fontFamily: 'Inter',
               fontWeight: FontWeight.w700,
               fontSize: 16,
               letterSpacing: -0.2,

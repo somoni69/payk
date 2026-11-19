@@ -113,16 +113,89 @@ void main() {
         final profIcon = tester.widget<Icon>(find.byIcon(Icons.person_rounded));
         expect(profIcon.color, equals(PaykColors.textMuted));
 
-        // Check active container has PaykColors.activePill decoration
-        final homePill = find.ancestor(
-          of: find.byIcon(Icons.home_rounded),
-          matching: find.byType(AnimatedContainer),
+        // Check resting liquid glass pill has PaykColors.activePill and aligns with active tab
+        final restingPillFinder = find.byKey(
+          LiquidGlassBottomBar.restingPillKey,
         );
-        expect(homePill, findsOneWidget);
-        final containerWidget = tester.widget<AnimatedContainer>(homePill);
-        final boxDecoration = containerWidget.decoration as BoxDecoration?;
+        expect(restingPillFinder, findsOneWidget);
+        final pillWidget = tester.widget<DecoratedBox>(restingPillFinder);
+        final boxDecoration = pillWidget.decoration as BoxDecoration?;
         expect(boxDecoration?.color, equals(PaykColors.activePill));
-        expect(boxDecoration?.borderRadius, equals(BorderRadius.circular(18)));
+        expect(boxDecoration?.borderRadius, equals(BorderRadius.circular(27)));
+
+        final lensFinder = find.byKey(LiquidGlassBottomBar.lensKey);
+        expect(lensFinder, findsOneWidget);
+        final homeCenter = tester.getCenter(find.bySemanticsLabel('Главная'));
+        final lensCenter = tester.getCenter(lensFinder);
+        expect((lensCenter.dx - homeCenter.dx).abs(), lessThan(1.0));
+      },
+    );
+
+    testWidgets(
+      'Horizontal drag scrubbing lifts volumetric lens with deferred switching until release',
+      (tester) async {
+        final container = createLoggedInContainer();
+        addTearDown(container.dispose);
+
+        await tester.pumpWidget(buildTestApp(container));
+        await tester.pumpAndSettle();
+
+        final router = container.read(routerProvider);
+        expect(router.state.matchedLocation, equals('/home'));
+
+        final homeCenter = tester.getCenter(find.bySemanticsLabel('Главная'));
+        final friendsCenter = tester.getCenter(find.bySemanticsLabel('Друзья'));
+
+        final gesture = await tester.startGesture(homeCenter);
+        await tester.pump(const Duration(milliseconds: 50));
+        await gesture.moveTo(
+          Offset((homeCenter.dx + friendsCenter.dx) / 2, homeCenter.dy),
+        );
+        await tester.pump(const Duration(milliseconds: 160));
+        await gesture.moveTo(friendsCenter);
+        await tester.pump(const Duration(milliseconds: 160));
+
+        // Во время перетаскивания экран ещё не переключился (deferred switching),
+        // а объёмная капля линзы поднялась выше высоты капсулы (vertical overflow).
+        expect(router.state.matchedLocation, equals('/home'));
+        final liftedLensRect = tester.getRect(
+          find.byKey(LiquidGlassBottomBar.lensKey),
+        );
+        expect(liftedLensRect.height, greaterThan(LiquidGlassBottomBar.barHeight));
+
+        await gesture.up();
+        await tester.pumpAndSettle();
+
+        expect(router.state.matchedLocation, equals('/friends'));
+        final settledLensRect = tester.getRect(
+          find.byKey(LiquidGlassBottomBar.lensKey),
+        );
+        expect(settledLensRect.height, lessThan(LiquidGlassBottomBar.barHeight));
+        expect((settledLensRect.center.dx - friendsCenter.dx).abs(), lessThan(1.5));
+      },
+    );
+
+    testWidgets(
+      'Drops BackdropFilter and renders solid surface when highContrast accessibility is active',
+      (tester) async {
+        final container = createLoggedInContainer();
+        addTearDown(container.dispose);
+
+        await tester.pumpWidget(
+          MediaQuery(
+            data: const MediaQueryData(highContrast: true),
+            child: buildTestApp(container),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.descendant(
+            of: find.byType(LiquidGlassBottomBar),
+            matching: find.byType(BackdropFilter),
+          ),
+          findsNothing,
+        );
       },
     );
 

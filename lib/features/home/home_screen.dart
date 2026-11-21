@@ -127,16 +127,20 @@ class _HomeBody extends ConsumerWidget {
               ),
             ),
 
-          if (wallet.debt > 0)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _Notice(
-                title: tr(locale, 'home.debtTitle', {
-                  'amount': formatMoney(-wallet.debt),
-                }),
-                body: tr(locale, 'home.debtText'),
+          for (final format in StoreWallets.formats)
+            if (wallet.storeWallets.byFormat(format).debt > 0)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _Notice(
+                  title: tr(locale, 'home.debtTitleWallet', {
+                    'store': tr(locale, 'wallet.$format'),
+                    'amount': formatMoney(
+                      -wallet.storeWallets.byFormat(format).debt,
+                    ),
+                  }),
+                  body: tr(locale, 'home.debtTextWallet'),
+                ),
               ),
-            ),
 
           if (_gift(member, wallet) case final gift?)
             Padding(
@@ -879,6 +883,17 @@ void _openCompaniesModal(BuildContext context, Account account, String locale) {
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.3,
                             color: PaykColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${tr(locale, 'wallet.SM')}: ${formatMoney(wallet.storeWallets.sm.balance)} · ${tr(locale, 'wallet.CL')}: ${formatMoney(wallet.storeWallets.cl.balance)}',
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: PaykColors.textSecondary,
+                            fontFeatures: [FontFeature.tabularFigures()],
                           ),
                         ),
                       ],

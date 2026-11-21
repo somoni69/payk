@@ -505,6 +505,24 @@ class AlmosiDirectionScreen extends ConsumerWidget {
                               fontFeatures: [FontFeature.tabularFigures()],
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            tr(locale, 'pay.balanceWallet', {
+                              'store': tr(locale, isSm ? 'wallet.SM' : 'wallet.CL'),
+                              'amount': formatMoney(
+                                isSm
+                                    ? wallet.storeWallets.sm.balance
+                                    : wallet.storeWallets.cl.balance,
+                              ),
+                            }),
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: PaykColors.textSecondary,
+                              fontFeatures: [FontFeature.tabularFigures()],
+                            ),
+                          ),
                         ],
                       ),
                     ),

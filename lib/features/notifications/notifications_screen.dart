@@ -12,11 +12,15 @@ import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
+import '../history/receipt_detail_screen.dart';
 import '../sizes/size_offers_screen.dart';
 
 /// Отдельный полноценный экран уведомлений и сообщений в стиле UDC / Payk
 class NotificationsScreen extends ConsumerStatefulWidget {
-  const NotificationsScreen({super.key});
+  const NotificationsScreen({super.key, this.nowProvider});
+
+  /// Опциональный источник текущего времени (удобно для детерминированных тестов).
+  final DateTime Function()? nowProvider;
 
   @override
   ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -24,6 +28,7 @@ class NotificationsScreen extends ConsumerStatefulWidget {
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   final List<LoyaltyMessageItem> _extraItems = <LoyaltyMessageItem>[];
+  final Set<int> _locallyReadIds = <int>{};
   bool _loadingMore = false;
   bool? _hasMoreOverride;
 
@@ -59,6 +64,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   Future<void> _refresh() async {
     setState(() {
       _extraItems.clear();
+      _locallyReadIds.clear();
       _hasMoreOverride = null;
     });
     ref.invalidate(messagesProvider);
@@ -72,6 +78,35 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       context,
       '/size-offers',
       fallback: () => const SizeOffersScreen(),
+    );
+  }
+
+  void _openReceipt(BuildContext context, LoyaltyMessageItem item) {
+    final billId = item.billId;
+    if (billId == null) return;
+    HapticFeedback.lightImpact();
+
+    if (!item.read && !_locallyReadIds.contains(item.id)) {
+      setState(() => _locallyReadIds.add(item.id));
+      ref
+          .read(loyaltyApiProvider)
+          .markMessageRead(item.id)
+          .then((_) {
+            if (mounted) ref.invalidate(meProvider);
+          })
+          .catchError((_) {});
+    }
+
+    final focusReturns = item.kind == 'purchase_return';
+    final path =
+        '/history/receipt/$billId${focusReturns ? '?focus=returns' : ''}';
+    PaykMotion.push<void>(
+      context,
+      path,
+      fallback: () => ReceiptDetailScreen(
+        receiptId: billId,
+        focusReturns: focusReturns,
+      ),
     );
   }
 
@@ -127,6 +162,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 if (!mounted) return;
                 setState(() {
                   _extraItems.clear();
+                  _locallyReadIds.clear();
                   _hasMoreOverride = null;
                 });
                 ref.invalidate(messagesProvider);
@@ -167,47 +203,220 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           }
 
           final hasMore = _hasMoreOverride ?? (headItems.length >= 30);
+          final now = (widget.nowProvider ?? DateTime.now)();
+          final today = dayKeyOf(now);
+          final entries = _buildFeedEntries(all, hasMore: hasMore);
 
           return RefreshIndicator(
             color: PaykColors.violet,
             backgroundColor: Colors.white,
             onRefresh: _refresh,
-            child: ListView.separated(
+            child: ListView.builder(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
               physics: const AlwaysScrollableScrollPhysics(
                 parent: BouncingScrollPhysics(),
               ),
-              itemCount: all.length + (hasMore ? 1 : 0),
-              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemCount: entries.length,
               itemBuilder: (context, index) {
-                if (index >= all.length) {
-                  return Center(
-                    child: OutlinedButton(
-                      onPressed: _loadingMore ? null : () => _loadMore(all),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: PaykColors.primary,
-                        side: const BorderSide(color: PaykColors.border),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        _loadingMore
-                            ? tr(locale, 'history.loading')
-                            : tr(locale, 'history.more'),
+                return switch (entries[index]) {
+                  _DayHeaderEntry(:final day, :final count, :final isFirst) =>
+                    _DaySectionHeader(
+                      label: formatDayHeader(day, locale, now: now),
+                      count: count,
+                      isToday: isSameCalendarDay(day, today),
+                      isFirst: isFirst,
+                    ),
+                  _NotificationCardEntry(:final item, :final isLastInGroup) =>
+                    Padding(
+                      padding: EdgeInsets.only(bottom: isLastInGroup ? 0 : 10),
+                      child: _NotificationCard(
+                        item: _locallyReadIds.contains(item.id)
+                            ? item.copyWith(read: true)
+                            : item,
+                        locale: locale,
+                        onOpenOffers: () => _openOffers(context),
+                        onOpenReceipt: item.billId != null
+                            ? () => _openReceipt(context, item)
+                            : null,
                       ),
                     ),
-                  );
-                }
-                return _NotificationCard(
-                  item: all[index],
-                  locale: locale,
-                  onOpenOffers: () => _openOffers(context),
-                );
+                  _LoadMoreEntry() => Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Center(
+                      child: OutlinedButton(
+                        onPressed: _loadingMore ? null : () => _loadMore(all),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: PaykColors.primary,
+                          side: const BorderSide(color: PaykColors.border),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          _loadingMore
+                              ? tr(locale, 'history.loading')
+                              : tr(locale, 'history.more'),
+                        ),
+                      ),
+                    ),
+                  ),
+                };
               },
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+sealed class _NotificationFeedEntry {
+  const _NotificationFeedEntry();
+}
+
+final class _DayHeaderEntry extends _NotificationFeedEntry {
+  const _DayHeaderEntry({
+    required this.day,
+    required this.count,
+    required this.isFirst,
+  });
+
+  final DateTime day;
+  final int count;
+  final bool isFirst;
+}
+
+final class _NotificationCardEntry extends _NotificationFeedEntry {
+  const _NotificationCardEntry({
+    required this.item,
+    required this.isLastInGroup,
+  });
+
+  final LoyaltyMessageItem item;
+  final bool isLastInGroup;
+}
+
+final class _LoadMoreEntry extends _NotificationFeedEntry {
+  const _LoadMoreEntry();
+}
+
+List<_NotificationFeedEntry> _buildFeedEntries(
+  List<LoyaltyMessageItem> items, {
+  required bool hasMore,
+}) {
+  final entries = <_NotificationFeedEntry>[];
+  var index = 0;
+  var groupIndex = 0;
+  while (index < items.length) {
+    final day = dayKeyOf(items[index].createdAt);
+    var end = index + 1;
+    while (end < items.length &&
+        isSameCalendarDay(dayKeyOf(items[end].createdAt), day)) {
+      end++;
+    }
+    entries.add(
+      _DayHeaderEntry(
+        day: day,
+        count: end - index,
+        isFirst: groupIndex == 0,
+      ),
+    );
+    for (var i = index; i < end; i++) {
+      entries.add(
+        _NotificationCardEntry(
+          item: items[i],
+          isLastInGroup: i == end - 1,
+        ),
+      );
+    }
+    index = end;
+    groupIndex++;
+  }
+  if (hasMore) {
+    entries.add(const _LoadMoreEntry());
+  }
+  return entries;
+}
+
+class _DaySectionHeader extends StatelessWidget {
+  const _DaySectionHeader({
+    required this.label,
+    required this.count,
+    required this.isToday,
+    required this.isFirst,
+  });
+
+  final String label;
+  final int count;
+  final bool isToday;
+  final bool isFirst;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      header: true,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(2, isFirst ? 2 : 20, 2, 10),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final maxLabelWidth =
+                (constraints.maxWidth - 68).clamp(80.0, double.infinity);
+            return Row(
+              children: [
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: maxLabelWidth),
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.1,
+                      color: isToday
+                          ? PaykColors.primary
+                          : PaykColors.textSecondary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Expanded(
+                  child: Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: PaykColors.border,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isToday
+                        ? PaykColors.brandSoft
+                        : PaykColors.surfaceNested,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: isToday
+                          ? PaykColors.primary
+                          : PaykColors.textSecondary,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -218,11 +427,13 @@ class _NotificationCard extends StatelessWidget {
     required this.item,
     required this.locale,
     required this.onOpenOffers,
+    this.onOpenReceipt,
   });
 
   final LoyaltyMessageItem item;
   final String locale;
   final VoidCallback onOpenOffers;
+  final VoidCallback? onOpenReceipt;
 
   String _kindTitle() {
     final key = 'messages.kind.${item.kind}';
@@ -234,11 +445,13 @@ class _NotificationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isUnread = !item.read;
-    final hasOffersLink = item.kind == 'size_flash' || item.kind == 'size_new';
+    final hasReceiptLink = onOpenReceipt != null;
+    final hasOffersLink =
+        !hasReceiptLink &&
+        (item.kind == 'size_flash' || item.kind == 'size_new');
 
-    return RepaintBoundary(
-      child: AnimatedContainer(
-        duration: PaykMotion.duration(context, PaykMotion.normal),
+    final card = AnimatedContainer(
+      duration: PaykMotion.duration(context, PaykMotion.normal),
       curve: PaykMotion.easeOut,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -300,12 +513,13 @@ class _NotificationCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 1),
                     Text(
-                      formatDate(item.createdAt),
+                      formatDateTime(item.createdAt, locale: locale),
                       style: const TextStyle(
                         fontFamily: 'Inter',
                         color: PaykColors.textSecondary,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
+                        fontFeatures: [FontFeature.tabularFigures()],
                       ),
                     ),
                   ],
@@ -333,6 +547,36 @@ class _NotificationCard extends StatelessWidget {
               color: PaykColors.textPrimary,
             ),
           ),
+          if (hasReceiptLink) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: PaykColors.activePill,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    tr(locale, 'messages.openReceipt'),
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: PaykColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    size: 16,
+                    color: PaykColors.primary,
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (hasOffersLink) ...[
             const SizedBox(height: 12),
             PaykPressable(
@@ -369,6 +613,20 @@ class _NotificationCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+
+    if (!hasReceiptLink) {
+      return RepaintBoundary(child: card);
+    }
+
+    return RepaintBoundary(
+      child: Semantics(
+        button: true,
+        child: PaykPressable(
+          scaleDown: PaykMotion.scaleSubtle,
+          onTap: onOpenReceipt,
+          child: card,
+        ),
       ),
     );
   }

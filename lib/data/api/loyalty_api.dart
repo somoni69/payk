@@ -267,6 +267,14 @@ class LoyaltyApi {
     return asInt(json['unread']);
   }
 
+  /// Отметить прочитанным одно сообщение (нажали на уведомление).
+  Future<int> markMessageRead(int id) async {
+    final json = asMap(
+      await _client.send('/me/messages/$id/read', method: 'POST'),
+    );
+    return asInt(json['unread']);
+  }
+
   Future<TelegramLinks> telegram() async {
     final json = await _client.send('/me/telegram');
     return TelegramLinks.fromJson(asMap(json));

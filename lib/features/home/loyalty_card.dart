@@ -129,6 +129,10 @@ class LoyaltyCard extends StatelessWidget {
     final name = _holderName(member);
     final code = member.referralCode.trim();
 
+    final wallets = wallet.storeWallets;
+    final walletsLine =
+        '${tr(locale, 'wallet.SM')}: ${formatMoney(wallets.sm.balance)} · ${tr(locale, 'wallet.CL')}: ${formatMoney(wallets.cl.balance)}';
+
     final card = AnimatedSwitcher(
       duration: reduce ? Duration.zero : PaykMotion.page,
       switchInCurve: PaykMotion.easeOut,
@@ -154,6 +158,7 @@ class LoyaltyCard extends StatelessWidget {
         brandTitle: tr(locale, 'store.brand'),
         balanceLabel: tr(locale, 'home.balance'),
         amount: formatNumber(wallet.balance),
+        walletsLine: walletsLine,
         name: name,
         code: code,
         showChevron: onTap != null,
@@ -182,6 +187,7 @@ class _LoyaltyCardSurface extends StatelessWidget {
     required this.brandTitle,
     required this.balanceLabel,
     required this.amount,
+    required this.walletsLine,
     required this.name,
     required this.code,
     required this.showChevron,
@@ -193,6 +199,7 @@ class _LoyaltyCardSurface extends StatelessWidget {
   final String brandTitle;
   final String balanceLabel;
   final String amount;
+  final String walletsLine;
   final String name;
   final String code;
   final bool showChevron;
@@ -352,7 +359,23 @@ class _LoyaltyCardSurface extends StatelessWidget {
                         style: const TextStyle(inherit: false),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 6),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        walletsLine,
+                        key: const ValueKey('loyalty-card-wallets'),
+                        style: _cardText(
+                          color: face.inkSoft,
+                          size: 12,
+                          weight: FontWeight.w600,
+                          height: 1.2,
+                          features: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(

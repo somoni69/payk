@@ -889,6 +889,24 @@ class _HistoryRow extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
+                const SizedBox(height: 2),
+                Text(
+                  (entry.format == 'SM' || entry.format == 'CL')
+                      ? tr(locale, 'history.balanceAfterWallet', {
+                          'store': tr(locale, 'wallet.${entry.format}'),
+                          'amount': formatMoney(entry.balanceAfter),
+                        })
+                      : tr(locale, 'history.balanceAfter', {
+                          'amount': formatMoney(entry.balanceAfter),
+                        }),
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    color: PaykColors.textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
               ],
             ),
           ),

@@ -639,6 +639,21 @@ const _ru = {
   'messages.kind.test': 'Проверка связи',
   'messages.kind.other': 'Сообщение',
   'messages.openOffers': 'Открыть акции',
+  'messages.openReceipt': 'Открыть чек',
+  'wallet.SM': 'Супермаркет',
+  'wallet.CL': 'Либос',
+  'home.debtTitleWallet': 'Отрицательный баланс в «{store}»: {amount}',
+  'home.debtTextWallet':
+      'Новый кэшбэк этого магазина сначала покроет долг. До этого оплата бонусами в нём недоступна.',
+  'home.onHoldWallet': '«{store}»: {amount} в ожидании',
+  'home.walletsLabel': 'Кэшбэк по магазинам',
+  'code.spend.balances': 'На счёте: «Супермаркет» {sm} · «Либос» {cl}',
+  'code.spend.walletHint':
+      'Тратится кэшбэк того магазина, где вы покажете код',
+  'code.spend.debtWallet':
+      'Пока есть долг в «{store}», кэшбэк там не тратится — только копится',
+  'pay.balanceWallet': 'Баланс «{store}»: {amount}',
+  'history.balanceAfterWallet': 'Баланс «{store}»: {amount}',
 };
 
 const _tj = {
@@ -1261,4 +1276,19 @@ const _tj = {
   'messages.kind.test': 'Санҷиши алоқа',
   'messages.kind.other': 'Паём',
   'messages.openOffers': 'Аксияҳоро кушодан',
+  'messages.openReceipt': 'Чекро кушодан',
+  'wallet.SM': 'Супермаркет',
+  'wallet.CL': 'Либос',
+  'home.debtTitleWallet': 'Тавозуни манфӣ дар «{store}»: {amount}',
+  'home.debtTextWallet':
+      'Кэшбэкҳои нави ин мағоза аввал қарзро мепӯшонанд. То он вақт пардохт бо бонус дар он дастрас нест.',
+  'home.onHoldWallet': '«{store}»: {amount} дар интизорӣ',
+  'home.walletsLabel': 'Кэшбэк аз рӯи мағозаҳо',
+  'code.spend.balances': 'Дар ҳисоб: «Супермаркет» {sm} · «Либос» {cl}',
+  'code.spend.walletHint':
+      'Кэшбэки ҳамон мағозае харҷ мешавад, ки рамзро дар он нишон медиҳед',
+  'code.spend.debtWallet':
+      'То дар «{store}» қарз ҳаст, кэшбэк дар он харҷ намешавад — танҳо ҷамъ мешавад',
+  'pay.balanceWallet': 'Тавозуни «{store}»: {amount}',
+  'history.balanceAfterWallet': 'Тавозуни «{store}»: {amount}',
 };

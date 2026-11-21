@@ -148,9 +148,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/history/receipt/:id',
         pageBuilder: (context, state) {
           final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+          final focusReturns = state.uri.queryParameters['focus'] == 'returns';
           return PaykMotion.buildPage(
             state: state,
-            child: ReceiptDetailScreen(receiptId: id),
+            child: ReceiptDetailScreen(
+              receiptId: id,
+              focusReturns: focusReturns,
+            ),
           );
         },
       ),

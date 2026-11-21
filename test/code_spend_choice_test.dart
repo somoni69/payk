@@ -273,16 +273,25 @@ void main() {
 
       expect(find.byKey(const ValueKey('spend-choice-card')), findsOneWidget);
       expect(find.text('Как оплатить этот чек'), findsOneWidget);
-      expect(find.text('На счёте 150,00 смн'), findsOneWidget);
+      expect(
+        find.text('На счёте: «Супермаркет» 150,00 смн · «Либос» 0,00 смн'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Тратится кэшбэк того магазина, где вы покажете код'),
+        findsOneWidget,
+      );
       expect(
         find.text(
           'Часть чека оплатите кэшбэком — с остатка кэшбэк всё равно начислится',
         ),
         findsOneWidget,
       );
-      // При долге и выбранном keep показываем предупреждение
+      // При долге и выбранном keep показываем предупреждение по кошельку
       expect(
-        find.text('Пока есть долг, кэшбэк не тратится — только копится'),
+        find.text(
+          'Пока есть долг в «Супермаркет», кэшбэк там не тратится — только копится',
+        ),
         findsOneWidget,
       );
       // Резерв 1С отображается
@@ -305,7 +314,9 @@ void main() {
         const CodeChoice(spend: SpendPref.earn, coupon: true),
       );
       expect(
-        find.text('Пока есть долг, кэшбэк не тратится — только копится'),
+        find.text(
+          'Пока есть долг в «Супермаркет», кэшбэк там не тратится — только копится',
+        ),
         findsNothing,
       );
 
@@ -342,7 +353,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Ин чекро чӣ тавр мепардозед'), findsOneWidget);
-      expect(find.text('Дар ҳисоб 150,00 смн'), findsOneWidget);
+      expect(
+        find.text('Дар ҳисоб: «Супермаркет» 150,00 смн · «Либос» 0,00 смн'),
+        findsOneWidget,
+      );
       expect(find.byKey(const ValueKey('spend-coupon-toggle')), findsNothing);
     });
 

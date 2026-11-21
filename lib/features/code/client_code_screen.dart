@@ -681,8 +681,9 @@ class _SpendChoiceCard extends StatelessWidget {
           if (wallet != null) ...[
             const SizedBox(height: 3),
             Text(
-              tr(locale, 'code.spend.balance', {
-                'amount': formatMoney(wallet.balance),
+              tr(locale, 'code.spend.balances', {
+                'sm': formatMoney(wallet.storeWallets.sm.balance),
+                'cl': formatMoney(wallet.storeWallets.cl.balance),
               }),
               style: const TextStyle(
                 fontFamily: 'Inter',
@@ -690,6 +691,17 @@ class _SpendChoiceCard extends StatelessWidget {
                 fontWeight: FontWeight.w600,
                 color: PaykColors.textSecondary,
                 fontFeatures: [FontFeature.tabularFigures()],
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              tr(locale, 'code.spend.walletHint'),
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                height: 1.3,
+                color: PaykColors.textMuted,
               ),
             ),
           ],
@@ -736,29 +748,34 @@ class _SpendChoiceCard extends StatelessWidget {
               color: PaykColors.textPrimary,
             ),
           ),
-          if (wallet != null &&
-              wallet.debt > 0 &&
-              choice.spend != SpendPref.earn) ...[
-            const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: PaykColors.expenseSoft,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                tr(locale, 'code.spend.debt'),
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  height: 1.35,
-                  color: PaykColors.danger,
+          if (wallet != null && choice.spend != SpendPref.earn)
+            for (final format in StoreWallets.formats)
+              if (wallet.storeWallets.byFormat(format).debt > 0) ...[
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: PaykColors.expenseSoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    tr(locale, 'code.spend.debtWallet', {
+                      'store': tr(locale, 'wallet.$format'),
+                    }),
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      height: 1.35,
+                      color: PaykColors.danger,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
           if (wallet != null && wallet.reserved > 0) ...[
             const SizedBox(height: 10),
             Container(

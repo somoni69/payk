@@ -226,6 +226,52 @@ class UpInfo {
   }
 }
 
+/// Кошелёк одного магазина: кэшбэк «Супермаркета» тратится только в «Супермаркете»,
+/// «Либос» — только в «Либос».
+class StoreWallet {
+  const StoreWallet({
+    required this.balance,
+    this.reserved = 0,
+    required this.onHold,
+    required this.debt,
+  });
+
+  static const empty = StoreWallet(balance: 0, reserved: 0, onHold: 0, debt: 0);
+
+  final double balance;
+  final double reserved;
+  final double onHold;
+  final double debt;
+
+  factory StoreWallet.fromJson(Object? json) {
+    final map = json is Map ? asMap(json) : const <String, dynamic>{};
+    return StoreWallet(
+      balance: asMoney(map['balance']),
+      reserved: asMoney(map['reserved']),
+      onHold: asMoney(map['on_hold']),
+      debt: asMoney(map['debt']),
+    );
+  }
+}
+
+class StoreWallets {
+  const StoreWallets({required this.sm, required this.cl});
+
+  static const formats = ['SM', 'CL'];
+
+  final StoreWallet sm;
+  final StoreWallet cl;
+
+  StoreWallet byFormat(String format) => format == 'CL' ? cl : sm;
+
+  factory StoreWallets.fromJson(Map<String, dynamic> json) {
+    return StoreWallets(
+      sm: StoreWallet.fromJson(json['SM']),
+      cl: StoreWallet.fromJson(json['CL']),
+    );
+  }
+}
+
 class Wallet {
   const Wallet({
     required this.status,
@@ -233,6 +279,7 @@ class Wallet {
     this.reserved = 0,
     required this.onHold,
     required this.debt,
+    this.wallets,
     required this.spendMonth,
     required this.spendSupermarket,
     required this.spendClothes,
@@ -252,6 +299,23 @@ class Wallet {
   final double reserved;
   final double onHold;
   final double debt;
+
+  /// Раздельные кошельки SM/CL (если сервер их вернул).
+  final StoreWallets? wallets;
+
+  /// Кошельки по магазинам: для старого сервера без `wallets` весь баланс — в SM.
+  StoreWallets get storeWallets =>
+      wallets ??
+      StoreWallets(
+        sm: StoreWallet(
+          balance: balance,
+          reserved: reserved,
+          onHold: onHold,
+          debt: debt,
+        ),
+        cl: StoreWallet.empty,
+      );
+
   final double spendMonth;
   final double spendSupermarket;
   final double spendClothes;
@@ -310,6 +374,9 @@ class Account {
         reserved: asMoney(json['reserved']),
         onHold: asMoney(json['on_hold']),
         debt: asMoney(json['debt']),
+        wallets: json['wallets'] is Map
+            ? StoreWallets.fromJson(asMap(json['wallets']))
+            : null,
         spendMonth: asMoney(json['spend_month']),
         spendSupermarket: asMoney(json['spend_sm']),
         spendClothes: asMoney(json['spend_cl']),
@@ -526,6 +593,7 @@ class PendingCheck {
     this.serverNow,
     this.balance,
     this.debt,
+    this.wallet,
     this.burnMin = 0.5,
     this.eligible,
     this.excludedAmount,
@@ -570,6 +638,7 @@ class PendingCheck {
   final DateTime? serverNow;
   final double? balance;
   final double? debt;
+  final String? wallet;
   final double burnMin;
   final double? eligible;
   final double? excludedAmount;
@@ -621,6 +690,7 @@ class PendingCheck {
       serverNow: json['server_now'] == null ? null : asDate(json['server_now']),
       balance: asMoneyOrNull(json['balance']),
       debt: asMoneyOrNull(json['debt']),
+      wallet: asStringOrNull(json['wallet']),
       burnMin: json['burn_min'] == null ? 0.5 : asMoney(json['burn_min']),
       eligible: asMoneyOrNull(json['eligible']),
       excludedAmount: asMoneyOrNull(json['excluded_amount']),
@@ -923,6 +993,7 @@ class LoyaltyMessageItem {
     required this.text,
     required this.createdAt,
     required this.read,
+    this.billId,
   });
 
   final int id;
@@ -931,6 +1002,20 @@ class LoyaltyMessageItem {
   final DateTime createdAt;
   final bool read;
 
+  /// Чек этого уведомления о покупке или возврате (`null` — чека нет или он вне истории).
+  final int? billId;
+
+  LoyaltyMessageItem copyWith({bool? read}) {
+    return LoyaltyMessageItem(
+      id: id,
+      kind: kind,
+      text: text,
+      createdAt: createdAt,
+      read: read ?? this.read,
+      billId: billId,
+    );
+  }
+
   factory LoyaltyMessageItem.fromJson(Map<String, dynamic> json) {
     return LoyaltyMessageItem(
       id: asInt(json['id']),
@@ -938,6 +1023,7 @@ class LoyaltyMessageItem {
       text: asString(json['text']),
       createdAt: asDate(json['created_at']),
       read: json['read'] == true,
+      billId: asIntOrNull(json['bill_id']),
     );
   }
 }

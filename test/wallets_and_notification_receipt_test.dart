@@ -289,10 +289,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Супермаркет: 120,00 смн · Либос: 45,50 смн'),
-        findsOneWidget,
-      );
+      final smTile = find.byKey(const ValueKey('loyalty-wallet-SM'));
+      final clTile = find.byKey(const ValueKey('loyalty-wallet-CL'));
+      expect(smTile, findsOneWidget);
+      expect(clTile, findsOneWidget);
+      expect(find.descendant(of: smTile, matching: find.text('Супермаркет')), findsOneWidget);
+      expect(find.descendant(of: smTile, matching: find.textContaining('120,00')), findsOneWidget);
+      expect(find.descendant(of: clTile, matching: find.text('Либос')), findsOneWidget);
+      expect(find.descendant(of: clTile, matching: find.textContaining('45,50')), findsOneWidget);
       expect(
         find.text('Отрицательный баланс в «Либос»: −15,00 смн'),
         findsOneWidget,

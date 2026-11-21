@@ -25,6 +25,8 @@ class LoyaltyCardFace {
     required this.pillInk,
     required this.mark,
     required this.shadow,
+    required this.walletFill,
+    required this.walletBorder,
     this.sheen,
     this.begin = Alignment.topLeft,
     this.end = Alignment.bottomRight,
@@ -37,6 +39,8 @@ class LoyaltyCardFace {
   final Color pillInk;
   final Color mark;
   final Color shadow;
+  final Color walletFill;
+  final Color walletBorder;
   final Color? sheen;
   final Alignment begin;
   final Alignment end;
@@ -53,6 +57,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
       pillInk: Colors.white,
       mark: Color(0x2E1C2430),
       shadow: Color(0x332A3544),
+      walletFill: Color(0x88FFFFFF),
+      walletBorder: Color(0x1C1C2430),
       sheen: Color(0xCCFFFFFF),
     ),
     3 => const LoyaltyCardFace(
@@ -63,6 +69,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
       pillInk: Colors.white,
       mark: Color(0x333D2A08),
       shadow: Color(0x40C4922A),
+      walletFill: Color(0x52FFFFFF),
+      walletBorder: Color(0x223D2A08),
       sheen: Color(0x99FFFFFF),
     ),
     4 => const LoyaltyCardFace(
@@ -73,6 +81,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
       pillInk: Colors.white,
       mark: Color(0x38FFFFFF),
       shadow: Color(0x66141A22),
+      walletFill: Color(0x4A000000),
+      walletBorder: Color(0x1EFFFFFF),
       sheen: Color(0x28FFFFFF),
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
@@ -85,6 +95,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
       pillInk: Colors.white,
       mark: Color(0x38FFFFFF),
       shadow: Color(0x55372CD2),
+      walletFill: Color(0x42120D52),
+      walletBorder: Color(0x26FFFFFF),
       sheen: Color(0x22FFFFFF),
     ),
     _ => const LoyaltyCardFace(
@@ -95,6 +107,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
       pillInk: Colors.white,
       mark: Color(0x38FFFFFF),
       shadow: Color(0x403B4150),
+      walletFill: Color(0x38000000),
+      walletBorder: Color(0x1EFFFFFF),
       begin: Alignment.centerLeft,
       end: Alignment.centerRight,
     ),
@@ -130,8 +144,6 @@ class LoyaltyCard extends StatelessWidget {
     final code = member.referralCode.trim();
 
     final wallets = wallet.storeWallets;
-    final walletsLine =
-        '${tr(locale, 'wallet.SM')}: ${formatMoney(wallets.sm.balance)} · ${tr(locale, 'wallet.CL')}: ${formatMoney(wallets.cl.balance)}';
 
     final card = AnimatedSwitcher(
       duration: reduce ? Duration.zero : PaykMotion.page,
@@ -158,7 +170,10 @@ class LoyaltyCard extends StatelessWidget {
         brandTitle: tr(locale, 'store.brand'),
         balanceLabel: tr(locale, 'home.balance'),
         amount: formatNumber(wallet.balance),
-        walletsLine: walletsLine,
+        smLabel: tr(locale, 'wallet.SM'),
+        smAmount: formatNumber(wallets.sm.balance),
+        clLabel: tr(locale, 'wallet.CL'),
+        clAmount: formatNumber(wallets.cl.balance),
         name: name,
         code: code,
         showChevron: onTap != null,
@@ -187,7 +202,10 @@ class _LoyaltyCardSurface extends StatelessWidget {
     required this.brandTitle,
     required this.balanceLabel,
     required this.amount,
-    required this.walletsLine,
+    required this.smLabel,
+    required this.smAmount,
+    required this.clLabel,
+    required this.clAmount,
     required this.name,
     required this.code,
     required this.showChevron,
@@ -199,7 +217,10 @@ class _LoyaltyCardSurface extends StatelessWidget {
   final String brandTitle;
   final String balanceLabel;
   final String amount;
-  final String walletsLine;
+  final String smLabel;
+  final String smAmount;
+  final String clLabel;
+  final String clAmount;
   final String name;
   final String code;
   final bool showChevron;
@@ -319,7 +340,7 @@ class _LoyaltyCardSurface extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 18),
                     Text(
                       balanceLabel,
                       style: _cardText(
@@ -359,23 +380,32 @@ class _LoyaltyCardSurface extends StatelessWidget {
                         style: const TextStyle(inherit: false),
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        walletsLine,
-                        key: const ValueKey('loyalty-card-wallets'),
-                        style: _cardText(
-                          color: face.inkSoft,
-                          size: 12,
-                          weight: FontWeight.w600,
-                          height: 1.2,
-                          features: const [FontFeature.tabularFigures()],
+                    const SizedBox(height: 14),
+                    Row(
+                      key: const ValueKey('loyalty-card-wallets'),
+                      children: [
+                        Expanded(
+                          child: _WalletMiniTile(
+                            key: const ValueKey('loyalty-wallet-SM'),
+                            icon: Icons.shopping_cart_outlined,
+                            label: smLabel,
+                            amount: smAmount,
+                            face: face,
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _WalletMiniTile(
+                            key: const ValueKey('loyalty-wallet-CL'),
+                            icon: Icons.checkroom_rounded,
+                            label: clLabel,
+                            amount: clAmount,
+                            face: face,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 14),
                     Row(
                       children: [
                         Expanded(
@@ -418,6 +448,93 @@ class _LoyaltyCardSurface extends StatelessWidget {
   }
 }
 
+/// Компактная плитка отдельного кошелька («Супермаркет» / «Либос») внутри карты.
+class _WalletMiniTile extends StatelessWidget {
+  const _WalletMiniTile({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.amount,
+    required this.face,
+  });
+
+  final IconData icon;
+  final String label;
+  final String amount;
+  final LoyaltyCardFace face;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: face.walletFill,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: face.walletBorder, width: 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 13, color: face.inkSoft),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _cardText(
+                      color: face.inkSoft,
+                      size: 11,
+                      weight: FontWeight.w600,
+                      height: 1.15,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: amount,
+                      style: _cardText(
+                        color: face.ink,
+                        size: 15,
+                        weight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                        height: 1.15,
+                        features: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' смн',
+                      style: _cardText(
+                        color: face.inkSoft,
+                        size: 11.5,
+                        weight: FontWeight.w700,
+                        height: 1.15,
+                      ),
+                    ),
+                  ],
+                ),
+                style: const TextStyle(inherit: false),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Знак Алмосӣ справа на карте. Буква берёт цвет текста текущего материала.
 class _WatermarkSlot extends StatelessWidget {
   const _WatermarkSlot({required this.letter});
@@ -433,10 +550,10 @@ class _WatermarkSlot extends StatelessWidget {
         return Stack(
           children: [
             Positioned(
-              right: 12,
+              right: 14,
               top: height * 0.16,
-              width: width * 0.40,
-              height: height * 0.68,
+              width: width * 0.34,
+              height: height * 0.42,
               child: _AlmosiLogo(letter: letter),
             ),
           ],

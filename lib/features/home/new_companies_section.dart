@@ -286,7 +286,7 @@ void showCompanyDetailsModal(BuildContext context, CompanyModel company) {
     context: context,
     useRootNavigator: true,
     backgroundColor: PaykColors.canvas,
-    sheetAnimationStyle: PaykMotion.sheetAnimationStyle,
+    sheetAnimationStyle: PaykMotion.sheetStyle(context),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),

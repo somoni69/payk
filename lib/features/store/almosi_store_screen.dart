@@ -7,6 +7,7 @@ import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
+import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/states.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
@@ -505,6 +506,19 @@ class AlmosiDirectionScreen extends ConsumerWidget {
                               fontFeatures: [FontFeature.tabularFigures()],
                             ),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            tr(locale, 'pay.balance', {
+                              'amount': formatMoney(wallet.balance),
+                            }),
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: PaykColors.textSecondary,
+                              fontFeatures: [FontFeature.tabularFigures()],
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -542,7 +556,7 @@ class AlmosiDirectionScreen extends ConsumerWidget {
 
               // Принципы начисления кэшбэка
               _PrinciplesCard(
-                icon: Icons.trending_up_rounded,
+                iconWidget: const CashbackPlus3dIcon(size: 26),
                 title: tr(locale, 'store.accrualTitle'),
                 items: [
                   tr(locale, 'store.accrualRule1', {
@@ -557,7 +571,7 @@ class AlmosiDirectionScreen extends ConsumerWidget {
 
               // Принципы списания (снятия) кэшбэка
               _PrinciplesCard(
-                icon: Icons.payments_outlined,
+                iconWidget: const CashbackMinus3dIcon(size: 26),
                 title: tr(locale, 'store.burnTitle'),
                 items: [
                   tr(locale, 'store.burnRule1', {
@@ -708,12 +722,12 @@ class _MetricTile extends StatelessWidget {
 
 class _PrinciplesCard extends StatelessWidget {
   const _PrinciplesCard({
-    required this.icon,
+    required this.iconWidget,
     required this.title,
     required this.items,
   });
 
-  final IconData icon;
+  final Widget iconWidget;
   final String title;
   final List<String> items;
 
@@ -732,14 +746,14 @@ class _PrinciplesCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                width: 36,
-                height: 36,
+                width: 38,
+                height: 38,
                 decoration: BoxDecoration(
                   color: PaykColors.activePill,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(11),
                 ),
                 alignment: Alignment.center,
-                child: Icon(icon, size: 20, color: PaykColors.primary),
+                child: iconWidget,
               ),
               const SizedBox(width: 10),
               Expanded(

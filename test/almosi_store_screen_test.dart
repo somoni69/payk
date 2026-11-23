@@ -159,6 +159,10 @@ void main() {
       expect(find.text('Алмоси'), findsOneWidget);
       expect(find.text('ПАЙК'), findsNothing);
       expect(find.text('Стандарт'), findsOneWidget);
+      expect(find.text('Супермаркет'), findsOneWidget);
+      expect(find.text('3,5% / 1,5%'), findsOneWidget);
+      expect(find.text('Одежда'), findsOneWidget);
+      expect(find.text('10% / 15%'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

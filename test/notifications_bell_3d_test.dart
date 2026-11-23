@@ -85,7 +85,8 @@ void main() {
 
     expect(find.byType(Bell3dIcon), findsNWidgets(2));
     expect(_findBellAsset(), findsNWidgets(2));
-    expect(find.byIcon(Icons.local_offer_outlined), findsOneWidget);
+    expect(find.byType(SizeOffers3dIcon), findsOneWidget);
+    expect(find.byIcon(Icons.local_offer_outlined), findsNothing);
     expect(find.byIcon(Icons.notifications_active_rounded), findsNothing);
     expect(find.byIcon(Icons.notifications_none_rounded), findsNothing);
   });

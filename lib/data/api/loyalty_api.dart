@@ -18,6 +18,38 @@ class LoyaltyApi {
     return ProgramInfo.fromJson(asMap(json));
   }
 
+  /// Кто пригласил — до регистрации (0074): код ссылки, метка Google Play и отпечаток устройства.
+  Future<ReferralMatch> matchReferral({
+    String? code,
+    String? click,
+    String? installReferrer,
+    ReferralDeviceInfo? device,
+  }) async {
+    final deviceMap = device?.toJson();
+    final json = await _client.send(
+      '/p/$_slug/referral/match',
+      method: 'POST',
+      auth: false,
+      body: {
+        'code': (code == null || code.isEmpty) ? null : code,
+        if (click != null && click.isNotEmpty) 'click': click,
+        'install_referrer':
+            (installReferrer == null || installReferrer.isEmpty)
+            ? null
+            : installReferrer,
+        if (deviceMap != null && deviceMap.isNotEmpty) 'device': deviceMap,
+      },
+    );
+    return ReferralMatch.fromJson(asMap(json));
+  }
+
+  /// Проверка вручную введённого кода приглашения.
+  Future<ReferralCheck> checkReferral(String code) async {
+    final encoded = Uri.encodeComponent(code.trim().toUpperCase());
+    final json = await _client.send('/p/$_slug/referral/$encoded', auth: false);
+    return ReferralCheck.fromJson(asMap(json));
+  }
+
   Future<OtpChallenge> requestOtp(String phone) async {
     final json = await _client.send(
       '/p/$_slug/otp',
@@ -48,7 +80,7 @@ class LoyaltyApi {
     return VerifyResult.login(TokenPair.fromJson(json));
   }
 
-  Future<TokenPair> register(RegisterInput input) async {
+  Future<RegisterResult> register(RegisterInput input) async {
     if (!input.consentPd) {
       throw ApiException(422, 'Нужно согласие на обработку данных');
     }
@@ -58,7 +90,7 @@ class LoyaltyApi {
       auth: false,
       body: input.toJson(),
     );
-    return TokenPair.fromJson(asMap(json));
+    return RegisterResult.fromJson(asMap(json));
   }
 
   Future<RulesInfo> rules() async {
@@ -263,6 +295,14 @@ class LoyaltyApi {
         method: 'POST',
         body: {'up_to_id': upToId},
       ),
+    );
+    return asInt(json['unread']);
+  }
+
+  /// Отметить прочитанным одно сообщение (нажали на уведомление).
+  Future<int> markMessageRead(int id) async {
+    final json = asMap(
+      await _client.send('/me/messages/$id/read', method: 'POST'),
     );
     return asInt(json['unread']);
   }

@@ -24,22 +24,44 @@ class PaykShell extends ConsumerStatefulWidget {
 }
 
 class _PaykShellState extends ConsumerState<PaykShell> {
+  /// Отсортированы по приоритету: сначала иконки, видимые на главном экране,
+  /// затем категории/история и остальные вкладки. Прогрев идёт батчами по 4,
+  /// чтобы не загружать 30+ декодеров на первом кадре после входа.
   static const _precache3dAssets = <String>[
+    // Главный экран (приоритет 1)
+    'assets/3d/qr-code.webp',
+    'assets/3d/bell.webp',
+    'assets/3d/ruler.webp',
+    'assets/3d/gift.webp',
+    'assets/3d/coin.webp',
+    'assets/3d/ticket.webp',
     'assets/3d/cart.webp',
+    'assets/3d/tshirt.webp',
+    // Категории и история (приоритет 2)
+    'assets/3d/receipt.webp',
+    'assets/3d/bags.webp',
+    'assets/3d/card.webp',
+    'assets/3d/basket.webp',
+    'assets/3d/cashback-plus.webp',
+    'assets/3d/cashback-minus.webp',
+    'assets/3d/my-receipts.webp',
+    'assets/3d/coat.webp',
+    // Друзья, профиль, размеры и витрина (приоритет 3)
+    'assets/3d/party.webp',
+    'assets/3d/telephone.webp',
+    'assets/3d/gem.webp',
+    'assets/3d/trophy.webp',
     'assets/3d/shirt.webp',
     'assets/3d/sneaker.webp',
     'assets/3d/jeans.webp',
-    'assets/3d/bell.webp',
-    'assets/3d/telephone.webp',
-    'assets/3d/ticket.webp',
-    'assets/3d/gem.webp',
-    'assets/3d/coin.webp',
-    'assets/3d/gift.webp',
-    'assets/3d/party.webp',
-    'assets/3d/receipt.webp',
-    'assets/3d/trophy.webp',
-    'assets/3d/tshirt.webp',
-    'assets/3d/coat.webp',
+    'assets/3d/my-sizes.webp',
+    'assets/3d/size-offers.webp',
+    'assets/3d/status-rules.webp',
+    'assets/3d/store-contact.webp',
+    'assets/3d/about-app.webp',
+    'assets/3d/store.webp',
+    'assets/3d/gear.webp',
+    'assets/3d/language.webp',
   ];
 
   bool _precached = false;
@@ -51,22 +73,25 @@ class _PaykShellState extends ConsumerState<PaykShell> {
     _precached = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      for (final path in _precache3dAssets) {
-        unawaited(precacheImage(AssetImage(path), context).catchError((_) {}));
-      }
-      unawaited(
-        precacheImage(
-          ResizeImage(const AssetImage('assets/images/almosi_blue.png'), width: 420),
-          context,
-        ).catchError((_) {}),
-      );
-      unawaited(
-        precacheImage(
-          ResizeImage(const AssetImage('assets/images/almosi_letter.png'), width: 420),
-          context,
-        ).catchError((_) {}),
-      );
+      unawaited(_precacheInBatches());
     });
+  }
+
+  Future<void> _precacheInBatches() async {
+    final providers = <ImageProvider>[
+      ResizeImage(const AssetImage('assets/images/almosi_blue.png'), width: 420),
+      ResizeImage(const AssetImage('assets/images/almosi_letter.png'), width: 420),
+      for (final path in _precache3dAssets) AssetImage(path),
+    ];
+    const batchSize = 4;
+    for (var i = 0; i < providers.length; i += batchSize) {
+      if (!mounted) return;
+      final end = (i + batchSize < providers.length) ? i + batchSize : providers.length;
+      await Future.wait([
+        for (var j = i; j < end; j++)
+          precacheImage(providers[j], context).catchError((_) {}),
+      ]);
+    }
   }
 
   void _go(int index) {

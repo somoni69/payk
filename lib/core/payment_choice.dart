@@ -107,7 +107,7 @@ bool shouldAnnounceClose({
 bool historyTypeInCategory(String type, String category) {
   const groups = {
     'purchases': {'accrual', 'burn', 'round'},
-    'accrual': {'accrual'},
+    'accrual': {'accrual', 'bonus', 'welcome'},
     'burn': {'burn', 'round'},
     'returns': {'reversal', 'refund', 'referral_reversal'},
     'friends': {'referral', 'referral_reversal'},

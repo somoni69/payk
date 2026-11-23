@@ -3,13 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payk/app/router.dart';
 import 'package:payk/core/i18n/locale_controller.dart';
+import 'package:payk/core/theme/payk_colors.dart';
 import 'package:payk/core/theme/payk_theme.dart';
+import 'package:payk/core/widgets/screen_skeletons.dart';
 import 'package:payk/data/api/api_config.dart';
 import 'package:payk/data/api/api_exception.dart';
 import 'package:payk/data/api/loyalty_api.dart';
 import 'package:payk/data/models/models.dart';
 import 'package:payk/data/providers.dart';
 import 'package:payk/features/auth/splash_screen.dart';
+import 'package:payk/features/friends/friends_screen.dart';
 import 'package:payk/features/showcase/payk_business_screen.dart';
 
 class _Locale extends LocaleController {
@@ -272,6 +275,65 @@ void main() {
     expect(find.text('Касса и склад'), findsOneWidget);
     expect(find.text('Хочу PAYK'), findsOneWidget);
   });
+
+  testWidgets(
+    'PaykBusinessScreen, FriendsScreen and their skeletons round header bottom corners like HomeHeader',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final roundedHeader = find.byWidgetPredicate((widget) {
+        if (widget is! DecoratedBox) return false;
+        final decoration = widget.decoration;
+        if (decoration is! BoxDecoration) return false;
+        return decoration.gradient == PaykColors.headerGradient &&
+            decoration.borderRadius ==
+                const BorderRadius.vertical(
+                  bottom: Radius.circular(PaykRadius.header),
+                );
+      });
+
+      await _settle(tester, _screen(_Api(_feed())));
+      expect(roundedHeader, findsOneWidget);
+
+      await _settle(
+        tester,
+        ProviderScope(
+          key: UniqueKey(),
+          overrides: [
+            localeProvider.overrideWith(() => _Locale('ru')),
+            meProvider.overrideWith((ref) => _account),
+            friendsProvider.overrideWith((ref) => _friends),
+          ],
+          child: MaterialApp(
+            theme: PaykTheme.light,
+            home: const FriendsScreen(),
+          ),
+        ),
+      );
+      expect(roundedHeader, findsOneWidget);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: PaykTheme.light,
+          home: const Scaffold(body: PaykBusinessSkeleton()),
+        ),
+      );
+      await tester.pump();
+      expect(roundedHeader, findsOneWidget);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: PaykTheme.light,
+          home: const Scaffold(body: FriendsSkeleton()),
+        ),
+      );
+      await tester.pump();
+      expect(roundedHeader, findsOneWidget);
+    },
+  );
 }
 
 class _LoggedIn extends SessionController {

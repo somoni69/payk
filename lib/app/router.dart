@@ -47,6 +47,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       final onboarding = location == '/onboarding';
       final introDone = ref.read(splashFinishedProvider);
 
+      // Захват реферального кода из Universal/App Link (`/r/AZ-4821`) до любых редиректов.
+      final referralCode = parseReferralCodeFromUri(state.uri);
+      if (referralCode != null) {
+        ref.read(referralServiceProvider).captureCode(referralCode).ignore();
+      }
+
       // 1. Пока не завершился сплэш и чтение сессии — остаёмся на /splash
       if (!session.ready || !introDone) return splash ? null : '/splash';
 
@@ -73,7 +79,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      // 4. Авторизованный пользователь не должен попадать на экраны входа, сплэша или пустой корень
+      // 4. После регистрации с подарком показываем экран «Подарок» один раз перед главной
+      final hasGift = (session.pendingWelcomeBonus ?? 0) > 0;
+      final onGift = location == '/welcome-gift';
+      if (hasGift) {
+        return onGift ? null : '/welcome-gift';
+      }
+      if (onGift) {
+        return '/home';
+      }
+
+      // 5. Авторизованный пользователь не должен попадать на экраны входа, сплэша или пустой корень
       if (auth || splash || location == '/') {
         return '/home';
       }
@@ -89,16 +105,38 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/', redirect: (context, state) => '/home'),
       GoRoute(
+        path: '/r/:code',
+        redirect: (context, state) {
+          final code = state.pathParameters['code'];
+          if (code != null && code.isNotEmpty) {
+            ref.read(referralServiceProvider).captureCode(code).ignore();
+          }
+          final session = ref.read(sessionProvider);
+          if (session.loggedIn) return '/home';
+          return session.onboardingSeen ? '/auth/phone' : '/onboarding';
+        },
+      ),
+      GoRoute(
         path: '/splash',
-        builder: (context, state) => const SplashScreen(),
+        pageBuilder: (context, state) => NoTransitionPage<void>(
+          key: state.pageKey,
+          name: state.name ?? state.path,
+          child: const SplashScreen(),
+        ),
       ),
       GoRoute(
         path: '/onboarding',
-        builder: (context, state) => const OnboardingScreen(),
+        pageBuilder: (context, state) => PaykMotion.buildFadeScalePage(
+          state: state,
+          child: const OnboardingScreen(),
+        ),
       ),
       GoRoute(
         path: '/auth/phone',
-        builder: (context, state) => const PhoneScreen(),
+        pageBuilder: (context, state) => PaykMotion.buildFadeScalePage(
+          state: state,
+          child: const PhoneScreen(),
+        ),
       ),
       GoRoute(
         path: '/auth/code',
@@ -116,6 +154,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/auth/register',
         redirect: (context, state) => '/auth/profile',
+      ),
+      GoRoute(
+        path: '/welcome-gift',
+        pageBuilder: (context, state) => PaykMotion.buildFadeScalePage(
+          state: state,
+          child: const WelcomeGiftScreen(),
+        ),
       ),
 
       // Push-маршруты приложения (единая плавная система переходов PaykMotion)
@@ -148,9 +193,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/history/receipt/:id',
         pageBuilder: (context, state) {
           final id = int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
+          final focusReturns = state.uri.queryParameters['focus'] == 'returns';
           return PaykMotion.buildPage(
             state: state,
-            child: ReceiptDetailScreen(receiptId: id),
+            child: ReceiptDetailScreen(
+              receiptId: id,
+              focusReturns: focusReturns,
+            ),
           );
         },
       ),

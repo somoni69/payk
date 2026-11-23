@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,9 +19,16 @@ import '../../data/providers.dart';
 
 /// Полная детализация электронного чека: товары, оплата, кэшбэк, возвраты, PDF/PNG и обращение.
 class ReceiptDetailScreen extends ConsumerStatefulWidget {
-  const ReceiptDetailScreen({super.key, required this.receiptId});
+  const ReceiptDetailScreen({
+    super.key,
+    required this.receiptId,
+    this.focusReturns = false,
+  });
 
   final int receiptId;
+
+  /// Открыт из уведомления о возврате: прокрутить к блоку возвратов и подсветить его.
+  final bool focusReturns;
 
   @override
   ConsumerState<ReceiptDetailScreen> createState() => _ReceiptDetailScreenState();
@@ -62,8 +71,10 @@ class _ReceiptDetailScreenState extends ConsumerState<ReceiptDetailScreen> {
   Future<void> _openClaimSheet(ReceiptView receipt, String locale) async {
     final submitted = await showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: PaykColors.sheet,
+      sheetAnimationStyle: PaykMotion.sheetStyle(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -123,6 +134,7 @@ class _ReceiptDetailScreenState extends ConsumerState<ReceiptDetailScreen> {
           receipt: receipt,
           locale: locale,
           sharingKind: _sharingKind,
+          focusReturns: widget.focusReturns,
           onSharePdf: () => _shareFile(receipt, 'pdf', locale),
           onSharePng: () => _shareFile(receipt, 'png', locale),
           onOpenClaim: () => _openClaimSheet(receipt, locale),
@@ -132,11 +144,12 @@ class _ReceiptDetailScreenState extends ConsumerState<ReceiptDetailScreen> {
   }
 }
 
-class _ReceiptDetailBody extends StatelessWidget {
+class _ReceiptDetailBody extends StatefulWidget {
   const _ReceiptDetailBody({
     required this.receipt,
     required this.locale,
     required this.sharingKind,
+    required this.focusReturns,
     required this.onSharePdf,
     required this.onSharePng,
     required this.onOpenClaim,
@@ -145,9 +158,75 @@ class _ReceiptDetailBody extends StatelessWidget {
   final ReceiptView receipt;
   final String locale;
   final String? sharingKind;
+  final bool focusReturns;
   final VoidCallback onSharePdf;
   final VoidCallback onSharePng;
   final VoidCallback onOpenClaim;
+
+  @override
+  State<_ReceiptDetailBody> createState() => _ReceiptDetailBodyState();
+}
+
+class _ReceiptDetailBodyState extends State<_ReceiptDetailBody> {
+  final GlobalKey _returnsKey = GlobalKey();
+  Timer? _highlightTimer;
+  bool _highlightReturns = false;
+  bool _didFocusReturns = false;
+
+  ReceiptView get receipt => widget.receipt;
+  String get locale => widget.locale;
+  String? get sharingKind => widget.sharingKind;
+  VoidCallback get onSharePdf => widget.onSharePdf;
+  VoidCallback get onSharePng => widget.onSharePng;
+  VoidCallback get onOpenClaim => widget.onOpenClaim;
+
+  @override
+  void initState() {
+    super.initState();
+    _maybeFocusReturns();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ReceiptDetailBody oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.receipt.id != widget.receipt.id ||
+        oldWidget.focusReturns != widget.focusReturns) {
+      _didFocusReturns = false;
+    }
+    _maybeFocusReturns();
+  }
+
+  @override
+  void dispose() {
+    _highlightTimer?.cancel();
+    super.dispose();
+  }
+
+  void _maybeFocusReturns() {
+    if (!widget.focusReturns ||
+        _didFocusReturns ||
+        widget.receipt.returns.isEmpty) {
+      return;
+    }
+    _didFocusReturns = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final returnsContext = _returnsKey.currentContext;
+      if (returnsContext != null) {
+        Scrollable.ensureVisible(
+          returnsContext,
+          alignment: 0.35,
+          duration: PaykMotion.duration(context, PaykMotion.page),
+          curve: PaykMotion.easeOut,
+        );
+      }
+      setState(() => _highlightReturns = true);
+      _highlightTimer?.cancel();
+      _highlightTimer = Timer(const Duration(milliseconds: 2400), () {
+        if (mounted) setState(() => _highlightReturns = false);
+      });
+    });
+  }
 
   String _formatLabel(String? fmt) {
     if (fmt == null || fmt.isEmpty) return '';
@@ -434,26 +513,59 @@ class _ReceiptDetailBody extends StatelessWidget {
         // 5. Возвраты
         if (receipt.returns.isNotEmpty) ...[
           const SizedBox(height: 12),
-          _Card(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tr(locale, 'receipts.returns'),
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: PaykColors.textPrimary,
+          KeyedSubtree(
+            key: const ValueKey('receipt-returns-section'),
+            child: Container(
+              key: _returnsKey,
+              child: AnimatedContainer(
+                duration: PaykMotion.duration(context, PaykMotion.normal),
+                curve: PaykMotion.easeOut,
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: PaykColors.sheet,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: _highlightReturns
+                        ? PaykColors.primary
+                        : PaykColors.border,
+                    width: _highlightReturns ? 2.0 : 1.0,
                   ),
+                  boxShadow: _highlightReturns
+                      ? [
+                          BoxShadow(
+                            color: PaykColors.primary.withValues(alpha: 0.16),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
                 ),
-                const SizedBox(height: 10),
-                for (var i = 0; i < receipt.returns.length; i++) ...[
-                  if (i > 0)
-                    const Divider(height: 18, thickness: 0.7, color: PaykColors.border),
-                  _ReturnBlock(ret: receipt.returns[i], locale: locale),
-                ],
-              ],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tr(locale, 'receipts.returns'),
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: PaykColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    for (var i = 0; i < receipt.returns.length; i++) ...[
+                      if (i > 0)
+                        const Divider(
+                          height: 18,
+                          thickness: 0.7,
+                          color: PaykColors.border,
+                        ),
+                      _ReturnBlock(ret: receipt.returns[i], locale: locale),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
         ],

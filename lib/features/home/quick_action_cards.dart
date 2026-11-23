@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/format.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
+import '../../core/widgets/payk_3d_icon.dart';
 import '../../data/models/models.dart';
 
 /// Горизонтальный ряд карточек быстрого доступа в стиле UDC:
@@ -30,11 +30,7 @@ class QuickActionCards extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final member = account.member;
     final wallet = account.wallet;
-    final qrData = member.referralCode.isNotEmpty
-        ? member.referralCode
-        : (member.phone.isNotEmpty ? member.phone : 'PAYK-VIP');
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -52,51 +48,7 @@ class QuickActionCards extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(
-                  width: 50,
-                  height: 50,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      QrImageView(
-                        data: qrData,
-                        size: 50,
-                        padding: EdgeInsets.zero,
-                        backgroundColor: Colors.transparent,
-                        eyeStyle: const QrEyeStyle(
-                          eyeShape: QrEyeShape.square,
-                          color: PaykColors.primary,
-                        ),
-                        dataModuleStyle: const QrDataModuleStyle(
-                          dataModuleShape: QrDataModuleShape.square,
-                          color: PaykColors.primary,
-                        ),
-                      ),
-                      Container(
-                        width: 14,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: PaykColors.primary,
-                            width: 2.0,
-                          ),
-                        ),
-                        child: Center(
-                          child: Container(
-                            width: 4,
-                            height: 4,
-                            decoration: const BoxDecoration(
-                              color: PaykColors.primary,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                const QrCode3dIcon(size: 50),
                 const SizedBox(height: 6),
                 Text(
                   tr(locale, 'home.qrCode'),

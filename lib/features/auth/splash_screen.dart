@@ -1,5 +1,3 @@
-import 'dart:ui' show lerpDouble;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +24,7 @@ class SplashGate extends Notifier<bool> {
 }
 
 /// Первый кадр запуска: знак держится, затем уходит вниз, на его месте «PAYK».
+/// Полностью композиторные переходы (Fade + Slide + Scale) без пересборки виджетов на кадрах.
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -34,9 +33,11 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerProviderStateMixin {
-  static const _ease = PaykMotion.easeOut;
-
   late final AnimationController _motion;
+  late final CurvedAnimation _handoff;
+  late final Animation<double> _markOpacity;
+  late final Animation<Offset> _markSlide;
+  late final Animation<double> _wordScale;
   var _left = false;
 
   @override
@@ -47,6 +48,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
       vsync: this,
       duration: Duration(milliseconds: reduce ? 1 : 1680),
     );
+    _handoff = CurvedAnimation(
+      parent: _motion,
+      curve: const Interval(0.28, 0.62, curve: PaykMotion.easeOut),
+    );
+    _markOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(_handoff);
+    _markSlide = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(0.0, 80.0 / 260.0),
+    ).animate(_handoff);
+    _wordScale = Tween<double>(begin: 1.06, end: 1.0).animate(_handoff);
+
     _motion.addStatusListener((status) {
       if (status == AnimationStatus.completed) _tryLeave();
     });
@@ -55,6 +67,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
 
   @override
   void dispose() {
+    _handoff.dispose();
     _motion.dispose();
     super.dispose();
   }
@@ -64,12 +77,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
     if (!ref.read(sessionProvider).ready) return;
     _left = true;
     ref.read(splashFinishedProvider.notifier).complete();
-  }
-
-  double _span(double t, double start, double end) {
-    if (t <= start) return 0;
-    if (t >= end) return 1;
-    return _ease.transform((t - start) / (end - start));
   }
 
   @override
@@ -89,32 +96,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen> with SingleTickerPr
       child: Scaffold(
         backgroundColor: PaykColors.logo,
         body: SizedBox.expand(
-          child: AnimatedBuilder(
-            animation: _motion,
-            builder: (context, _) {
-            final t = _motion.value;
-            final handoff = _span(t, 0.28, 0.62);
-            return Stack(
-              alignment: Alignment.center,
-              clipBehavior: Clip.none,
-              children: [
-                Opacity(
-                  opacity: 1 - handoff,
-                  child: Transform.translate(
-                    offset: Offset(0, 80 * handoff),
-                    child: const _Mark(),
-                  ),
+          child: Stack(
+            alignment: Alignment.center,
+            clipBehavior: Clip.none,
+            children: [
+              FadeTransition(
+                opacity: _markOpacity,
+                child: SlideTransition(
+                  position: _markSlide,
+                  child: const RepaintBoundary(child: _Mark()),
                 ),
-                Opacity(
-                  opacity: handoff,
-                  child: Transform.scale(
-                    scale: lerpDouble(1.06, 1, handoff)!,
-                    child: const _Word(),
-                  ),
+              ),
+              FadeTransition(
+                opacity: _handoff,
+                child: ScaleTransition(
+                  scale: _wordScale,
+                  child: const RepaintBoundary(child: _Word()),
                 ),
-              ],
-            );
-            },
+              ),
+            ],
           ),
         ),
       ),
@@ -146,6 +146,7 @@ class _Word extends StatelessWidget {
     return Image.asset(
       'assets/images/payk_word_white.png',
       width: 232,
+      cacheWidth: 464,
       fit: BoxFit.contain,
       semanticLabel: 'PAYK',
     );

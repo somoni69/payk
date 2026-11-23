@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/api/api_exception.dart';
+import '../motion/payk_motion.dart';
 import '../theme/payk_colors.dart';
 import 'shimmer.dart';
 
@@ -25,17 +26,34 @@ class AsyncView<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final pad = MediaQuery.paddingOf(context);
     final inset = EdgeInsets.only(top: pad.top, bottom: pad.bottom);
-    return value.when(
+    final child = value.when(
       skipLoadingOnReload: true,
-      loading: () => loading ?? Padding(padding: inset, child: const PaykLoading()),
-      error: (error, stackTrace) => Padding(
-        padding: inset,
-        child: ErrorState(
-          message: errorText(error),
-          onRetry: onRetry,
+      loading: () => KeyedSubtree(
+        key: const ValueKey('async-loading'),
+        child: loading ?? Padding(padding: inset, child: const PaykLoading()),
+      ),
+      error: (error, stackTrace) => KeyedSubtree(
+        key: const ValueKey('async-error'),
+        child: Padding(
+          padding: inset,
+          child: ErrorState(
+            message: errorText(error),
+            onRetry: onRetry,
+          ),
         ),
       ),
-      data: data,
+      data: (resolved) => KeyedSubtree(
+        key: const ValueKey('async-data'),
+        child: data(resolved),
+      ),
+    );
+
+    return AnimatedSwitcher(
+      duration: PaykMotion.duration(context, PaykMotion.fast),
+      switchInCurve: PaykMotion.easeOut,
+      switchOutCurve: PaykMotion.easeOut,
+      layoutBuilder: PaykMotion.topAlignedLayoutBuilder,
+      child: child,
     );
   }
 }

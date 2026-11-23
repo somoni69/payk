@@ -110,6 +110,8 @@ void main() {
     expect(historyTypeInCategory('refund', 'burn'), isFalse);
     expect(historyTypeInCategory('referral_reversal', 'returns'), isTrue);
     expect(historyTypeInCategory('accrual', 'all'), isTrue);
+    expect(historyTypeInCategory('welcome', 'accrual'), isTrue);
+    expect(historyTypeInCategory('bonus', 'accrual'), isTrue);
   });
 
   test('ответ чека v1.4 разбирается в модель', () {

@@ -108,8 +108,64 @@ const _months = [
   'декабря',
 ];
 
-String formatDate(DateTime date) =>
-    '${date.day} ${_months[date.month - 1]} ${date.year}';
+const _monthsTj = [
+  'январ',
+  'феврал',
+  'март',
+  'апрел',
+  'май',
+  'июн',
+  'июл',
+  'август',
+  'сентябр',
+  'октябр',
+  'ноябр',
+  'декабр',
+];
+
+String formatDate(DateTime date, {String locale = 'ru'}) {
+  final names = locale == 'tj' ? _monthsNomTj : _months;
+  return '${date.day} ${names[date.month - 1]} ${date.year}';
+}
+
+String formatDayMonth(DateTime date, {String locale = 'ru'}) {
+  final names = locale == 'tj' ? _monthsTj : _months;
+  return '${date.day} ${names[date.month - 1]}';
+}
+
+/// «20 ноября 2026 · 20:06» / «20 ноябри 2026 · 20:06».
+String formatDateTime(DateTime date, {String locale = 'ru'}) =>
+    '${formatDate(date, locale: locale)} · ${formatTime(date)}';
+
+/// Локальный календарный день (полночь) для группировки по дням.
+DateTime dayKeyOf(DateTime date) {
+  final local = date.isUtc ? date.toLocal() : date;
+  return DateTime(local.year, local.month, local.day);
+}
+
+bool isSameCalendarDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
+/// Заголовок группы дня в ленте уведомлений:
+/// «Сегодня, 21 ноября» / «Вчера, 20 ноября» / «18 ноября» / «28 декабря 2025».
+String formatDayHeader(DateTime date, String locale, {DateTime? now}) {
+  final day = dayKeyOf(date);
+  final today = dayKeyOf(now ?? DateTime.now());
+  final yesterday = DateTime(today.year, today.month, today.day - 1);
+
+  if (isSameCalendarDay(day, today)) {
+    final label = locale == 'tj' ? 'Имрӯз' : 'Сегодня';
+    return '$label, ${formatDayMonth(day, locale: locale)}';
+  }
+  if (isSameCalendarDay(day, yesterday)) {
+    final label = locale == 'tj' ? 'Дирӯз' : 'Вчера';
+    return '$label, ${formatDayMonth(day, locale: locale)}';
+  }
+  if (day.year == today.year) {
+    return formatDayMonth(day, locale: locale);
+  }
+  return formatDate(day, locale: locale);
+}
 
 String formatShortDate(DateTime date) {
   final day = date.day.toString().padLeft(2, '0');

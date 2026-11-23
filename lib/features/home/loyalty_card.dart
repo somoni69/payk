@@ -25,6 +25,8 @@ class LoyaltyCardFace {
     required this.pillInk,
     required this.mark,
     required this.shadow,
+    required this.tileFill,
+    required this.tileBorder,
     this.sheen,
     this.begin = Alignment.topLeft,
     this.end = Alignment.bottomRight,
@@ -37,6 +39,8 @@ class LoyaltyCardFace {
   final Color pillInk;
   final Color mark;
   final Color shadow;
+  final Color tileFill;
+  final Color tileBorder;
   final Color? sheen;
   final Alignment begin;
   final Alignment end;
@@ -53,6 +57,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
       pillInk: Colors.white,
       mark: Color(0x2E1C2430),
       shadow: Color(0x332A3544),
+      tileFill: Color(0x88FFFFFF),
+      tileBorder: Color(0x1C1C2430),
       sheen: Color(0xCCFFFFFF),
     ),
     3 => const LoyaltyCardFace(
@@ -63,6 +69,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
       pillInk: Colors.white,
       mark: Color(0x333D2A08),
       shadow: Color(0x40C4922A),
+      tileFill: Color(0x52FFFFFF),
+      tileBorder: Color(0x223D2A08),
       sheen: Color(0x99FFFFFF),
     ),
     4 => const LoyaltyCardFace(
@@ -73,6 +81,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
       pillInk: Colors.white,
       mark: Color(0x38FFFFFF),
       shadow: Color(0x66141A22),
+      tileFill: Color(0x4A000000),
+      tileBorder: Color(0x1EFFFFFF),
       sheen: Color(0x28FFFFFF),
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
@@ -85,6 +95,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
       pillInk: Colors.white,
       mark: Color(0x38FFFFFF),
       shadow: Color(0x55372CD2),
+      tileFill: Color(0x42120D52),
+      tileBorder: Color(0x26FFFFFF),
       sheen: Color(0x22FFFFFF),
     ),
     _ => const LoyaltyCardFace(
@@ -95,6 +107,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
       pillInk: Colors.white,
       mark: Color(0x38FFFFFF),
       shadow: Color(0x403B4150),
+      tileFill: Color(0x38000000),
+      tileBorder: Color(0x1EFFFFFF),
       begin: Alignment.centerLeft,
       end: Alignment.centerRight,
     ),
@@ -125,12 +139,14 @@ class LoyaltyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final level = loyaltyTierLevel(wallet.status, tiers: tiers);
-    final reduce = MediaQuery.disableAnimationsOf(context);
     final name = _holderName(member);
     final code = member.referralCode.trim();
 
+    final smRate = wallet.rates.supermarket;
+    final clRate = wallet.rates.clothes;
+
     final card = AnimatedSwitcher(
-      duration: reduce ? Duration.zero : PaykMotion.page,
+      duration: PaykMotion.duration(context, PaykMotion.page),
       switchInCurve: PaykMotion.easeOut,
       switchOutCurve: PaykMotion.easeOut,
       transitionBuilder: (child, animation) {
@@ -154,6 +170,12 @@ class LoyaltyCard extends StatelessWidget {
         brandTitle: tr(locale, 'store.brand'),
         balanceLabel: tr(locale, 'home.balance'),
         amount: formatNumber(wallet.balance),
+        smLabel: tr(locale, 'store.supermarketTitle'),
+        smEarnPct: formatPercent(smRate.earn),
+        smBurnPct: formatPercent(smRate.burnCap),
+        clLabel: tr(locale, 'store.clothesTitle'),
+        clEarnPct: formatPercent(clRate.earn),
+        clBurnPct: formatPercent(clRate.burnCap),
         name: name,
         code: code,
         showChevron: onTap != null,
@@ -182,6 +204,12 @@ class _LoyaltyCardSurface extends StatelessWidget {
     required this.brandTitle,
     required this.balanceLabel,
     required this.amount,
+    required this.smLabel,
+    required this.smEarnPct,
+    required this.smBurnPct,
+    required this.clLabel,
+    required this.clEarnPct,
+    required this.clBurnPct,
     required this.name,
     required this.code,
     required this.showChevron,
@@ -193,6 +221,12 @@ class _LoyaltyCardSurface extends StatelessWidget {
   final String brandTitle;
   final String balanceLabel;
   final String amount;
+  final String smLabel;
+  final String smEarnPct;
+  final String smBurnPct;
+  final String clLabel;
+  final String clEarnPct;
+  final String clBurnPct;
   final String name;
   final String code;
   final bool showChevron;
@@ -312,7 +346,7 @@ class _LoyaltyCardSurface extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 18),
                     Text(
                       balanceLabel,
                       style: _cardText(
@@ -352,7 +386,34 @@ class _LoyaltyCardSurface extends StatelessWidget {
                         style: const TextStyle(inherit: false),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 14),
+                    Row(
+                      key: const ValueKey('loyalty-card-rates'),
+                      children: [
+                        Expanded(
+                          child: _RateMiniTile(
+                            key: const ValueKey('loyalty-rate-SM'),
+                            icon: Icons.shopping_cart_outlined,
+                            label: smLabel,
+                            earnPct: smEarnPct,
+                            burnPct: smBurnPct,
+                            face: face,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _RateMiniTile(
+                            key: const ValueKey('loyalty-rate-CL'),
+                            icon: Icons.checkroom_rounded,
+                            label: clLabel,
+                            earnPct: clEarnPct,
+                            burnPct: clBurnPct,
+                            face: face,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
                     Row(
                       children: [
                         Expanded(
@@ -395,6 +456,106 @@ class _LoyaltyCardSurface extends StatelessWidget {
   }
 }
 
+/// Компактная плитка условий статуса («Супермаркет» / «Одежда»: кэшбэк / списание) внутри карты.
+class _RateMiniTile extends StatelessWidget {
+  const _RateMiniTile({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.earnPct,
+    required this.burnPct,
+    required this.face,
+  });
+
+  final IconData icon;
+  final String label;
+  final String earnPct;
+  final String burnPct;
+  final LoyaltyCardFace face;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: face.tileFill,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: face.tileBorder, width: 1),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 13, color: face.inkSoft),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: _cardText(
+                      color: face.inkSoft,
+                      size: 11,
+                      weight: FontWeight.w600,
+                      height: 1.15,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: earnPct,
+                      style: _cardText(
+                        color: face.ink,
+                        size: 15,
+                        weight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                        height: 1.15,
+                        features: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' / ',
+                      style: _cardText(
+                        color: face.inkSoft,
+                        size: 13,
+                        weight: FontWeight.w600,
+                        height: 1.15,
+                      ),
+                    ),
+                    TextSpan(
+                      text: burnPct,
+                      style: _cardText(
+                        color: face.ink,
+                        size: 15,
+                        weight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                        height: 1.15,
+                        features: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
+                ),
+                style: const TextStyle(inherit: false),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Знак Алмосӣ справа на карте. Буква берёт цвет текста текущего материала.
 class _WatermarkSlot extends StatelessWidget {
   const _WatermarkSlot({required this.letter});
@@ -410,10 +571,10 @@ class _WatermarkSlot extends StatelessWidget {
         return Stack(
           children: [
             Positioned(
-              right: 12,
+              right: 14,
               top: height * 0.16,
-              width: width * 0.40,
-              height: height * 0.68,
+              width: width * 0.34,
+              height: height * 0.42,
               child: _AlmosiLogo(letter: letter),
             ),
           ],

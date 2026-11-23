@@ -26,7 +26,7 @@ Future<void> showPaykLeadSheet({
     useRootNavigator: true,
     isScrollControlled: true,
     backgroundColor: PaykColors.sheet,
-    sheetAnimationStyle: PaykMotion.sheetAnimationStyle,
+    sheetAnimationStyle: PaykMotion.sheetStyle(context),
     builder: (context) {
       return PaykLeadSheet(cardId: cardId, contact: contact, onSent: onSent);
     },
@@ -102,7 +102,26 @@ class _PaykLeadSheetState extends ConsumerState<PaykLeadSheet> {
             20,
             20 + MediaQuery.paddingOf(context).bottom,
           ),
-          child: _result == null ? _form(locale, phone) : _done(locale, phone),
+          child: AnimatedSize(
+            duration: PaykMotion.duration(context, PaykMotion.fast),
+            curve: PaykMotion.easeOut,
+            alignment: Alignment.topCenter,
+            child: AnimatedSwitcher(
+              duration: PaykMotion.duration(context, PaykMotion.fast),
+              switchInCurve: PaykMotion.easeOut,
+              switchOutCurve: PaykMotion.easeOut,
+              layoutBuilder: PaykMotion.topAlignedLayoutBuilder,
+              child: _result == null
+                  ? KeyedSubtree(
+                      key: const ValueKey('lead-form'),
+                      child: _form(locale, phone),
+                    )
+                  : KeyedSubtree(
+                      key: ValueKey('lead-done-$_result'),
+                      child: _done(locale, phone),
+                    ),
+            ),
+          ),
         ),
       ),
     );

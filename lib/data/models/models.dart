@@ -226,6 +226,52 @@ class UpInfo {
   }
 }
 
+/// Кошелёк одного магазина: кэшбэк «Супермаркета» тратится только в «Супермаркете»,
+/// «Либос» — только в «Либос».
+class StoreWallet {
+  const StoreWallet({
+    required this.balance,
+    this.reserved = 0,
+    required this.onHold,
+    required this.debt,
+  });
+
+  static const empty = StoreWallet(balance: 0, reserved: 0, onHold: 0, debt: 0);
+
+  final double balance;
+  final double reserved;
+  final double onHold;
+  final double debt;
+
+  factory StoreWallet.fromJson(Object? json) {
+    final map = json is Map ? asMap(json) : const <String, dynamic>{};
+    return StoreWallet(
+      balance: asMoney(map['balance']),
+      reserved: asMoney(map['reserved']),
+      onHold: asMoney(map['on_hold']),
+      debt: asMoney(map['debt']),
+    );
+  }
+}
+
+class StoreWallets {
+  const StoreWallets({required this.sm, required this.cl});
+
+  static const formats = ['SM', 'CL'];
+
+  final StoreWallet sm;
+  final StoreWallet cl;
+
+  StoreWallet byFormat(String format) => format == 'CL' ? cl : sm;
+
+  factory StoreWallets.fromJson(Map<String, dynamic> json) {
+    return StoreWallets(
+      sm: StoreWallet.fromJson(json['SM']),
+      cl: StoreWallet.fromJson(json['CL']),
+    );
+  }
+}
+
 class Wallet {
   const Wallet({
     required this.status,
@@ -233,6 +279,7 @@ class Wallet {
     this.reserved = 0,
     required this.onHold,
     required this.debt,
+    this.wallets,
     required this.spendMonth,
     required this.spendSupermarket,
     required this.spendClothes,
@@ -252,6 +299,23 @@ class Wallet {
   final double reserved;
   final double onHold;
   final double debt;
+
+  /// Раздельные кошельки SM/CL (если сервер их вернул).
+  final StoreWallets? wallets;
+
+  /// Кошельки по магазинам: для старого сервера без `wallets` весь баланс — в SM.
+  StoreWallets get storeWallets =>
+      wallets ??
+      StoreWallets(
+        sm: StoreWallet(
+          balance: balance,
+          reserved: reserved,
+          onHold: onHold,
+          debt: debt,
+        ),
+        cl: StoreWallet.empty,
+      );
+
   final double spendMonth;
   final double spendSupermarket;
   final double spendClothes;
@@ -310,6 +374,9 @@ class Account {
         reserved: asMoney(json['reserved']),
         onHold: asMoney(json['on_hold']),
         debt: asMoney(json['debt']),
+        wallets: json['wallets'] is Map
+            ? StoreWallets.fromJson(asMap(json['wallets']))
+            : null,
         spendMonth: asMoney(json['spend_month']),
         spendSupermarket: asMoney(json['spend_sm']),
         spendClothes: asMoney(json['spend_cl']),
@@ -337,6 +404,7 @@ class HistoryEntry {
     this.format,
     this.note,
     this.billExtId,
+    this.expiresAt,
   });
 
   final int id;
@@ -349,6 +417,7 @@ class HistoryEntry {
   final String? format;
   final String? note;
   final String? billExtId;
+  final DateTime? expiresAt;
 
   factory HistoryEntry.fromJson(Map<String, dynamic> json) {
     final bill = json['bill'] is Map ? asMap(json['bill']) : null;
@@ -365,6 +434,7 @@ class HistoryEntry {
           (bill == null ? null : asStringOrNull(bill['format'])),
       note: asStringOrNull(json['note']),
       billExtId: bill == null ? null : asStringOrNull(bill['ext_id']),
+      expiresAt: json['expires_at'] == null ? null : asDate(json['expires_at']),
     );
   }
 }
@@ -526,6 +596,7 @@ class PendingCheck {
     this.serverNow,
     this.balance,
     this.debt,
+    this.wallet,
     this.burnMin = 0.5,
     this.eligible,
     this.excludedAmount,
@@ -570,6 +641,7 @@ class PendingCheck {
   final DateTime? serverNow;
   final double? balance;
   final double? debt;
+  final String? wallet;
   final double burnMin;
   final double? eligible;
   final double? excludedAmount;
@@ -621,6 +693,7 @@ class PendingCheck {
       serverNow: json['server_now'] == null ? null : asDate(json['server_now']),
       balance: asMoneyOrNull(json['balance']),
       debt: asMoneyOrNull(json['debt']),
+      wallet: asStringOrNull(json['wallet']),
       burnMin: json['burn_min'] == null ? 0.5 : asMoney(json['burn_min']),
       eligible: asMoneyOrNull(json['eligible']),
       excludedAmount: asMoneyOrNull(json['excluded_amount']),
@@ -759,6 +832,12 @@ class CashierCode {
   }
 }
 
+double? _positiveBonus(Object? raw) {
+  final value = asMoneyOrNull(raw);
+  if (value == null || value <= 0) return null;
+  return value;
+}
+
 class ProgramInfo {
   const ProgramInfo({
     required this.title,
@@ -767,6 +846,7 @@ class ProgramInfo {
     required this.countries,
     required this.birthYearMin,
     required this.birthYearMax,
+    this.welcomeBonus,
   });
 
   final String title;
@@ -775,6 +855,9 @@ class ProgramInfo {
   final List<String> countries;
   final int birthYearMin;
   final int birthYearMax;
+
+  /// Подарок за регистрацию (смн), `null` — подарок выключен.
+  final double? welcomeBonus;
 
   factory ProgramInfo.fromJson(Map<String, dynamic> json) {
     final countries = json['countries'];
@@ -789,6 +872,7 @@ class ProgramInfo {
           : const [],
       birthYearMin: asInt(json['birth_year_min']),
       birthYearMax: asInt(json['birth_year_max']),
+      welcomeBonus: _positiveBonus(json['welcome_bonus']),
     );
   }
 }
@@ -815,6 +899,7 @@ class RulesInfo {
     required this.months,
     this.burnMin = 0,
     this.stackAbs = 0,
+    this.welcomeBonus,
   });
 
   final List<double> thresholds;
@@ -823,6 +908,9 @@ class RulesInfo {
   final int months;
   final double burnMin;
   final double stackAbs;
+
+  /// Подарок за регистрацию (смн), `null` — выключен.
+  final double? welcomeBonus;
 
   double get level1 => referralLevels.isEmpty ? 0 : referralLevels.first;
   double get level2 => referralLevels.length < 2 ? 0 : referralLevels[1];
@@ -841,6 +929,23 @@ class RulesInfo {
       months: asInt(referral['months']),
       burnMin: asMoney(json['burn_min']),
       stackAbs: asMoney(json['stack_abs']),
+      welcomeBonus: _positiveBonus(json['welcome_bonus']),
+    );
+  }
+}
+
+class RegisterResult {
+  const RegisterResult({required this.tokens, this.welcomeBonus});
+
+  final TokenPair tokens;
+
+  /// Сумма подарка, начисленного прямо сейчас; `null` — уже получал или выключен.
+  final double? welcomeBonus;
+
+  factory RegisterResult.fromJson(Map<String, dynamic> json) {
+    return RegisterResult(
+      tokens: TokenPair.fromJson(json),
+      welcomeBonus: _positiveBonus(json['welcome_bonus']),
     );
   }
 }
@@ -872,6 +977,80 @@ class VerifyResult {
   bool get needsRegistration => tokens == null;
 }
 
+/// Характеристики устройства для автопривязки реферала (0074).
+/// `model` отправляется только с Android; `screen` (`ШxВxDPR` в точках) — только с iOS.
+class ReferralDeviceInfo {
+  const ReferralDeviceInfo({
+    this.platform,
+    this.osVersion,
+    this.model,
+    this.language,
+    this.screen,
+    this.timezone,
+  });
+
+  final String? platform;
+  final String? osVersion;
+  final String? model;
+  final String? language;
+  final String? screen;
+  final String? timezone;
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (platform != null && platform!.isNotEmpty) 'platform': platform,
+      if (osVersion != null && osVersion!.isNotEmpty) 'os_version': osVersion,
+      if (model != null && model!.isNotEmpty) 'model': model,
+      if (language != null && language!.isNotEmpty) 'language': language,
+      if (screen != null && screen!.isNotEmpty) 'screen': screen,
+      if (timezone != null && timezone!.isNotEmpty) 'timezone': timezone,
+    };
+  }
+}
+
+/// Результат проверки пригласившего до регистрации (`POST /p/{slug}/referral/match`).
+class ReferralMatch {
+  const ReferralMatch({
+    required this.found,
+    this.code,
+    this.firstName,
+    this.source,
+  });
+
+  static const notFound = ReferralMatch(found: false);
+
+  final bool found;
+  final String? code;
+  final String? firstName;
+
+  /// `'install'` (Google Play), `'link'` (Universal/App Link) или `'match'` (сеть + телефон).
+  final String? source;
+
+  factory ReferralMatch.fromJson(Map<String, dynamic> json) {
+    return ReferralMatch(
+      found: json['found'] == true,
+      code: asStringOrNull(json['code']),
+      firstName: asStringOrNull(json['first_name']),
+      source: asStringOrNull(json['source']),
+    );
+  }
+}
+
+/// Проверка вручную введённого кода приглашения (`GET /p/{slug}/referral/{code}`).
+class ReferralCheck {
+  const ReferralCheck({required this.valid, this.firstName});
+
+  final bool valid;
+  final String? firstName;
+
+  factory ReferralCheck.fromJson(Map<String, dynamic> json) {
+    return ReferralCheck(
+      valid: json['valid'] == true,
+      firstName: asStringOrNull(json['first_name']),
+    );
+  }
+}
+
 class RegisterInput {
   const RegisterInput({
     required this.registrationToken,
@@ -883,7 +1062,12 @@ class RegisterInput {
     required this.consentMessages,
     this.email,
     this.referralCode,
+    this.referralDeclined = false,
+    this.referralClick,
+    this.installReferrer,
+    this.device,
     this.birthDate,
+    this.locale = 'ru',
   });
 
   final String registrationToken;
@@ -895,9 +1079,15 @@ class RegisterInput {
   final bool consentMessages;
   final String? email;
   final String? referralCode;
+  final bool referralDeclined;
+  final String? referralClick;
+  final String? installReferrer;
+  final ReferralDeviceInfo? device;
   final String? birthDate;
+  final String locale;
 
   Map<String, dynamic> toJson() {
+    final deviceMap = device?.toJson();
     return {
       'registration_token': registrationToken,
       'first_name': firstName,
@@ -909,9 +1099,15 @@ class RegisterInput {
       'referral_code': (referralCode == null || referralCode!.isEmpty)
           ? null
           : referralCode,
+      if (referralDeclined) 'referral_declined': true,
+      if (referralClick != null && referralClick!.isNotEmpty)
+        'referral_click': referralClick,
+      if (installReferrer != null && installReferrer!.isNotEmpty)
+        'install_referrer': installReferrer,
+      if (deviceMap != null && deviceMap.isNotEmpty) 'device': deviceMap,
       'consent_pd': consentPd,
       'consent_messages': consentMessages,
-      'locale': 'ru',
+      'locale': locale == 'tj' ? 'tj' : 'ru',
     };
   }
 }
@@ -923,6 +1119,7 @@ class LoyaltyMessageItem {
     required this.text,
     required this.createdAt,
     required this.read,
+    this.billId,
   });
 
   final int id;
@@ -931,6 +1128,20 @@ class LoyaltyMessageItem {
   final DateTime createdAt;
   final bool read;
 
+  /// Чек этого уведомления о покупке или возврате (`null` — чека нет или он вне истории).
+  final int? billId;
+
+  LoyaltyMessageItem copyWith({bool? read}) {
+    return LoyaltyMessageItem(
+      id: id,
+      kind: kind,
+      text: text,
+      createdAt: createdAt,
+      read: read ?? this.read,
+      billId: billId,
+    );
+  }
+
   factory LoyaltyMessageItem.fromJson(Map<String, dynamic> json) {
     return LoyaltyMessageItem(
       id: asInt(json['id']),
@@ -938,6 +1149,7 @@ class LoyaltyMessageItem {
       text: asString(json['text']),
       createdAt: asDate(json['created_at']),
       read: json['read'] == true,
+      billId: asIntOrNull(json['bill_id']),
     );
   }
 }

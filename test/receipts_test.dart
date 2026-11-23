@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:payk/core/format.dart';
+import 'package:payk/core/theme/payk_colors.dart';
 import 'package:payk/core/theme/payk_theme.dart';
+import 'package:payk/core/widgets/payk_3d_icon.dart';
 import 'package:payk/data/api/loyalty_api.dart';
 import 'package:payk/data/models/models.dart';
 import 'package:payk/data/providers.dart';
@@ -254,4 +256,155 @@ void main() {
     expect(emptyFilteredRect.left, emptyAllRect.left);
     expect(emptyFilteredRect.right, emptyAllRect.right);
   });
+
+  testWidgets(
+    'HistoryScreen uses rounded gradient header and renders accrual/burn rows and receipt cards cleanly on narrow mobile',
+    (tester) async {
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final fakeApi = _FakeReceiptsWithRowApi();
+      const account = Account(
+        store: 'MSX',
+        member: Member(
+          id: 1,
+          firstName: 'Тест',
+          lastName: 'Юзер',
+          phone: '+992900000001',
+          referralCode: 'REF',
+        ),
+        wallet: Wallet(
+          status: 1,
+          balance: 100,
+          onHold: 0,
+          debt: 0,
+          spendMonth: 350,
+          spendSupermarket: 350,
+          spendClothes: 0,
+          daysLeft: 20,
+          keep: null,
+          up: null,
+          nextMonthStatus: 1,
+          rates: ProgramRates(
+            supermarket: Rate(earn: 0.03, burnCap: 0.5),
+            clothes: Rate(earn: 0.05, burnCap: 0.5),
+          ),
+          todaySupermarket: 0,
+          todayClothes: 0,
+        ),
+        programEnabled: true,
+      );
+      final entries = [
+        HistoryEntry(
+          id: 1,
+          type: 'welcome',
+          amount: 100,
+          balanceAfter: 100,
+          createdAt: DateTime(2026, 11, 23, 13, 0),
+        ),
+        HistoryEntry(
+          id: 2,
+          type: 'burn',
+          amount: -25.5,
+          balanceAfter: 74.5,
+          billExtId: 'CHK-0042',
+          billAmount: 350,
+          format: 'SM',
+          createdAt: DateTime(2026, 11, 23, 13, 15),
+        ),
+      ];
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            loyaltyApiProvider.overrideWithValue(fakeApi),
+            meProvider.overrideWith((ref) => account),
+            historyProvider.overrideWith((ref) => entries),
+          ],
+          child: MaterialApp(
+            theme: PaykTheme.light,
+            home: const HistoryScreen(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final roundedHeader = find.byWidgetPredicate((widget) {
+        if (widget is! DecoratedBox) return false;
+        final decoration = widget.decoration;
+        if (decoration is! BoxDecoration) return false;
+        return decoration.gradient == PaykColors.headerGradient &&
+            decoration.borderRadius ==
+                const BorderRadius.vertical(
+                  bottom: Radius.circular(PaykRadius.header),
+                );
+      });
+      expect(roundedHeader, findsOneWidget);
+      expect(find.byType(CashbackPlus3dIcon), findsOneWidget);
+      expect(find.byType(CashbackMinus3dIcon), findsOneWidget);
+      expect(find.text('Подарок за регистрацию'), findsOneWidget);
+      expect(find.text('баланс 100,00 смн'), findsOneWidget);
+      expect(find.text('№ CHK-0042 · покупка 350,00 смн'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.text('Чеки'));
+      await tester.pumpAndSettle();
+
+      expect(roundedHeader, findsOneWidget);
+      expect(find.byType(MyReceipts3dIcon), findsOneWidget);
+      expect(find.byType(CashbackPlus3dIcon), findsOneWidget);
+      expect(find.byType(CashbackMinus3dIcon), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+}
+
+class _FakeReceiptsWithRowApi extends Fake implements LoyaltyApi {
+  @override
+  Future<ReceiptsPage> receipts({
+    int? beforeId,
+    String? dFrom,
+    String? dTo,
+    String? fmt,
+    String? q,
+  }) async {
+    return ReceiptsPage(
+      header: const ReceiptsHeader(
+        month: '2026-11',
+        spendMonth: 350,
+        bills: 1,
+        earned: 17.5,
+        spent: 25,
+        toNext: 1450,
+      ),
+      months: const [
+        ReceiptMonth(
+          month: '2026-11',
+          bills: 1,
+          amount: 350,
+          earned: 17.5,
+          spent: 25,
+        ),
+      ],
+      items: [
+        ReceiptRow(
+          id: 42,
+          ts: DateTime(2026, 11, 23, 14, 15),
+          store: 'MSX Алмоси',
+          format: 'SM',
+          number: 'CHK-0042',
+          amount: 350,
+          earn: 17.5,
+          burn: 25,
+          round: 0,
+          coupon: 0,
+          mode: 'earn_burn',
+          state: 'ok',
+          itemsStatus: 'ok',
+        ),
+      ],
+    );
+  }
 }

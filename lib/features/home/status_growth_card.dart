@@ -261,6 +261,22 @@ class StatusGrowthCard extends StatelessWidget {
               ),
             ),
           ],
+          if (wallet.onHold > 0) ...[
+            const SizedBox(height: 8),
+            Text(
+              tr(locale, 'home.onHold', {
+                'amount': formatMoney(wallet.onHold, signed: true),
+              }),
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+                color: PaykColors.textSecondary,
+                fontFeatures: [FontFeature.tabularFigures()],
+              ),
+            ),
+          ],
         ],
       ),
     );

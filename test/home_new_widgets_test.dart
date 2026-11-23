@@ -104,7 +104,26 @@ void main() {
       expect(find.byKey(const ValueKey('loyalty-face-1')), findsOneWidget);
       expect(find.text('Стандарт'), findsOneWidget);
       expect(find.text('Тавозун'), findsOneWidget);
-      expect(find.textContaining('750,00'), findsOneWidget);
+      expect(find.textContaining('750,00'), findsAtLeastNWidgets(1));
+      expect(find.byKey(const ValueKey('loyalty-card-rates')), findsOneWidget);
+      final smRateTile = find.byKey(const ValueKey('loyalty-rate-SM'));
+      final clRateTile = find.byKey(const ValueKey('loyalty-rate-CL'));
+      expect(
+        find.descendant(of: smRateTile, matching: find.text('Супермаркет')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: smRateTile, matching: find.text('2% / 1%')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: clRateTile, matching: find.text('Либос')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: clRateTile, matching: find.text('5% / 10%')),
+        findsOneWidget,
+      );
       expect(find.text('СОМОНИ ФАРЗОД'), findsOneWidget);
       expect(find.text('SO-4654'), findsOneWidget);
       expect(find.text('МАҒОЗА'), findsOneWidget);
@@ -247,7 +266,8 @@ void main() {
     final brand = tester.widget<Text>(find.text('Алмоси'));
     expect(brand.style?.fontFamily, isNull);
     expect(brand.style?.inherit, isFalse);
-    expect(find.textContaining('0,00'), findsOneWidget);
+    expect(find.textContaining('0,00'), findsAtLeastNWidgets(1));
+    expect(find.byKey(const ValueKey('loyalty-card-rates')), findsOneWidget);
     expect(find.byKey(const ValueKey('loyalty-face-1')), findsOneWidget);
 
     status.value = 2;

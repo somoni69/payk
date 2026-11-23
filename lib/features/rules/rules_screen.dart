@@ -5,6 +5,7 @@ import '../../core/format.dart';
 import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/theme/payk_colors.dart';
+import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/payk_page.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
@@ -170,6 +171,43 @@ class RulesScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 10),
+            ],
+            if (rules.welcomeBonus != null && rules.welcomeBonus! > 0) ...[
+              const SizedBox(height: 6),
+              SoftPanel(
+                key: const ValueKey('rules-welcome'),
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: const BoxDecoration(
+                        color: PaykColors.brandSoft,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: const Gift3dIcon(size: 26),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        tr(locale, 'rules.welcome', {
+                          'amount': formatMoneyAuto(rules.welcomeBonus!),
+                        }),
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w600,
+                          height: 1.4,
+                          fontSize: 14.5,
+                          color: PaykColors.textPrimary,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
             const SizedBox(height: 12),
             SectionTitle('Друзья и рефералы'),

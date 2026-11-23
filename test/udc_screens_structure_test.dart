@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:payk/core/theme/payk_theme.dart';
+import 'package:payk/core/widgets/payk_3d_icon.dart';
 import 'package:payk/data/api/api_exception.dart';
 import 'package:payk/data/models/models.dart';
 import 'package:payk/data/providers.dart';
@@ -86,7 +87,8 @@ void main() {
       expect(find.textContaining('Фарзод'), findsOneWidget);
 
       // Verify notifications / messages action button is present
-      expect(find.byIcon(Icons.notifications_none_rounded), findsOneWidget);
+      expect(find.byType(Bell3dIcon), findsOneWidget);
+      expect(find.byType(QrCode3dIcon), findsNWidgets(2));
     });
 
     testWidgets('Displays error state with retry action when account loading fails', (tester) async {

@@ -8,10 +8,12 @@ import 'package:go_router/go_router.dart';
 import 'package:smart_auth/smart_auth.dart';
 
 import '../../core/countries.dart';
+import '../../core/format.dart';
 import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/widgets/birth_date_fields.dart';
+import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/tajik_phone_field.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/screen_skeletons.dart';
@@ -74,6 +76,8 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
     final digits = _phone.text.replaceAll(RegExp(r'\D'), '');
     final isFocused = _focusNode.hasFocus;
     final hasError = _error != null;
+    final locale = ref.watch(localeProvider);
+    final welcomeBonus = ref.watch(programProvider).asData?.value.welcomeBonus;
 
     return Scaffold(
       backgroundColor: PaykColors.canvas,
@@ -224,24 +228,39 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
                 ],
               ),
             ),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8, left: 4),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error_outline_rounded, size: 15, color: PaykColors.bad),
-                    const SizedBox(width: 6),
-                    Text(
-                      _error!,
-                      style: const TextStyle(
-                        color: PaykColors.bad,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
+            AnimatedSize(
+              duration: PaykMotion.duration(context, PaykMotion.micro),
+              curve: PaykMotion.easeOut,
+              alignment: Alignment.topLeft,
+              child: AnimatedSwitcher(
+                duration: PaykMotion.duration(context, PaykMotion.micro),
+                switchInCurve: PaykMotion.easeOut,
+                switchOutCurve: PaykMotion.easeOut,
+                layoutBuilder: PaykMotion.topAlignedLayoutBuilder,
+                child: _error != null
+                    ? Padding(
+                        key: ValueKey('phone-err-$_error'),
+                        padding: const EdgeInsets.only(top: 8, left: 4),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline_rounded, size: 15, color: PaykColors.bad),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                _error!,
+                                style: const TextStyle(
+                                  color: PaykColors.bad,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : const SizedBox.shrink(key: ValueKey('phone-err-none')),
               ),
+            ),
             const SizedBox(height: 24),
             PaykPressable(
               enabled: !_busy && digits.length >= 9,
@@ -259,6 +278,56 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
                 ),
               ),
             ),
+            if (welcomeBonus != null && welcomeBonus > 0) ...[
+              const SizedBox(height: 20),
+              Container(
+                key: const ValueKey('login-welcome-promo'),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: PaykColors.brandSoft,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: PaykColors.primary.withValues(alpha: 0.18),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Gift3dIcon(size: 44),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tr(locale, 'login.giftTitle', {
+                              'amount': formatMoneyAuto(welcomeBonus),
+                            }),
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: PaykColors.textPrimary,
+                              fontFeatures: [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            tr(locale, 'login.giftText'),
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              height: 1.35,
+                              color: PaykColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -461,26 +530,39 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 onSubmitted: (_) => _busy ? null : _submit(),
               ),
             ),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8, left: 4),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error_outline_rounded, size: 15, color: PaykColors.bad),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        _error!,
-                        style: const TextStyle(
-                          color: PaykColors.bad,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
+            AnimatedSize(
+              duration: PaykMotion.duration(context, PaykMotion.micro),
+              curve: PaykMotion.easeOut,
+              alignment: Alignment.topLeft,
+              child: AnimatedSwitcher(
+                duration: PaykMotion.duration(context, PaykMotion.micro),
+                switchInCurve: PaykMotion.easeOut,
+                switchOutCurve: PaykMotion.easeOut,
+                layoutBuilder: PaykMotion.topAlignedLayoutBuilder,
+                child: _error != null
+                    ? Padding(
+                        key: ValueKey('otp-err-$_error'),
+                        padding: const EdgeInsets.only(top: 8, left: 4),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.error_outline_rounded, size: 15, color: PaykColors.bad),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                _error!,
+                                style: const TextStyle(
+                                  color: PaykColors.bad,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
-                  ],
-                ),
+                      )
+                    : const SizedBox.shrink(key: ValueKey('otp-err-none')),
               ),
+            ),
             const SizedBox(height: 24),
             PaykPressable(
               enabled: !_busy && digits.length >= 6,
@@ -548,6 +630,16 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   var _busy = false;
   String? _error;
 
+  ReferralContext _referralCtx = ReferralContext.empty;
+  var _referralDeclined = false;
+  var _matchSeq = 0;
+
+  Timer? _referralDebounce;
+  var _checkSeq = 0;
+  var _checkingManualReferral = false;
+  ReferralCheck? _manualReferralCheck;
+  late final ReferralService _referralService;
+
   @override
   void initState() {
     super.initState();
@@ -555,10 +647,21 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     _country = info.countries.contains('TJ')
         ? 'TJ'
         : (info.countries.isEmpty ? 'TJ' : info.countries.first);
+    _referral.addListener(_onManualReferralChanged);
+    _referralService = ref.read(referralServiceProvider);
+    _referralService.pendingCodeListenable.addListener(_onIncomingReferralLink);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadReferralMatch();
+    });
   }
 
   @override
   void dispose() {
+    _referralDebounce?.cancel();
+    _referral.removeListener(_onManualReferralChanged);
+    _referralService.pendingCodeListenable.removeListener(
+      _onIncomingReferralLink,
+    );
     _name.dispose();
     _lastName.dispose();
     _email.dispose();
@@ -566,6 +669,54 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     _day.dispose();
     _year.dispose();
     super.dispose();
+  }
+
+  void _onIncomingReferralLink() {
+    if (!mounted || _referralDeclined) return;
+    _loadReferralMatch();
+  }
+
+  Future<void> _loadReferralMatch() async {
+    final seq = ++_matchSeq;
+    final api = ref.read(loyaltyApiProvider);
+    final ctx = await _referralService.matchBeforeRegister(api);
+    if (!mounted || seq != _matchSeq) return;
+    setState(() => _referralCtx = ctx);
+  }
+
+  void _onManualReferralChanged() {
+    _referralDebounce?.cancel();
+    final code = normalizeReferralCode(_referral.text);
+    if (code == null) {
+      if (_checkingManualReferral || _manualReferralCheck != null) {
+        setState(() {
+          _checkingManualReferral = false;
+          _manualReferralCheck = null;
+        });
+      }
+      return;
+    }
+    setState(() {
+      _checkingManualReferral = true;
+      _manualReferralCheck = null;
+    });
+    final seq = ++_checkSeq;
+    _referralDebounce = Timer(const Duration(milliseconds: 350), () async {
+      try {
+        final res = await ref.read(loyaltyApiProvider).checkReferral(code);
+        if (!mounted || seq != _checkSeq) return;
+        setState(() {
+          _checkingManualReferral = false;
+          _manualReferralCheck = res;
+        });
+      } catch (_) {
+        if (!mounted || seq != _checkSeq) return;
+        setState(() {
+          _checkingManualReferral = false;
+          _manualReferralCheck = null;
+        });
+      }
+    });
   }
 
   Future<void> _submit() async {
@@ -592,13 +743,28 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       return;
     }
     final email = _email.text.trim();
-    final referral = _referral.text.trim().toUpperCase();
+    final autoMatched = _referralCtx.match.found && !_referralDeclined;
+    final rawManual = _referral.text.trim().toUpperCase();
+    if (!autoMatched &&
+        rawManual.isNotEmpty &&
+        _manualReferralCheck != null &&
+        !_manualReferralCheck!.valid) {
+      setState(() => _error = tr(locale, 'reg.referralInvalid'));
+      return;
+    }
+    final effectiveReferral = autoMatched
+        ? _referralCtx.match.code
+        : (rawManual.isEmpty ? null : rawManual);
+    final referralDeclined = _referralDeclined && rawManual.isEmpty;
+
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      await ref.read(sessionProvider.notifier).completeProfile(
+      final device =
+          _referralCtx.device ?? await _referralService.collectDeviceInfo();
+      final gift = await ref.read(sessionProvider.notifier).completeProfile(
         RegisterInput(
           registrationToken: ref.read(sessionProvider).registrationToken ?? '',
           firstName: name,
@@ -609,11 +775,16 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
           consentPd: true,
           consentMessages: _messages,
           email: email.isEmpty ? null : email,
-          referralCode: referral.isEmpty ? null : referral,
+          referralCode: effectiveReferral,
+          referralDeclined: referralDeclined,
+          installReferrer: _referralCtx.installReferrer,
+          device: device,
+          locale: locale,
         ),
       );
+      await _referralService.clearPending();
       if (!mounted) return;
-      context.go('/home');
+      GoRouter.maybeOf(context)?.go((gift ?? 0) > 0 ? '/welcome-gift' : '/home');
     } catch (error) {
       if (!mounted) return;
       setState(() => _error = errorText(error));
@@ -658,7 +829,42 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               height: 1.35,
             ),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 20),
+          if (info.welcomeBonus != null && info.welcomeBonus! > 0) ...[
+            Container(
+              key: const ValueKey('register-gift-banner'),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: PaykColors.brandSoft,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: PaykColors.primary.withValues(alpha: 0.18),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Gift3dIcon(size: 36),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      tr(locale, 'reg.giftBanner', {
+                        'amount': formatMoneyAuto(info.welcomeBonus!),
+                      }),
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        height: 1.3,
+                        color: PaykColors.textPrimary,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           TextField(
             controller: _name,
             textCapitalization: TextCapitalization.words,
@@ -706,10 +912,123 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             decoration: const InputDecoration(hintText: 'Почта, если есть'),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _referral,
-            textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(hintText: 'Код приглашения, если есть'),
+          AnimatedSize(
+            duration: PaykMotion.duration(context, PaykMotion.fast),
+            curve: PaykMotion.easeOut,
+            alignment: Alignment.topCenter,
+            child: AnimatedSwitcher(
+              duration: PaykMotion.duration(context, PaykMotion.fast),
+              switchInCurve: PaykMotion.easeOut,
+              switchOutCurve: PaykMotion.easeOut,
+              layoutBuilder: PaykMotion.topAlignedLayoutBuilder,
+              child: (_referralCtx.match.found && !_referralDeclined)
+                  ? Container(
+                      key: const ValueKey('register-invited-banner'),
+                      padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
+                      decoration: BoxDecoration(
+                        color: PaykColors.incomeSoft,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: PaykColors.success.withValues(alpha: 0.22),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            color: PaykColors.success,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  tr(locale, 'reg.invitedBy', {
+                                    'name':
+                                        (_referralCtx.match.firstName != null &&
+                                            _referralCtx.match.firstName!.isNotEmpty)
+                                        ? _referralCtx.match.firstName!
+                                        : (_referralCtx.match.code ?? ''),
+                                  }),
+                                  style: const TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: PaykColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  tr(locale, 'reg.invitedHint'),
+                                  style: const TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w500,
+                                    color: PaykColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          TextButton(
+                            key: const ValueKey('register-invited-not-this'),
+                            onPressed: _busy
+                                ? null
+                                : () {
+                                    HapticFeedback.lightImpact();
+                                    setState(() {
+                                      _referralDeclined = true;
+                                      _referral.clear();
+                                      _manualReferralCheck = null;
+                                      _checkingManualReferral = false;
+                                    });
+                                  },
+                            child: Text(
+                              tr(locale, 'reg.invitedNotThis'),
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.w700,
+                                color: PaykColors.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : TextField(
+                      key: const ValueKey('register-referral-input'),
+                      controller: _referral,
+                      textCapitalization: TextCapitalization.characters,
+                      inputFormatters: [LengthLimitingTextInputFormatter(16)],
+                      decoration: InputDecoration(
+                        hintText: 'Код приглашения, если есть',
+                        helperText: _checkingManualReferral
+                            ? tr(locale, 'reg.referralChecking')
+                            : (_manualReferralCheck?.valid == true
+                                  ? (_manualReferralCheck!.firstName != null &&
+                                            _manualReferralCheck!.firstName!.isNotEmpty
+                                        ? tr(locale, 'reg.referralValid', {
+                                            'name': _manualReferralCheck!.firstName!,
+                                          })
+                                        : tr(locale, 'reg.referralValidNoName'))
+                                  : null),
+                        helperStyle: TextStyle(
+                          color: _manualReferralCheck?.valid == true
+                              ? PaykColors.success
+                              : PaykColors.textSecondary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        errorText:
+                            (_manualReferralCheck != null &&
+                                !_manualReferralCheck!.valid)
+                            ? tr(locale, 'reg.referralInvalid')
+                            : null,
+                      ),
+                    ),
+            ),
           ),
           const SizedBox(height: 8),
           CheckboxListTile(
@@ -735,6 +1054,170 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Экран «Подарок» сразу после регистрации, если сервер начислил `welcome_bonus`.
+class WelcomeGiftScreen extends ConsumerStatefulWidget {
+  const WelcomeGiftScreen({super.key, this.amount});
+
+  /// Явная сумма (для тестов); в приложении берётся из `sessionProvider.pendingWelcomeBonus`.
+  final double? amount;
+
+  @override
+  ConsumerState<WelcomeGiftScreen> createState() => _WelcomeGiftScreenState();
+}
+
+class _WelcomeGiftScreenState extends ConsumerState<WelcomeGiftScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _enter = AnimationController(
+    vsync: this,
+    duration: PaykMotion.normal,
+  );
+  late final CurvedAnimation _curve = CurvedAnimation(
+    parent: _enter,
+    curve: PaykMotion.easeSpring,
+  );
+  late final Animation<double> _scale = Tween<double>(
+    begin: PaykMotion.entranceScale,
+    end: 1.0,
+  ).animate(_curve);
+  late final Animation<Offset> _slide = Tween<Offset>(
+    begin: const Offset(0, 0.03),
+    end: Offset.zero,
+  ).animate(_curve);
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    if (PaykMotion.shouldReduceMotion(context)) {
+      _enter.value = 1.0;
+    } else {
+      _enter.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _curve.dispose();
+    _enter.dispose();
+    super.dispose();
+  }
+
+  void _finish(BuildContext context) {
+    HapticFeedback.lightImpact();
+    ref.read(sessionProvider.notifier).dismissWelcomeBonus();
+    final router = GoRouter.maybeOf(context);
+    if (router != null) {
+      router.go('/home');
+    } else {
+      Navigator.of(context).maybePop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = ref.watch(localeProvider);
+    final bonus =
+        widget.amount ?? ref.watch(sessionProvider).pendingWelcomeBonus ?? 0;
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _finish(context);
+      },
+      child: Scaffold(
+        backgroundColor: PaykColors.canvas,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+              child: FadeTransition(
+                opacity: _curve,
+                child: SlideTransition(
+                  position: _slide,
+                  child: ScaleTransition(
+                    scale: _scale,
+                    child: RepaintBoundary(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Gift3dIcon(size: 112),
+                          const SizedBox(height: 20),
+                          Text(
+                            tr(locale, 'gift.title'),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.4,
+                              color: PaykColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            '+${formatMoneyAuto(bonus)}',
+                            key: const ValueKey('welcome-gift-amount'),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 38,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.8,
+                              color: PaykColors.success,
+                              fontFeatures: [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 340),
+                            child: Text(
+                              tr(locale, 'gift.text'),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                height: 1.45,
+                                color: PaykColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          PaykPressable(
+                            child: FilledButton(
+                              key: const ValueKey('welcome-gift-done'),
+                              onPressed: () => _finish(context),
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size.fromHeight(54),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: Text(
+                                tr(locale, 'gift.cta'),
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

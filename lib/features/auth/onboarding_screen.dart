@@ -18,9 +18,9 @@ class OnboardingScreen extends ConsumerStatefulWidget {
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with TickerProviderStateMixin {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with SingleTickerProviderStateMixin {
   static const _pages = 5;
-  static const _ease = PaykMotion.easeOut;
+  static const _slideDuration = Duration(milliseconds: 280);
 
   static const _cards = <Widget>[
     _CashbackCard(),
@@ -31,19 +31,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Ticker
   ];
 
   late final AnimationController _page = AnimationController.unbounded(vsync: this);
-  late final AnimationController _press = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 120),
-    lowerBound: 0.96,
-    upperBound: 1,
-    value: 1,
-  );
   var _target = 0;
 
   @override
   void dispose() {
     _page.dispose();
-    _press.dispose();
     super.dispose();
   }
 
@@ -52,11 +44,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Ticker
     if (next == _target && (_page.value - next).abs() < 0.02) return;
     setState(() => _target = next);
     HapticFeedback.selectionClick();
-    if (MediaQuery.disableAnimationsOf(context)) {
+    if (PaykMotion.shouldReduceMotion(context)) {
       _page.value = next.toDouble();
       return;
     }
-    _page.animateTo(next.toDouble(), duration: const Duration(milliseconds: 440), curve: _ease);
+    _page.animateTo(
+      next.toDouble(),
+      duration: _slideDuration,
+      curve: PaykMotion.easeSpring,
+    );
   }
 
   Future<void> _finish() async {
@@ -67,6 +63,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Ticker
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
+    final copies = <Widget>[
+      for (var i = 0; i < _pages; i++)
+        RepaintBoundary(
+          child: _Copy(
+            title: tr(locale, 'onboard.${i + 1}.title'),
+            body: tr(locale, 'onboard.${i + 1}.body'),
+          ),
+        ),
+    ];
+
     return Scaffold(
       backgroundColor: PaykColors.canvas,
       body: SafeArea(
@@ -74,13 +80,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Ticker
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
           child: Column(
             children: [
-              AnimatedBuilder(
-                animation: _page,
-                builder: (context, _) => _TopBar(
-                  page: _page.value,
-                  canBack: _target > 0,
-                  onBack: () => _go(_target - 1),
-                ),
+              _TopBar(
+                pageAnimation: _page,
+                canBack: _target > 0,
+                onBack: () => _go(_target - 1),
               ),
               const SizedBox(height: 12),
               Expanded(
@@ -111,10 +114,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Ticker
                         for (var i = 0; i < _pages; i++)
                           _Layer(
                             delta: _page.value - i,
-                            child: _Copy(
-                              title: tr(locale, 'onboard.${i + 1}.title'),
-                              body: tr(locale, 'onboard.${i + 1}.body'),
-                            ),
+                            child: copies[i],
                           ),
                       ],
                     );
@@ -122,30 +122,31 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Ticker
                 ),
               ),
               const SizedBox(height: 12),
-              GestureDetector(
-                onTapDown: (_) => _press.reverse(),
-                onTapCancel: () => _press.forward(),
-                onTapUp: (_) {
-                  _press.forward();
+              PaykPressable(
+                scaleDown: PaykMotion.scaleButton,
+                onTap: () {
                   if (_target >= _pages - 1) {
                     _finish();
                   } else {
                     _go(_target + 1);
                   }
                 },
-                child: ScaleTransition(
-                  scale: _press,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: PaykColors.violet,
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                    child: SizedBox(
-                      height: 56,
-                      width: double.infinity,
-                      child: Center(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: PaykColors.violet,
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  child: SizedBox(
+                    height: 56,
+                    width: double.infinity,
+                    child: Center(
+                      child: AnimatedSwitcher(
+                        duration: PaykMotion.duration(context, PaykMotion.micro),
+                        switchInCurve: PaykMotion.easeOut,
+                        switchOutCurve: PaykMotion.easeOut,
                         child: Text(
                           tr(locale, _target >= _pages - 1 ? 'onboard.start' : 'onboard.next'),
+                          key: ValueKey(_target >= _pages - 1 ? 'start' : 'next'),
                           style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
                         ),
                       ),
@@ -162,9 +163,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Ticker
 }
 
 class _TopBar extends StatelessWidget {
-  const _TopBar({required this.page, required this.canBack, required this.onBack});
+  const _TopBar({required this.pageAnimation, required this.canBack, required this.onBack});
 
-  final double page;
+  final Animation<double> pageAnimation;
   final bool canBack;
   final VoidCallback onBack;
 
@@ -201,6 +202,14 @@ class _TopBar extends StatelessWidget {
             builder: (context, constraints) {
               const gap = 6.0;
               final width = (constraints.maxWidth - gap * 4) / 5;
+              final activePill = Container(
+                width: width,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: PaykColors.violet,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              );
               return SizedBox(
                 height: 4,
                 child: Stack(
@@ -220,16 +229,15 @@ class _TopBar extends StatelessWidget {
                         ],
                       ],
                     ),
-                    Transform.translate(
-                      offset: Offset(page.clamp(0, 4) * (width + gap), 0),
-                      child: Container(
-                        width: width,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: PaykColors.violet,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
+                    AnimatedBuilder(
+                      animation: pageAnimation,
+                      child: activePill,
+                      builder: (context, child) {
+                        return Transform.translate(
+                          offset: Offset(pageAnimation.value.clamp(0.0, 4.0) * (width + gap), 0),
+                          child: child,
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -253,7 +261,10 @@ class _Layer extends StatelessWidget {
     final distance = delta.abs();
     if (distance > 1.05) return const SizedBox.shrink();
     final raw = (1 - distance).clamp(0.0, 1.0);
-    final visibility = const Cubic(0.22, 1, 0.36, 1).transform(raw);
+    final visibility = PaykMotion.easeOut.transform(raw);
+    if (distance < 0.001) {
+      return IgnorePointer(child: child);
+    }
     return IgnorePointer(
       child: Opacity(
         opacity: visibility,
@@ -421,7 +432,6 @@ class _StatusCardState extends State<_StatusCard> {
 
   @override
   Widget build(BuildContext context) {
-    final reduce = MediaQuery.disableAnimationsOf(context);
     final face = _faces[_index];
     return SizedBox(
       width: 280,
@@ -429,7 +439,7 @@ class _StatusCardState extends State<_StatusCard> {
         mainAxisSize: MainAxisSize.min,
         children: [
           AnimatedSwitcher(
-            duration: reduce ? Duration.zero : const Duration(milliseconds: 280),
+            duration: PaykMotion.duration(context, PaykMotion.page),
             switchInCurve: _ease,
             switchOutCurve: _ease,
             layoutBuilder: (current, previous) => Stack(
@@ -439,17 +449,13 @@ class _StatusCardState extends State<_StatusCard> {
             ),
             transitionBuilder: (child, animation) {
               final incoming = child.key == face.key;
-              return AnimatedBuilder(
-                animation: animation,
-                child: child,
-                builder: (context, child) {
-                  final t = animation.value;
-                  final dy = (1 - t) * (incoming ? 16.0 : -14.0);
-                  return Opacity(
-                    opacity: t.clamp(0.0, 1.0),
-                    child: Transform.translate(offset: Offset(0, dy), child: child),
-                  );
-                },
+              final slide = Tween<Offset>(
+                begin: Offset(0, incoming ? 0.065 : -0.055),
+                end: Offset.zero,
+              ).animate(animation);
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(position: slide, child: child),
               );
             },
             child: face,
@@ -461,7 +467,7 @@ class _StatusCardState extends State<_StatusCard> {
               for (var i = 0; i < _faces.length; i++) ...[
                 if (i > 0) const SizedBox(width: 6),
                 AnimatedContainer(
-                  duration: reduce ? Duration.zero : PaykMotion.fast,
+                  duration: PaykMotion.duration(context, PaykMotion.fast),
                   curve: PaykMotion.easeOut,
                   width: i == _index ? 18 : 6,
                   height: 6,

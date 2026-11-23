@@ -18,6 +18,38 @@ class LoyaltyApi {
     return ProgramInfo.fromJson(asMap(json));
   }
 
+  /// Кто пригласил — до регистрации (0074): код ссылки, метка Google Play и отпечаток устройства.
+  Future<ReferralMatch> matchReferral({
+    String? code,
+    String? click,
+    String? installReferrer,
+    ReferralDeviceInfo? device,
+  }) async {
+    final deviceMap = device?.toJson();
+    final json = await _client.send(
+      '/p/$_slug/referral/match',
+      method: 'POST',
+      auth: false,
+      body: {
+        'code': (code == null || code.isEmpty) ? null : code,
+        if (click != null && click.isNotEmpty) 'click': click,
+        'install_referrer':
+            (installReferrer == null || installReferrer.isEmpty)
+            ? null
+            : installReferrer,
+        if (deviceMap != null && deviceMap.isNotEmpty) 'device': deviceMap,
+      },
+    );
+    return ReferralMatch.fromJson(asMap(json));
+  }
+
+  /// Проверка вручную введённого кода приглашения.
+  Future<ReferralCheck> checkReferral(String code) async {
+    final encoded = Uri.encodeComponent(code.trim().toUpperCase());
+    final json = await _client.send('/p/$_slug/referral/$encoded', auth: false);
+    return ReferralCheck.fromJson(asMap(json));
+  }
+
   Future<OtpChallenge> requestOtp(String phone) async {
     final json = await _client.send(
       '/p/$_slug/otp',

@@ -977,6 +977,80 @@ class VerifyResult {
   bool get needsRegistration => tokens == null;
 }
 
+/// Характеристики устройства для автопривязки реферала (0074).
+/// `model` отправляется только с Android; `screen` (`ШxВxDPR` в точках) — только с iOS.
+class ReferralDeviceInfo {
+  const ReferralDeviceInfo({
+    this.platform,
+    this.osVersion,
+    this.model,
+    this.language,
+    this.screen,
+    this.timezone,
+  });
+
+  final String? platform;
+  final String? osVersion;
+  final String? model;
+  final String? language;
+  final String? screen;
+  final String? timezone;
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (platform != null && platform!.isNotEmpty) 'platform': platform,
+      if (osVersion != null && osVersion!.isNotEmpty) 'os_version': osVersion,
+      if (model != null && model!.isNotEmpty) 'model': model,
+      if (language != null && language!.isNotEmpty) 'language': language,
+      if (screen != null && screen!.isNotEmpty) 'screen': screen,
+      if (timezone != null && timezone!.isNotEmpty) 'timezone': timezone,
+    };
+  }
+}
+
+/// Результат проверки пригласившего до регистрации (`POST /p/{slug}/referral/match`).
+class ReferralMatch {
+  const ReferralMatch({
+    required this.found,
+    this.code,
+    this.firstName,
+    this.source,
+  });
+
+  static const notFound = ReferralMatch(found: false);
+
+  final bool found;
+  final String? code;
+  final String? firstName;
+
+  /// `'install'` (Google Play), `'link'` (Universal/App Link) или `'match'` (сеть + телефон).
+  final String? source;
+
+  factory ReferralMatch.fromJson(Map<String, dynamic> json) {
+    return ReferralMatch(
+      found: json['found'] == true,
+      code: asStringOrNull(json['code']),
+      firstName: asStringOrNull(json['first_name']),
+      source: asStringOrNull(json['source']),
+    );
+  }
+}
+
+/// Проверка вручную введённого кода приглашения (`GET /p/{slug}/referral/{code}`).
+class ReferralCheck {
+  const ReferralCheck({required this.valid, this.firstName});
+
+  final bool valid;
+  final String? firstName;
+
+  factory ReferralCheck.fromJson(Map<String, dynamic> json) {
+    return ReferralCheck(
+      valid: json['valid'] == true,
+      firstName: asStringOrNull(json['first_name']),
+    );
+  }
+}
+
 class RegisterInput {
   const RegisterInput({
     required this.registrationToken,
@@ -988,7 +1062,12 @@ class RegisterInput {
     required this.consentMessages,
     this.email,
     this.referralCode,
+    this.referralDeclined = false,
+    this.referralClick,
+    this.installReferrer,
+    this.device,
     this.birthDate,
+    this.locale = 'ru',
   });
 
   final String registrationToken;
@@ -1000,9 +1079,15 @@ class RegisterInput {
   final bool consentMessages;
   final String? email;
   final String? referralCode;
+  final bool referralDeclined;
+  final String? referralClick;
+  final String? installReferrer;
+  final ReferralDeviceInfo? device;
   final String? birthDate;
+  final String locale;
 
   Map<String, dynamic> toJson() {
+    final deviceMap = device?.toJson();
     return {
       'registration_token': registrationToken,
       'first_name': firstName,
@@ -1014,9 +1099,15 @@ class RegisterInput {
       'referral_code': (referralCode == null || referralCode!.isEmpty)
           ? null
           : referralCode,
+      if (referralDeclined) 'referral_declined': true,
+      if (referralClick != null && referralClick!.isNotEmpty)
+        'referral_click': referralClick,
+      if (installReferrer != null && installReferrer!.isNotEmpty)
+        'install_referrer': installReferrer,
+      if (deviceMap != null && deviceMap.isNotEmpty) 'device': deviceMap,
       'consent_pd': consentPd,
       'consent_messages': consentMessages,
-      'locale': 'ru',
+      'locale': locale == 'tj' ? 'tj' : 'ru',
     };
   }
 }

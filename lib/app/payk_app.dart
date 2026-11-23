@@ -29,6 +29,7 @@ class _PaykAppState extends ConsumerState<PaykApp> {
     if (!kIsWeb) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _initNotifications();
+        ref.read(referralServiceProvider).initialize().ignore();
       });
     }
   }

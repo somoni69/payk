@@ -3,9 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/size_offers_logic.dart';
 import 'api/api_exception.dart';
 import 'models/models.dart';
+import 'referral/referral_service.dart';
 import 'session/session_controller.dart';
 
+export 'referral/referral_service.dart';
 export 'session/session_controller.dart';
+
+final referralServiceProvider = Provider<ReferralService>((ref) {
+  final service = ReferralService();
+  ref.onDispose(service.dispose);
+  return service;
+});
 
 final programProvider = FutureProvider<ProgramInfo>(
   (ref) => ref.watch(loyaltyApiProvider).program(),

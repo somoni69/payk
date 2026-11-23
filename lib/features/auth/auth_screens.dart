@@ -602,6 +602,16 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
   var _busy = false;
   String? _error;
 
+  ReferralContext _referralCtx = ReferralContext.empty;
+  var _referralDeclined = false;
+  var _matchSeq = 0;
+
+  Timer? _referralDebounce;
+  var _checkSeq = 0;
+  var _checkingManualReferral = false;
+  ReferralCheck? _manualReferralCheck;
+  late final ReferralService _referralService;
+
   @override
   void initState() {
     super.initState();
@@ -609,10 +619,21 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     _country = info.countries.contains('TJ')
         ? 'TJ'
         : (info.countries.isEmpty ? 'TJ' : info.countries.first);
+    _referral.addListener(_onManualReferralChanged);
+    _referralService = ref.read(referralServiceProvider);
+    _referralService.pendingCodeListenable.addListener(_onIncomingReferralLink);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadReferralMatch();
+    });
   }
 
   @override
   void dispose() {
+    _referralDebounce?.cancel();
+    _referral.removeListener(_onManualReferralChanged);
+    _referralService.pendingCodeListenable.removeListener(
+      _onIncomingReferralLink,
+    );
     _name.dispose();
     _lastName.dispose();
     _email.dispose();
@@ -620,6 +641,54 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     _day.dispose();
     _year.dispose();
     super.dispose();
+  }
+
+  void _onIncomingReferralLink() {
+    if (!mounted || _referralDeclined) return;
+    _loadReferralMatch();
+  }
+
+  Future<void> _loadReferralMatch() async {
+    final seq = ++_matchSeq;
+    final api = ref.read(loyaltyApiProvider);
+    final ctx = await _referralService.matchBeforeRegister(api);
+    if (!mounted || seq != _matchSeq) return;
+    setState(() => _referralCtx = ctx);
+  }
+
+  void _onManualReferralChanged() {
+    _referralDebounce?.cancel();
+    final code = normalizeReferralCode(_referral.text);
+    if (code == null) {
+      if (_checkingManualReferral || _manualReferralCheck != null) {
+        setState(() {
+          _checkingManualReferral = false;
+          _manualReferralCheck = null;
+        });
+      }
+      return;
+    }
+    setState(() {
+      _checkingManualReferral = true;
+      _manualReferralCheck = null;
+    });
+    final seq = ++_checkSeq;
+    _referralDebounce = Timer(const Duration(milliseconds: 350), () async {
+      try {
+        final res = await ref.read(loyaltyApiProvider).checkReferral(code);
+        if (!mounted || seq != _checkSeq) return;
+        setState(() {
+          _checkingManualReferral = false;
+          _manualReferralCheck = res;
+        });
+      } catch (_) {
+        if (!mounted || seq != _checkSeq) return;
+        setState(() {
+          _checkingManualReferral = false;
+          _manualReferralCheck = null;
+        });
+      }
+    });
   }
 
   Future<void> _submit() async {
@@ -646,12 +715,27 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       return;
     }
     final email = _email.text.trim();
-    final referral = _referral.text.trim().toUpperCase();
+    final autoMatched = _referralCtx.match.found && !_referralDeclined;
+    final rawManual = _referral.text.trim().toUpperCase();
+    if (!autoMatched &&
+        rawManual.isNotEmpty &&
+        _manualReferralCheck != null &&
+        !_manualReferralCheck!.valid) {
+      setState(() => _error = tr(locale, 'reg.referralInvalid'));
+      return;
+    }
+    final effectiveReferral = autoMatched
+        ? _referralCtx.match.code
+        : (rawManual.isEmpty ? null : rawManual);
+    final referralDeclined = _referralDeclined && rawManual.isEmpty;
+
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
+      final device =
+          _referralCtx.device ?? await _referralService.collectDeviceInfo();
       final gift = await ref.read(sessionProvider.notifier).completeProfile(
         RegisterInput(
           registrationToken: ref.read(sessionProvider).registrationToken ?? '',
@@ -663,11 +747,16 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
           consentPd: true,
           consentMessages: _messages,
           email: email.isEmpty ? null : email,
-          referralCode: referral.isEmpty ? null : referral,
+          referralCode: effectiveReferral,
+          referralDeclined: referralDeclined,
+          installReferrer: _referralCtx.installReferrer,
+          device: device,
+          locale: locale,
         ),
       );
+      await _referralService.clearPending();
       if (!mounted) return;
-      context.go((gift ?? 0) > 0 ? '/welcome-gift' : '/home');
+      GoRouter.maybeOf(context)?.go((gift ?? 0) > 0 ? '/welcome-gift' : '/home');
     } catch (error) {
       if (!mounted) return;
       setState(() => _error = errorText(error));
@@ -795,11 +884,114 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             decoration: const InputDecoration(hintText: 'Почта, если есть'),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _referral,
-            textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(hintText: 'Код приглашения, если есть'),
-          ),
+          if (_referralCtx.match.found && !_referralDeclined)
+            Container(
+              key: const ValueKey('register-invited-banner'),
+              padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
+              decoration: BoxDecoration(
+                color: PaykColors.incomeSoft,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: PaykColors.success.withValues(alpha: 0.22),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: PaykColors.success,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tr(locale, 'reg.invitedBy', {
+                            'name':
+                                (_referralCtx.match.firstName != null &&
+                                    _referralCtx.match.firstName!.isNotEmpty)
+                                ? _referralCtx.match.firstName!
+                                : (_referralCtx.match.code ?? ''),
+                          }),
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.w700,
+                            color: PaykColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          tr(locale, 'reg.invitedHint'),
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w500,
+                            color: PaykColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    key: const ValueKey('register-invited-not-this'),
+                    onPressed: _busy
+                        ? null
+                        : () {
+                            HapticFeedback.lightImpact();
+                            setState(() {
+                              _referralDeclined = true;
+                              _referral.clear();
+                              _manualReferralCheck = null;
+                              _checkingManualReferral = false;
+                            });
+                          },
+                    child: Text(
+                      tr(locale, 'reg.invitedNotThis'),
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: PaykColors.primary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else
+            TextField(
+              key: const ValueKey('register-referral-input'),
+              controller: _referral,
+              textCapitalization: TextCapitalization.characters,
+              inputFormatters: [LengthLimitingTextInputFormatter(16)],
+              decoration: InputDecoration(
+                hintText: 'Код приглашения, если есть',
+                helperText: _checkingManualReferral
+                    ? tr(locale, 'reg.referralChecking')
+                    : (_manualReferralCheck?.valid == true
+                          ? (_manualReferralCheck!.firstName != null &&
+                                    _manualReferralCheck!.firstName!.isNotEmpty
+                                ? tr(locale, 'reg.referralValid', {
+                                    'name': _manualReferralCheck!.firstName!,
+                                  })
+                                : tr(locale, 'reg.referralValidNoName'))
+                          : null),
+                helperStyle: TextStyle(
+                  color: _manualReferralCheck?.valid == true
+                      ? PaykColors.success
+                      : PaykColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+                errorText:
+                    (_manualReferralCheck != null &&
+                        !_manualReferralCheck!.valid)
+                    ? tr(locale, 'reg.referralInvalid')
+                    : null,
+              ),
+            ),
           const SizedBox(height: 8),
           CheckboxListTile(
             value: _consent,

@@ -47,6 +47,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       final onboarding = location == '/onboarding';
       final introDone = ref.read(splashFinishedProvider);
 
+      // Захват реферального кода из Universal/App Link (`/r/AZ-4821`) до любых редиректов.
+      final referralCode = parseReferralCodeFromUri(state.uri);
+      if (referralCode != null) {
+        ref.read(referralServiceProvider).captureCode(referralCode).ignore();
+      }
+
       // 1. Пока не завершился сплэш и чтение сессии — остаёмся на /splash
       if (!session.ready || !introDone) return splash ? null : '/splash';
 
@@ -98,6 +104,18 @@ final routerProvider = Provider<GoRouter>((ref) {
     ),
     routes: [
       GoRoute(path: '/', redirect: (context, state) => '/home'),
+      GoRoute(
+        path: '/r/:code',
+        redirect: (context, state) {
+          final code = state.pathParameters['code'];
+          if (code != null && code.isNotEmpty) {
+            ref.read(referralServiceProvider).captureCode(code).ignore();
+          }
+          final session = ref.read(sessionProvider);
+          if (session.loggedIn) return '/home';
+          return session.onboardingSeen ? '/auth/phone' : '/onboarding';
+        },
+      ),
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),

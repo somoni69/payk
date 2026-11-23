@@ -53,3 +53,4 @@ app.*.map.json
 **/key.properties
 **/*.jks
 **/*.keystore
+assets/*.zip

@@ -11,6 +11,7 @@ import '../../core/motion/payk_motion.dart';
 import '../../core/size_offers_logic.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/message.dart';
+import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/payk_avatar.dart';
 import '../../core/widgets/states.dart';
 import '../../data/api/api_exception.dart';
@@ -309,7 +310,7 @@ class _SizeOffersScreenState extends ConsumerState<SizeOffersScreen> {
             return EmptyState(
               title: tr(locale, 'offers.empty'),
               body: tr(locale, noSizes ? 'offers.emptyNoSizes' : 'offers.emptyText'),
-              icon: Icons.straighten_rounded,
+              iconWidget: const Ruler3dIcon(size: 46),
               actionLabel: noSizes ? tr(locale, 'offers.setSizes') : null,
               onAction: noSizes ? () => _openSizes(context) : null,
             );

@@ -24,6 +24,7 @@ class SessionState {
     this.refreshToken,
     this.pendingPhone,
     this.registrationToken,
+    this.pendingWelcomeBonus,
     this.onboardingSeen = false,
     this.ready = false,
   });
@@ -32,6 +33,9 @@ class SessionState {
   final String? refreshToken;
   final String? pendingPhone;
   final String? registrationToken;
+
+  /// Сумма подарка, начисленного при регистрации (показываем экран «Подарок» один раз).
+  final double? pendingWelcomeBonus;
   final bool onboardingSeen;
   final bool ready;
 
@@ -42,10 +46,12 @@ class SessionState {
     String? refreshToken,
     String? pendingPhone,
     String? registrationToken,
+    double? pendingWelcomeBonus,
     bool? ready,
     bool? onboardingSeen,
     bool clearPhone = false,
     bool clearRegistration = false,
+    bool clearWelcomeBonus = false,
   }) {
     return SessionState(
       accessToken: accessToken ?? this.accessToken,
@@ -54,6 +60,9 @@ class SessionState {
       registrationToken: clearRegistration
           ? null
           : (registrationToken ?? this.registrationToken),
+      pendingWelcomeBonus: clearWelcomeBonus
+          ? null
+          : (pendingWelcomeBonus ?? this.pendingWelcomeBonus),
       onboardingSeen: onboardingSeen ?? this.onboardingSeen,
       ready: ready ?? this.ready,
     );
@@ -159,13 +168,24 @@ class SessionController extends Notifier<SessionState> {
     return true;
   }
 
-  Future<void> completeProfile(RegisterInput input) async {
+  Future<double?> completeProfile(RegisterInput input) async {
     final token = state.registrationToken;
     if (token == null || token.isEmpty) {
       throw ApiException(401, 'Подтвердите номер ещё раз');
     }
-    final tokens = await _api.register(input);
-    await _persistLogin(tokens.accessToken, tokens.refreshToken);
+    final result = await _api.register(input);
+    final gift = (result.welcomeBonus ?? 0) > 0 ? result.welcomeBonus : null;
+    await _persistLogin(
+      result.tokens.accessToken,
+      result.tokens.refreshToken,
+      welcomeBonus: gift,
+    );
+    return gift;
+  }
+
+  void dismissWelcomeBonus() {
+    if (state.pendingWelcomeBonus == null) return;
+    state = state.copyWith(clearWelcomeBonus: true);
   }
 
   Future<void> updateProfile({
@@ -244,11 +264,17 @@ class SessionController extends Notifier<SessionState> {
     state = const SessionState(ready: true, onboardingSeen: false);
   }
 
-  Future<void> _persistLogin(String accessToken, String refreshToken) async {
+  Future<void> _persistLogin(
+    String accessToken,
+    String refreshToken, {
+    double? welcomeBonus,
+  }) async {
     state = state.copyWith(
       ready: true,
       accessToken: accessToken,
       refreshToken: refreshToken,
+      pendingWelcomeBonus: welcomeBonus,
+      clearWelcomeBonus: welcomeBonus == null,
       onboardingSeen: true,
       clearPhone: true,
       clearRegistration: true,

@@ -254,8 +254,8 @@ void main() {
     });
   });
 
-  group('UI integration for separate wallets & notification -> receipt', () {
-    testWidgets('HomeScreen displays split wallets, per-wallet debt and onHold', (
+  group('UI integration for unified wallet & notification -> receipt', () {
+    testWidgets('HomeScreen displays unified balance, status rates, debt and onHold', (
       tester,
     ) async {
       tester.view.physicalSize = const Size(1080, 3200);
@@ -289,25 +289,27 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final smTile = find.byKey(const ValueKey('loyalty-wallet-SM'));
-      final clTile = find.byKey(const ValueKey('loyalty-wallet-CL'));
+      // Карта показывает общий баланс сверху и краткие условия статуса снизу
+      expect(find.textContaining('165,50'), findsAtLeastNWidgets(1));
+      final smTile = find.byKey(const ValueKey('loyalty-rate-SM'));
+      final clTile = find.byKey(const ValueKey('loyalty-rate-CL'));
       expect(smTile, findsOneWidget);
       expect(clTile, findsOneWidget);
       expect(find.descendant(of: smTile, matching: find.text('Супермаркет')), findsOneWidget);
-      expect(find.descendant(of: smTile, matching: find.textContaining('120,00')), findsOneWidget);
-      expect(find.descendant(of: clTile, matching: find.text('Либос')), findsOneWidget);
-      expect(find.descendant(of: clTile, matching: find.textContaining('45,50')), findsOneWidget);
+      expect(find.descendant(of: smTile, matching: find.text('3% / 2%')), findsOneWidget);
+      expect(find.descendant(of: clTile, matching: find.text('Одежда')), findsOneWidget);
+      expect(find.descendant(of: clTile, matching: find.text('7% / 15%')), findsOneWidget);
       expect(
-        find.text('Отрицательный баланс в «Либос»: −15,00 смн'),
+        find.text('Отрицательный баланс: −15,00 смн'),
         findsOneWidget,
       );
       expect(
-        find.text('«Супермаркет»: +8,50 смн в ожидании'),
+        find.text('+8,50 смн в ожидании'),
         findsOneWidget,
       );
     });
 
-    testWidgets('PaymentCard displays store-specific wallet balance', (
+    testWidgets('PaymentCard displays unified wallet balance', (
       tester,
     ) async {
       const check = PendingCheck(
@@ -322,7 +324,6 @@ void main() {
         y: 30,
         balance: 45.5,
         debt: 0,
-        wallet: 'CL',
       );
 
       await tester.pumpWidget(
@@ -346,10 +347,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Баланс «Либос»: 45,50 смн'), findsOneWidget);
+      expect(find.text('Ваш баланс: 45,50 смн'), findsOneWidget);
     });
 
-    testWidgets('HistoryScreen shows wallet-specific balanceAfter on entries', (
+    testWidgets('HistoryScreen shows unified balanceAfter on entries', (
       tester,
     ) async {
       final entries = [
@@ -385,8 +386,8 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Баланс «Супермаркет»: 50,55 смн'), findsOneWidget);
-      expect(find.text('Баланс «Либос»: 20,00 смн'), findsOneWidget);
+      expect(find.text('баланс 50,55 смн'), findsOneWidget);
+      expect(find.text('баланс 20,00 смн'), findsOneWidget);
     });
 
     testWidgets(

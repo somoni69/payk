@@ -1,12 +1,149 @@
 import 'package:flutter/material.dart';
 
+import '../i18n/strings.dart';
 import '../theme/payk_colors.dart';
 import 'shimmer.dart';
 
-const _headerBone = Color(0x38FFFFFF);
-const _headerShine = Color(0xA6FFFFFF);
+const _headerBone = Color(0x29FFFFFF);
+const _headerShine = Color(0x52FFFFFF);
+const _darkCardBone = Color(0x1EFFFFFF);
+const _darkCardShine = Color(0x3DFFFFFF);
 
-/// Главная: шапка, карта статуса, приглашение, переключатель.
+/// Измеряет точную геометрию [TextPainter] для эталонной строки с тем же [TextStyle]
+/// и рендерит кости-линии точно той же суммарной высоты (погрешность 0.0 px при любой
+/// ширине экрана, локали RU/TJ и системном масштабе шрифта).
+class _MeasuredTextBones extends StatelessWidget {
+  const _MeasuredTextBones({
+    required this.sample,
+    required this.style,
+    required this.barHeight,
+    this.radius = 6,
+    this.color,
+    this.highlight,
+    this.fixedWidth,
+  });
+
+  final String sample;
+  final TextStyle style;
+  final double barHeight;
+  final double radius;
+  final Color? color;
+  final Color? highlight;
+  final double? fixedWidth;
+
+  static const _fallbackFactors = [0.92, 0.86, 0.94, 0.46];
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxW = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width;
+        final painter = TextPainter(
+          text: TextSpan(text: sample, style: style),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+        )..layout(maxWidth: maxW > 0 ? maxW : double.infinity);
+
+        final metrics = painter.computeLineMetrics();
+        final totalHeight = painter.height;
+        final lines = metrics.isEmpty ? 1 : metrics.length;
+        painter.dispose();
+
+        final slotHeight = totalHeight / lines;
+        final effectiveBar = barHeight > slotHeight ? slotHeight : barHeight;
+
+        return SizedBox(
+          height: totalHeight,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < lines; i++)
+                SizedBox(
+                  height: slotHeight,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: fixedWidth != null
+                        ? SkeletonBox(
+                            width: fixedWidth,
+                            height: effectiveBar,
+                            radius: radius,
+                            color: color,
+                            highlight: highlight,
+                          )
+                        : FractionallySizedBox(
+                            widthFactor: i < metrics.length && maxW > 0
+                                ? (metrics[i].width / maxW).clamp(0.28, 0.98)
+                                : _fallbackFactors[i % _fallbackFactors.length],
+                            alignment: Alignment.centerLeft,
+                            child: SkeletonBox(
+                              height: effectiveBar,
+                              radius: radius,
+                              color: color,
+                              highlight: highlight,
+                            ),
+                          ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Занимает точную высоту строки текста (`fontSize * lineHeight` с учётом `textScaler`),
+/// рисуя внутри скруглённую кость заданной визуальной толщины.
+/// Убирает вертикальный «прыжок» при замене скелетона на реальный [Text].
+class _TextLineBone extends StatelessWidget {
+  const _TextLineBone({
+    required this.fontSize,
+    required this.barHeight,
+    this.lineHeight = 1.25,
+    this.width,
+    this.widthFactor,
+    this.radius = 6,
+    this.color,
+    this.highlight,
+  });
+
+  final double fontSize;
+  final double barHeight;
+  final double lineHeight;
+  final double? width;
+  final double? widthFactor;
+  final double radius;
+  final Color? color;
+  final Color? highlight;
+
+  @override
+  Widget build(BuildContext context) {
+    final scaled = MediaQuery.textScalerOf(context).scale(fontSize) * lineHeight;
+    final boxHeight = scaled < barHeight ? barHeight : scaled;
+    Widget bar = SkeletonBox(
+      width: width,
+      height: barHeight,
+      radius: radius,
+      color: color,
+      highlight: highlight,
+    );
+    if (widthFactor != null) {
+      bar = FractionallySizedBox(
+        widthFactor: widthFactor,
+        alignment: Alignment.centerLeft,
+        child: bar,
+      );
+    }
+    return SizedBox(
+      height: boxHeight,
+      child: Align(alignment: Alignment.centerLeft, child: bar),
+    );
+  }
+}
+
+/// Главная: шапка, карта статуса, прогресс роста, приглашение, переключатель.
 class HomeSkeleton extends StatelessWidget {
   const HomeSkeleton({super.key});
 
@@ -15,13 +152,18 @@ class HomeSkeleton extends StatelessWidget {
     return ShimmerSweep(
       child: ListView(
         padding: EdgeInsets.zero,
-        physics: ClampingScrollPhysics(),
-        children: [
+        physics: const ClampingScrollPhysics(),
+        children: const [
           _HomeHeaderBones(),
           SizedBox(height: 20),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 20),
             child: _LoyaltyCardBones(),
+          ),
+          SizedBox(height: 12),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20),
+            child: _StatusGrowthBones(),
           ),
           SizedBox(height: 14),
           Padding(
@@ -45,104 +187,133 @@ class _HomeHeaderBones extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: PaykColors.headerGradient,
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(PaykRadius.header),
-        ),
-      ),
-      child: const SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(20, 12, 20, 18),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  SkeletonBox(
-                    width: 48,
-                    height: 48,
-                    circle: true,
-                    color: _headerBone,
-                    highlight: _headerShine,
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SkeletonBox(
-                          width: 148,
-                          height: 14,
-                          radius: 6,
-                          color: _headerBone,
-                          highlight: _headerShine,
-                        ),
-                        SizedBox(height: 6),
-                        SkeletonBox(
-                          width: 96,
-                          height: 11,
-                          radius: 6,
-                          color: _headerBone,
-                          highlight: _headerShine,
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  SkeletonBox(
-                    width: 42,
-                    height: 42,
-                    radius: 14,
-                    color: _headerBone,
-                    highlight: _headerShine,
-                  ),
-                  SizedBox(width: 8),
-                  SkeletonBox(
-                    width: 42,
-                    height: 42,
-                    radius: 14,
-                    color: _headerBone,
-                    highlight: _headerShine,
-                  ),
-                ],
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        const Positioned(
+          top: -1000,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: PaykColors.headerGradient,
+              borderRadius: BorderRadius.vertical(
+                bottom: Radius.circular(PaykRadius.header),
               ),
-              SizedBox(height: 16),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                physics: NeverScrollableScrollPhysics(),
+            ),
+          ),
+        ),
+        SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 12),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   children: [
                     SkeletonBox(
-                      width: 108,
-                      height: 114,
-                      radius: 18,
+                      width: 48,
+                      height: 48,
+                      circle: true,
                       color: _headerBone,
                       highlight: _headerShine,
                     ),
-                    SizedBox(width: 10),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SkeletonBox(
+                            width: 144,
+                            height: 14,
+                            radius: 6,
+                            color: _headerBone,
+                            highlight: _headerShine,
+                          ),
+                          SizedBox(height: 6),
+                          SkeletonBox(
+                            width: 98,
+                            height: 11,
+                            radius: 6,
+                            color: _headerBone,
+                            highlight: _headerShine,
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 8),
                     SkeletonBox(
-                      width: 108,
-                      height: 114,
-                      radius: 18,
+                      width: 42,
+                      height: 42,
+                      radius: 14,
                       color: _headerBone,
                       highlight: _headerShine,
                     ),
-                    SizedBox(width: 10),
+                    SizedBox(width: 8),
                     SkeletonBox(
-                      width: 108,
-                      height: 114,
-                      radius: 18,
+                      width: 42,
+                      height: 42,
+                      radius: 14,
                       color: _headerBone,
                       highlight: _headerShine,
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  children: const [
+                    _QuickActionTileBone(width: 108, hasSubtitle: false),
+                    SizedBox(width: 10),
+                    _QuickActionTileBone(width: 138, hasSubtitle: true),
+                    SizedBox(width: 10),
+                    _QuickActionTileBone(width: 138, hasSubtitle: true),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
             ],
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _QuickActionTileBone extends StatelessWidget {
+  const _QuickActionTileBone({required this.width, required this.hasSubtitle});
+
+  final double width;
+  final bool hasSubtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: 114,
+      decoration: BoxDecoration(
+        color: PaykColors.sheet,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: PaykColors.border),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const SkeletonBox(width: 42, height: 42, radius: 12),
+          const SizedBox(height: 8),
+          SkeletonBox(width: hasSubtitle ? 84 : 62, height: 12, radius: 5),
+          if (hasSubtitle) ...[
+            const SizedBox(height: 5),
+            const SkeletonBox(width: 48, height: 10, radius: 5),
+          ],
+        ],
       ),
     );
   }
@@ -154,83 +325,202 @@ class _LoyaltyCardBones extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 192,
       padding: const EdgeInsets.fromLTRB(22, 18, 20, 18),
       decoration: BoxDecoration(
-        color: const Color(0xFF4A5164),
+        gradient: const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Color(0xFF3E4454), Color(0xFF545B6E)],
+        ),
         borderRadius: BorderRadius.circular(26),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x283B4150),
+            blurRadius: 22,
+            offset: Offset(0, 10),
+          ),
+        ],
       ),
-      child: const Column(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SkeletonBox(
+                  _TextLineBone(
+                    fontSize: 11,
+                    lineHeight: 1.1,
+                    barHeight: 10,
                     width: 68,
-                    height: 11,
                     radius: 4,
-                    color: _headerBone,
-                    highlight: _headerShine,
+                    color: _darkCardBone,
+                    highlight: _darkCardShine,
                   ),
-                  SizedBox(height: 6),
-                  SkeletonBox(
-                    width: 96,
-                    height: 20,
+                  SizedBox(height: 3),
+                  _TextLineBone(
+                    fontSize: 22,
+                    lineHeight: 1.1,
+                    barHeight: 20,
+                    width: 104,
                     radius: 6,
-                    color: _headerBone,
-                    highlight: _headerShine,
+                    color: _darkCardBone,
+                    highlight: _darkCardShine,
                   ),
                 ],
               ),
               Spacer(),
               SkeletonBox(
                 width: 92,
-                height: 30,
-                radius: 16,
-                color: _headerBone,
-                highlight: _headerShine,
+                height: 29,
+                radius: 20,
+                color: _darkCardBone,
+                highlight: _darkCardShine,
               ),
             ],
           ),
-          Spacer(),
-          SkeletonBox(
-            width: 72,
-            height: 12,
-            radius: 6,
-            color: _headerBone,
-            highlight: _headerShine,
+          const SizedBox(height: 18),
+          const _TextLineBone(
+            fontSize: 13,
+            lineHeight: 1.1,
+            barHeight: 11,
+            width: 60,
+            radius: 5,
+            color: _darkCardBone,
+            highlight: _darkCardShine,
           ),
-          SizedBox(height: 8),
-          SkeletonBox(
-            width: 168,
-            height: 32,
+          const SizedBox(height: 2),
+          const _TextLineBone(
+            fontSize: 34,
+            lineHeight: 1.0,
+            barHeight: 30,
+            width: 164,
             radius: 8,
-            color: _headerBone,
-            highlight: _headerShine,
+            color: _darkCardBone,
+            highlight: _darkCardShine,
           ),
-          Spacer(),
+          const SizedBox(height: 14),
           Row(
+            children: const [
+              Expanded(child: _CardRateTileBone()),
+              SizedBox(width: 8),
+              Expanded(child: _CardRateTileBone()),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Row(
             children: [
-              SkeletonBox(
-                width: 132,
-                height: 12,
-                radius: 6,
-                color: _headerBone,
-                highlight: _headerShine,
+              _TextLineBone(
+                fontSize: 13,
+                lineHeight: 1.2,
+                barHeight: 12,
+                width: 128,
+                radius: 5,
+                color: _darkCardBone,
+                highlight: _darkCardShine,
               ),
               Spacer(),
-              SkeletonBox(
-                width: 72,
-                height: 12,
-                radius: 6,
-                color: _headerBone,
-                highlight: _headerShine,
+              _TextLineBone(
+                fontSize: 13,
+                lineHeight: 1.2,
+                barHeight: 12,
+                width: 68,
+                radius: 5,
+                color: _darkCardBone,
+                highlight: _darkCardShine,
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CardRateTileBone extends StatelessWidget {
+  const _CardRateTileBone();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0x30000000),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0x1EFFFFFF)),
+      ),
+      child: const Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _TextLineBone(
+            fontSize: 11,
+            lineHeight: 1.15,
+            barHeight: 10,
+            width: 74,
+            radius: 4,
+            color: _darkCardBone,
+            highlight: _darkCardShine,
+          ),
+          SizedBox(height: 4),
+          _TextLineBone(
+            fontSize: 15,
+            lineHeight: 1.15,
+            barHeight: 14,
+            width: 64,
+            radius: 5,
+            color: _darkCardBone,
+            highlight: _darkCardShine,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusGrowthBones extends StatelessWidget {
+  const _StatusGrowthBones();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SkeletonCard(
+      padding: EdgeInsets.all(14),
+      radius: 20,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _TextLineBone(
+                  fontSize: 13.5,
+                  barHeight: 13,
+                  width: 156,
+                  radius: 5,
+                ),
+              ),
+              SizedBox(width: 8),
+              SkeletonBox(width: 68, height: 26, radius: 10),
+            ],
+          ),
+          SizedBox(height: 10),
+          SkeletonBox(height: 7, radius: 99),
+          SizedBox(height: 10),
+          _TextLineBone(
+            fontSize: 14,
+            lineHeight: 1.3,
+            barHeight: 13,
+            widthFactor: 0.9,
+            radius: 5,
+          ),
+          _TextLineBone(
+            fontSize: 14,
+            lineHeight: 1.3,
+            barHeight: 13,
+            widthFactor: 0.42,
+            radius: 5,
           ),
         ],
       ),
@@ -244,13 +534,13 @@ class _InviteBones extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SkeletonCard(
-      fill: Color(0xFFF6F5FB),
+      radius: 20,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SkeletonBox(width: 220, height: 16, radius: 6),
-          SizedBox(height: 8),
-          SkeletonBox(width: 160, height: 16, radius: 6),
+          _TextLineBone(fontSize: 15, barHeight: 14, width: 220, radius: 6),
+          SizedBox(height: 4),
+          _TextLineBone(fontSize: 15, barHeight: 14, width: 150, radius: 6),
           SizedBox(height: 14),
           Row(
             children: [
@@ -271,7 +561,7 @@ class _ToggleBones extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SkeletonCard(
-      fill: Color(0xFFF6F5FB),
+      radius: 20,
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
@@ -496,7 +786,7 @@ class _InfoCardBones extends StatelessWidget {
   }
 }
 
-/// Покупки: поиск, сетка категорий, строки операций.
+/// Покупки: сетка категорий и строки операций (шапка уже отрендерена сверху).
 class HistorySkeleton extends StatelessWidget {
   const HistorySkeleton({super.key});
 
@@ -504,16 +794,20 @@ class HistorySkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ShimmerSweep(
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 104),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 104),
         physics: const ClampingScrollPhysics(),
         children: [
-          const SkeletonBox(
-            height: 52,
-            radius: 16,
-            color: PaykColors.surfaceNested,
+          const _MeasuredTextBones(
+            sample: 'Категории',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+            barHeight: 16,
+            fixedWidth: 118,
+            radius: 6,
           ),
-          const SizedBox(height: 20),
-          const SkeletonBox(width: 140, height: 18, radius: 6),
           const SizedBox(height: 12),
           const Row(
             children: [
@@ -537,11 +831,18 @@ class HistorySkeleton extends StatelessWidget {
           const SizedBox(height: 20),
           SkeletonCard(
             padding: EdgeInsets.zero,
+            radius: 20,
             child: Column(
               children: [
                 for (var i = 0; i < 5; i++) ...[
-                  if (i > 0) const Divider(height: 1, color: PaykColors.border),
-                  const _HistoryRowBone(),
+                  if (i > 0)
+                    const Divider(
+                      height: 1,
+                      indent: 70,
+                      endIndent: 14,
+                      color: PaykColors.border,
+                    ),
+                  const _HistoryRowBone(squareIcon: true),
                 ],
               ],
             ),
@@ -567,11 +868,11 @@ class _CategoryBone extends StatelessWidget {
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SkeletonBox(width: 64, height: 12, radius: 6),
+          SkeletonBox(width: 64, height: 12, radius: 5),
           Spacer(),
           Align(
             alignment: Alignment.bottomRight,
-            child: SkeletonBox(width: 36, height: 36, radius: 10),
+            child: SkeletonBox(width: 38, height: 38, radius: 11),
           ),
         ],
       ),
@@ -580,37 +881,70 @@ class _CategoryBone extends StatelessWidget {
 }
 
 class _HistoryRowBone extends StatelessWidget {
-  const _HistoryRowBone();
+  const _HistoryRowBone({this.squareIcon = false});
+
+  final bool squareIcon;
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SkeletonBox(width: 42, height: 42, circle: true),
-          SizedBox(width: 12),
-          Expanded(
+          SkeletonBox(
+            width: 44,
+            height: 44,
+            circle: !squareIcon,
+            radius: squareIcon ? 14 : 0,
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SkeletonBox(width: 120, height: 14, radius: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _TextLineBone(
+                        fontSize: 14.5,
+                        lineHeight: 1.25,
+                        barHeight: 13,
+                        widthFactor: 0.78,
+                        radius: 5,
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    SkeletonBox(width: 82, height: 24, radius: 9),
+                  ],
+                ),
                 SizedBox(height: 6),
-                SkeletonBox(width: 168, height: 12, radius: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    SkeletonBox(width: 92, height: 11, radius: 5),
+                    SkeletonBox(width: 96, height: 11, radius: 5),
+                  ],
+                ),
               ],
             ),
           ),
-          SizedBox(width: 8),
-          SkeletonBox(width: 64, height: 16, radius: 6),
         ],
       ),
     );
   }
 }
 
-/// Друзья: шапка на всю ширину, код, сетка, список. Цвет шапки уходит выше экрана.
+/// Друзья: точная геометрия шапки (1:1 с _FriendsBody), блока кода, сетки 2x2 и списка.
 class FriendsSkeleton extends StatelessWidget {
-  const FriendsSkeleton({super.key});
+  const FriendsSkeleton({
+    super.key,
+    this.locale = 'ru',
+    this.canPop = false,
+  });
+
+  final String locale;
+  final bool canPop;
 
   @override
   Widget build(BuildContext context) {
@@ -621,57 +955,207 @@ class FriendsSkeleton extends StatelessWidget {
           parent: BouncingScrollPhysics(),
         ),
         children: [
-          _BannerBones(
-            lines: const [
-              _HeaderLine(widthFactor: 0.92, height: 26),
-              _HeaderLine(widthFactor: 0.62, height: 26, gap: 8),
-              _HeaderLine(widthFactor: 0.84, height: 13, gap: 12),
-              _HeaderLine(widthFactor: 0.7, height: 13, gap: 6),
-              _HeaderLine(widthFactor: 0.48, height: 13, gap: 6),
-            ],
-            footer: Padding(
-              padding: EdgeInsets.fromLTRB(20, 18, 20, 22),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SkeletonBox(width: 140, height: 13, radius: 6),
-                  SizedBox(height: 8),
-                  SkeletonBox(height: 52, radius: 14),
-                  SizedBox(height: 14),
-                  SkeletonBox(height: 50, radius: 14),
-                ],
+          Container(
+            decoration: const BoxDecoration(
+              color: PaykColors.sheet,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Positioned(
+                      top: -1000,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: PaykColors.headerGradient,
+                          borderRadius: BorderRadius.vertical(
+                            bottom: Radius.circular(PaykRadius.header),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SafeArea(
+                      bottom: false,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(
+                              24,
+                              canPop ? 0 : 16,
+                              24,
+                              28,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (canPop)
+                                  const SizedBox(
+                                    height: 40,
+                                    width: 40,
+                                    child: Center(
+                                      child: SkeletonBox(
+                                        width: 24,
+                                        height: 24,
+                                        radius: 8,
+                                        color: _headerBone,
+                                        highlight: _headerShine,
+                                      ),
+                                    ),
+                                  ),
+                                ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxWidth:
+                                        MediaQuery.sizeOf(context).width * 0.68,
+                                  ),
+                                  child: _MeasuredTextBones(
+                                    sample: tr(locale, 'friends.heroTitle'),
+                                    style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w800,
+                                      height: 1.15,
+                                      letterSpacing: -0.4,
+                                    ),
+                                    barHeight: 24,
+                                    radius: 8,
+                                    color: _headerBone,
+                                    highlight: _headerShine,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 108),
+                                  child: _MeasuredTextBones(
+                                    sample: tr(locale, 'friends.explain', {
+                                      'l1': '1%',
+                                      'l2': '1%',
+                                      'months': '12',
+                                    }),
+                                    style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.w500,
+                                      height: 1.4,
+                                    ),
+                                    barHeight: 12,
+                                    radius: 5,
+                                    color: _headerBone,
+                                    highlight: _headerShine,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Positioned(
+                            right: 16,
+                            bottom: 8,
+                            child: SizedBox(
+                              width: 128,
+                              height: 128,
+                              child: Center(
+                                child: SkeletonBox(
+                                  width: 108,
+                                  height: 108,
+                                  radius: 26,
+                                  color: _headerBone,
+                                  highlight: _headerShine,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _MeasuredTextBones(
+                        sample: tr(locale, 'friends.yourCode'),
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        barHeight: 12,
+                        fixedWidth: 148,
+                        radius: 5,
+                      ),
+                      const SizedBox(height: 8),
+                      // Высота 64 = vertical: 8*2 + IconButton 48 (1:1 с блоком кода).
+                      Container(
+                        height: 64,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: PaykColors.surfaceNested,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: PaykColors.border),
+                        ),
+                        child: const Row(
+                          children: [
+                            SkeletonBox(width: 136, height: 22, radius: 7),
+                            Spacer(),
+                            SkeletonBox(width: 24, height: 24, radius: 7),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      const SkeletonBox(height: 50, radius: 14),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(child: _StatBone(locale: locale)),
+                const SizedBox(width: 10),
+                Expanded(child: _StatBone(locale: locale)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Expanded(child: _StatBone(locale: locale)),
+                const SizedBox(width: 10),
+                Expanded(child: _StatBone(locale: locale)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _MeasuredTextBones(
+              sample: tr(locale, 'friends.list'),
+              style: const TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
               ),
+              barHeight: 16,
+              fixedWidth: 148,
+              radius: 6,
             ),
           ),
-          SizedBox(height: 16),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Expanded(child: _StatBone()),
-                SizedBox(width: 10),
-                Expanded(child: _StatBone()),
-              ],
-            ),
-          ),
-          SizedBox(height: 10),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Expanded(child: _StatBone()),
-                SizedBox(width: 10),
-                Expanded(child: _StatBone()),
-              ],
-            ),
-          ),
-          SizedBox(height: 18),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: SkeletonBox(width: 160, height: 18, radius: 6),
-          ),
-          SizedBox(height: 10),
-          Padding(
+          const SizedBox(height: 10),
+          const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: SkeletonCard(
               padding: EdgeInsets.zero,
@@ -693,9 +1177,36 @@ class FriendsSkeleton extends StatelessWidget {
   }
 }
 
-/// PAYK для бизнеса: та же шапка, что у «Друзей», и две карточки предложений.
+/// Карточки-заглушки для «PAYK для бизнеса» (используются и под живым _Hero, и в полном скелетоне).
+class PaykBusinessCardsSkeleton extends StatelessWidget {
+  const PaykBusinessCardsSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const ShimmerSweep(
+      child: Column(
+        children: [
+          _OfferBone(),
+          SizedBox(height: 16),
+          _OfferBone(),
+          SizedBox(height: 16),
+          Padding(
+            padding: EdgeInsets.only(top: 4, bottom: 8),
+            child: Center(
+              child: SkeletonBox(width: 180, height: 12, radius: 6),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// PAYK для бизнеса: полный скелетон с точной 1:1 геометрией шапки _Hero и двух карточек.
 class PaykBusinessSkeleton extends StatelessWidget {
-  const PaykBusinessSkeleton({super.key});
+  const PaykBusinessSkeleton({super.key, this.locale = 'ru'});
+
+  final String locale;
 
   @override
   Widget build(BuildContext context) {
@@ -706,121 +1217,83 @@ class PaykBusinessSkeleton extends StatelessWidget {
           parent: BouncingScrollPhysics(),
         ),
         children: [
-          _BannerBones(
-            showMark: false,
-            lines: const [
-              _HeaderLine(widthFactor: 0.72, height: 26),
-              _HeaderLine(widthFactor: 0.48, height: 26, gap: 8),
-              _HeaderLine(widthFactor: 0.92, height: 13, gap: 12),
-              _HeaderLine(widthFactor: 0.7, height: 13, gap: 6),
-            ],
-          ),
-          SizedBox(height: 16),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: _OfferBone(),
-          ),
-          SizedBox(height: 16),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: _OfferBone(),
-          ),
-          SizedBox(height: 16),
-          Center(child: SkeletonBox(width: 180, height: 12, radius: 6)),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeaderLine {
-  const _HeaderLine({
-    required this.widthFactor,
-    required this.height,
-    this.gap = 0,
-  });
-
-  final double widthFactor;
-  final double height;
-  final double gap;
-}
-
-/// Фиолетовая шапка на всю ширину. Полоса сверху держит цвет, когда список тянут вниз.
-class _BannerBones extends StatelessWidget {
-  const _BannerBones({required this.lines, this.footer, this.showMark = true});
-
-  final List<_HeaderLine> lines;
-  final Widget? footer;
-  final bool showMark;
-
-  @override
-  Widget build(BuildContext context) {
-    final header = Stack(
-      clipBehavior: Clip.none,
-      children: [
-        const Positioned(
-          top: -1000,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: DecoratedBox(
-            decoration: BoxDecoration(gradient: PaykColors.headerGradient),
-          ),
-        ),
-        SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 16, 28),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Positioned(
+                top: -1000,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: PaykColors.headerGradient,
+                    borderRadius: BorderRadius.vertical(
+                      bottom: Radius.circular(PaykRadius.header),
+                    ),
+                  ),
+                ),
+              ),
+              SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 28),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      for (final line in lines) ...[
-                        if (line.gap > 0) SizedBox(height: line.gap),
-                        FractionallySizedBox(
-                          widthFactor: line.widthFactor,
-                          alignment: Alignment.centerLeft,
-                          child: SkeletonBox(
-                            height: line.height,
-                            radius: 8,
-                            color: _headerBone,
-                            highlight: _headerShine,
-                          ),
+                      _MeasuredTextBones(
+                        sample: tr(locale, 'payk.title'),
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          height: 1.15,
+                          letterSpacing: -0.4,
                         ),
-                      ],
+                        barHeight: 24,
+                        radius: 8,
+                        color: _headerBone,
+                        highlight: _headerShine,
+                      ),
+                      const SizedBox(height: 10),
+                      _MeasuredTextBones(
+                        sample: tr(locale, 'payk.subtitle'),
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          height: 1.4,
+                        ),
+                        barHeight: 12,
+                        radius: 5,
+                        color: _headerBone,
+                        highlight: _headerShine,
+                      ),
                     ],
                   ),
                 ),
-                if (showMark) ...[
-                  const SizedBox(width: 12),
-                  const SkeletonBox(
-                    width: 104,
-                    height: 104,
-                    radius: 28,
-                    color: _headerBone,
-                    highlight: _headerShine,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                _OfferBone(),
+                SizedBox(height: 16),
+                _OfferBone(),
+                SizedBox(height: 16),
+                Padding(
+                  padding: EdgeInsets.only(top: 4, bottom: 8),
+                  child: Center(
+                    child: SkeletonBox(width: 180, height: 12, radius: 6),
                   ),
-                ],
+                ),
               ],
             ),
           ),
-        ),
-      ],
-    );
-
-    final tail = footer;
-    if (tail == null) return header;
-    return Container(
-      decoration: const BoxDecoration(
-        color: PaykColors.sheet,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [header, tail],
+        ],
       ),
     );
   }
@@ -839,17 +1312,51 @@ class _OfferBone extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 168, child: SkeletonBox(height: 168, radius: 0)),
+            AspectRatio(
+              aspectRatio: 2,
+              child: SkeletonBox(height: double.infinity, radius: 0),
+            ),
             Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 16),
+              padding: EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SkeletonBox(width: 190, height: 18, radius: 6),
-                  SizedBox(height: 8),
-                  SkeletonBox(height: 13, radius: 6),
+                  _TextLineBone(
+                    fontSize: 18,
+                    lineHeight: 1.25,
+                    barHeight: 16,
+                    widthFactor: 0.78,
+                    radius: 6,
+                  ),
+                  _TextLineBone(
+                    fontSize: 18,
+                    lineHeight: 1.25,
+                    barHeight: 16,
+                    widthFactor: 0.42,
+                    radius: 6,
+                  ),
                   SizedBox(height: 6),
-                  SkeletonBox(width: 160, height: 13, radius: 6),
+                  _TextLineBone(
+                    fontSize: 15,
+                    lineHeight: 1.45,
+                    barHeight: 12,
+                    widthFactor: 0.96,
+                    radius: 5,
+                  ),
+                  _TextLineBone(
+                    fontSize: 15,
+                    lineHeight: 1.45,
+                    barHeight: 12,
+                    widthFactor: 0.88,
+                    radius: 5,
+                  ),
+                  _TextLineBone(
+                    fontSize: 15,
+                    lineHeight: 1.45,
+                    barHeight: 12,
+                    widthFactor: 0.56,
+                    radius: 5,
+                  ),
                   SizedBox(height: 16),
                   SkeletonBox(height: 50, radius: 14),
                 ],
@@ -863,18 +1370,41 @@ class _OfferBone extends StatelessWidget {
 }
 
 class _StatBone extends StatelessWidget {
-  const _StatBone();
+  const _StatBone({required this.locale});
+
+  final String locale;
 
   @override
   Widget build(BuildContext context) {
-    return const SkeletonCard(
-      padding: EdgeInsets.all(14),
+    return SkeletonCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      radius: 16,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SkeletonBox(width: 88, height: 12, radius: 6),
-          SizedBox(height: 10),
-          SkeletonBox(width: 56, height: 20, radius: 6),
+          _MeasuredTextBones(
+            sample: tr(locale, 'friends.l1'),
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
+            barHeight: 11,
+            fixedWidth: 86,
+            radius: 5,
+          ),
+          const SizedBox(height: 4),
+          const _MeasuredTextBones(
+            sample: '0,00 смн',
+            style: TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+            ),
+            barHeight: 18,
+            fixedWidth: 64,
+            radius: 6,
+          ),
         ],
       ),
     );
@@ -1223,6 +1753,13 @@ class SkeletonCard extends StatelessWidget {
         color: fill,
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: PaykColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.025),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: child,
     );

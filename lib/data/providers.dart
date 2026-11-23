@@ -7,9 +7,10 @@ import 'session/session_controller.dart';
 
 export 'session/session_controller.dart';
 
-final programProvider = FutureProvider<ProgramInfo>((ref) {
-  return ref.watch(loyaltyApiProvider).program();
-});
+final programProvider = FutureProvider<ProgramInfo>(
+  (ref) => ref.watch(loyaltyApiProvider).program(),
+  retry: (_, _) => null,
+);
 
 final rulesProvider = FutureProvider<RulesInfo>((ref) {
   return ref.watch(loyaltyApiProvider).rules();

@@ -6,6 +6,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:payk/core/i18n/locale_controller.dart';
 import 'package:payk/core/theme/payk_theme.dart';
+import 'package:payk/core/widgets/payk_3d_icon.dart';
 import 'package:payk/data/api/loyalty_api.dart';
 import 'package:payk/data/models/models.dart';
 import 'package:payk/data/providers.dart';
@@ -132,24 +133,28 @@ void main() {
         // 4. Пункты меню
         expect(find.text('Мағозаи ман'), findsOneWidget);
         expect(find.text('MSX Алмоси'), findsOneWidget);
-        expect(find.byIcon(Icons.location_on_outlined), findsOneWidget);
+        expect(find.byType(Store3dIcon), findsOneWidget);
 
         expect(find.text('Паёмҳо'), findsNothing);
         expect(find.text('Харидҳои ман'), findsNothing);
         expect(find.text('Таърихи амалиётҳо'), findsNothing);
 
         expect(find.text('Статусҳо ва қоидаҳо'), findsOneWidget);
-        expect(find.byIcon(Icons.confirmation_number_outlined), findsOneWidget);
+        expect(find.byType(StatusRules3dIcon), findsOneWidget);
 
         expect(find.text('Алоқа бо мағоза'), findsOneWidget);
         expect(find.text('WhatsApp'), findsOneWidget);
-        expect(find.byIcon(Icons.help_outline_rounded), findsOneWidget);
+        expect(find.byType(StoreContact3dIcon), findsOneWidget);
 
         expect(find.text('Дар бораи барнома'), findsOneWidget);
-        expect(find.byIcon(Icons.info_outline_rounded), findsOneWidget);
+        expect(find.byType(AboutApp3dIcon), findsOneWidget);
+
+        expect(find.byType(MySizes3dIcon), findsOneWidget);
+        expect(find.byType(MyReceipts3dIcon), findsOneWidget);
+        expect(find.byType(SizeOffers3dIcon), findsOneWidget);
 
         expect(find.text('Танзимот'), findsOneWidget);
-        expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+        expect(find.byType(Gear3dIcon), findsOneWidget);
 
         // 5. Нижняя плитка уведомлений (Switch)
         expect(

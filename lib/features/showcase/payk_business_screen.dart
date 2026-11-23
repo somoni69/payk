@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
+import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/payk_mark.dart';
 import '../../core/widgets/screen_skeletons.dart';
@@ -107,43 +108,54 @@ class _PaykBusinessScreenState extends ConsumerState<PaykBusinessScreen>
       ),
       child: Scaffold(
         backgroundColor: PaykColors.canvas,
-        body: loading
-            ? const PaykBusinessSkeleton()
-            : RefreshIndicator(
-                color: PaykColors.violet,
-                backgroundColor: Colors.white,
-                edgeOffset: MediaQuery.paddingOf(context).top,
-                displacement: 28,
-                onRefresh: _load,
-                child: ListView(
-                  physics: const AlwaysScrollableScrollPhysics(
-                    parent: BouncingScrollPhysics(),
-                  ),
-                  padding: const EdgeInsets.only(bottom: 104),
-                  children: [
-                    _Hero(locale: locale),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        children: [
-                          ..._feedBody(
-                            locale: locale,
-                            feed: feed,
-                            error: _error,
-                            onRetry: _load,
-                            onWant: _openLead,
+        body: RefreshIndicator(
+          color: PaykColors.violet,
+          backgroundColor: Colors.white,
+          edgeOffset: MediaQuery.paddingOf(context).top,
+          displacement: 28,
+          onRefresh: _load,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            padding: const EdgeInsets.only(bottom: 104),
+            children: [
+              _Hero(locale: locale),
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: AnimatedSwitcher(
+                  duration: PaykMotion.duration(context, PaykMotion.fast),
+                  switchInCurve: PaykMotion.easeOut,
+                  switchOutCurve: PaykMotion.easeOut,
+                  child: loading
+                      ? const KeyedSubtree(
+                          key: ValueKey('payk-cards-loading'),
+                          child: PaykBusinessCardsSkeleton(),
+                        )
+                      : KeyedSubtree(
+                          key: const ValueKey('payk-cards-data'),
+                          child: Column(
+                            children: [
+                              ..._feedBody(
+                                locale: locale,
+                                feed: feed,
+                                error: _error,
+                                onRetry: _load,
+                                onWant: _openLead,
+                              ),
+                              if (feed != null) ...[
+                                const SizedBox(height: 16),
+                                const _PoweredBy(),
+                              ],
+                            ],
                           ),
-                          if (feed != null) ...[
-                            const SizedBox(height: 16),
-                            const _PoweredBy(),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
+                        ),
                 ),
               ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -208,7 +220,12 @@ class _Hero extends StatelessWidget {
           right: 0,
           bottom: 0,
           child: DecoratedBox(
-            decoration: BoxDecoration(gradient: PaykColors.headerGradient),
+            decoration: BoxDecoration(
+              gradient: PaykColors.headerGradient,
+              borderRadius: BorderRadius.vertical(
+                bottom: Radius.circular(PaykRadius.header),
+              ),
+            ),
           ),
         ),
         SafeArea(

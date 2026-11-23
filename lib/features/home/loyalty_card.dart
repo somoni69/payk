@@ -25,8 +25,8 @@ class LoyaltyCardFace {
     required this.pillInk,
     required this.mark,
     required this.shadow,
-    required this.walletFill,
-    required this.walletBorder,
+    required this.tileFill,
+    required this.tileBorder,
     this.sheen,
     this.begin = Alignment.topLeft,
     this.end = Alignment.bottomRight,
@@ -39,8 +39,8 @@ class LoyaltyCardFace {
   final Color pillInk;
   final Color mark;
   final Color shadow;
-  final Color walletFill;
-  final Color walletBorder;
+  final Color tileFill;
+  final Color tileBorder;
   final Color? sheen;
   final Alignment begin;
   final Alignment end;
@@ -57,8 +57,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
       pillInk: Colors.white,
       mark: Color(0x2E1C2430),
       shadow: Color(0x332A3544),
-      walletFill: Color(0x88FFFFFF),
-      walletBorder: Color(0x1C1C2430),
+      tileFill: Color(0x88FFFFFF),
+      tileBorder: Color(0x1C1C2430),
       sheen: Color(0xCCFFFFFF),
     ),
     3 => const LoyaltyCardFace(
@@ -69,8 +69,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
       pillInk: Colors.white,
       mark: Color(0x333D2A08),
       shadow: Color(0x40C4922A),
-      walletFill: Color(0x52FFFFFF),
-      walletBorder: Color(0x223D2A08),
+      tileFill: Color(0x52FFFFFF),
+      tileBorder: Color(0x223D2A08),
       sheen: Color(0x99FFFFFF),
     ),
     4 => const LoyaltyCardFace(
@@ -81,8 +81,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
       pillInk: Colors.white,
       mark: Color(0x38FFFFFF),
       shadow: Color(0x66141A22),
-      walletFill: Color(0x4A000000),
-      walletBorder: Color(0x1EFFFFFF),
+      tileFill: Color(0x4A000000),
+      tileBorder: Color(0x1EFFFFFF),
       sheen: Color(0x28FFFFFF),
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
@@ -95,8 +95,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
       pillInk: Colors.white,
       mark: Color(0x38FFFFFF),
       shadow: Color(0x55372CD2),
-      walletFill: Color(0x42120D52),
-      walletBorder: Color(0x26FFFFFF),
+      tileFill: Color(0x42120D52),
+      tileBorder: Color(0x26FFFFFF),
       sheen: Color(0x22FFFFFF),
     ),
     _ => const LoyaltyCardFace(
@@ -107,8 +107,8 @@ LoyaltyCardFace loyaltyCardFace(int level) {
       pillInk: Colors.white,
       mark: Color(0x38FFFFFF),
       shadow: Color(0x403B4150),
-      walletFill: Color(0x38000000),
-      walletBorder: Color(0x1EFFFFFF),
+      tileFill: Color(0x38000000),
+      tileBorder: Color(0x1EFFFFFF),
       begin: Alignment.centerLeft,
       end: Alignment.centerRight,
     ),
@@ -143,7 +143,8 @@ class LoyaltyCard extends StatelessWidget {
     final name = _holderName(member);
     final code = member.referralCode.trim();
 
-    final wallets = wallet.storeWallets;
+    final smRate = wallet.rates.supermarket;
+    final clRate = wallet.rates.clothes;
 
     final card = AnimatedSwitcher(
       duration: reduce ? Duration.zero : PaykMotion.page,
@@ -170,10 +171,12 @@ class LoyaltyCard extends StatelessWidget {
         brandTitle: tr(locale, 'store.brand'),
         balanceLabel: tr(locale, 'home.balance'),
         amount: formatNumber(wallet.balance),
-        smLabel: tr(locale, 'wallet.SM'),
-        smAmount: formatNumber(wallets.sm.balance),
-        clLabel: tr(locale, 'wallet.CL'),
-        clAmount: formatNumber(wallets.cl.balance),
+        smLabel: tr(locale, 'store.supermarketTitle'),
+        smEarnPct: formatPercent(smRate.earn),
+        smBurnPct: formatPercent(smRate.burnCap),
+        clLabel: tr(locale, 'store.clothesTitle'),
+        clEarnPct: formatPercent(clRate.earn),
+        clBurnPct: formatPercent(clRate.burnCap),
         name: name,
         code: code,
         showChevron: onTap != null,
@@ -203,9 +206,11 @@ class _LoyaltyCardSurface extends StatelessWidget {
     required this.balanceLabel,
     required this.amount,
     required this.smLabel,
-    required this.smAmount,
+    required this.smEarnPct,
+    required this.smBurnPct,
     required this.clLabel,
-    required this.clAmount,
+    required this.clEarnPct,
+    required this.clBurnPct,
     required this.name,
     required this.code,
     required this.showChevron,
@@ -218,9 +223,11 @@ class _LoyaltyCardSurface extends StatelessWidget {
   final String balanceLabel;
   final String amount;
   final String smLabel;
-  final String smAmount;
+  final String smEarnPct;
+  final String smBurnPct;
   final String clLabel;
-  final String clAmount;
+  final String clEarnPct;
+  final String clBurnPct;
   final String name;
   final String code;
   final bool showChevron;
@@ -382,24 +389,26 @@ class _LoyaltyCardSurface extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
                     Row(
-                      key: const ValueKey('loyalty-card-wallets'),
+                      key: const ValueKey('loyalty-card-rates'),
                       children: [
                         Expanded(
-                          child: _WalletMiniTile(
-                            key: const ValueKey('loyalty-wallet-SM'),
+                          child: _RateMiniTile(
+                            key: const ValueKey('loyalty-rate-SM'),
                             icon: Icons.shopping_cart_outlined,
                             label: smLabel,
-                            amount: smAmount,
+                            earnPct: smEarnPct,
+                            burnPct: smBurnPct,
                             face: face,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: _WalletMiniTile(
-                            key: const ValueKey('loyalty-wallet-CL'),
+                          child: _RateMiniTile(
+                            key: const ValueKey('loyalty-rate-CL'),
                             icon: Icons.checkroom_rounded,
                             label: clLabel,
-                            amount: clAmount,
+                            earnPct: clEarnPct,
+                            burnPct: clBurnPct,
                             face: face,
                           ),
                         ),
@@ -448,28 +457,30 @@ class _LoyaltyCardSurface extends StatelessWidget {
   }
 }
 
-/// Компактная плитка отдельного кошелька («Супермаркет» / «Либос») внутри карты.
-class _WalletMiniTile extends StatelessWidget {
-  const _WalletMiniTile({
+/// Компактная плитка условий статуса («Супермаркет» / «Одежда»: кэшбэк / списание) внутри карты.
+class _RateMiniTile extends StatelessWidget {
+  const _RateMiniTile({
     super.key,
     required this.icon,
     required this.label,
-    required this.amount,
+    required this.earnPct,
+    required this.burnPct,
     required this.face,
   });
 
   final IconData icon;
   final String label;
-  final String amount;
+  final String earnPct;
+  final String burnPct;
   final LoyaltyCardFace face;
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: face.walletFill,
+        color: face.tileFill,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: face.walletBorder, width: 1),
+        border: Border.all(color: face.tileBorder, width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
@@ -504,7 +515,7 @@ class _WalletMiniTile extends StatelessWidget {
                 TextSpan(
                   children: [
                     TextSpan(
-                      text: amount,
+                      text: earnPct,
                       style: _cardText(
                         color: face.ink,
                         size: 15,
@@ -515,12 +526,23 @@ class _WalletMiniTile extends StatelessWidget {
                       ),
                     ),
                     TextSpan(
-                      text: ' смн',
+                      text: ' / ',
                       style: _cardText(
                         color: face.inkSoft,
-                        size: 11.5,
-                        weight: FontWeight.w700,
+                        size: 13,
+                        weight: FontWeight.w600,
                         height: 1.15,
+                      ),
+                    ),
+                    TextSpan(
+                      text: burnPct,
+                      style: _cardText(
+                        color: face.ink,
+                        size: 15,
+                        weight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                        height: 1.15,
+                        features: const [FontFeature.tabularFigures()],
                       ),
                     ),
                   ],

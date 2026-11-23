@@ -133,7 +133,7 @@ class ProfileScreen extends ConsumerWidget {
 
                   // 4. Пункты меню без дублей покупок и сообщений
                   _ProfileMenuItem(
-                    icon: Icons.location_on_outlined,
+                    iconWidget: const Store3dIcon(size: 28),
                     title: tr(locale, 'profile.myStore'),
                     subtitle: account.store.isNotEmpty
                         ? account.store
@@ -141,7 +141,7 @@ class ProfileScreen extends ConsumerWidget {
                     onTap: () => _showStoreDialog(context, account, locale),
                   ),
                   _ProfileMenuItem(
-                    icon: Icons.straighten_rounded,
+                    iconWidget: const MySizes3dIcon(size: 28),
                     title: tr(locale, 'sizes.title'),
                     subtitle: _sizesLine(member, locale),
                     onTap: () {
@@ -154,7 +154,7 @@ class ProfileScreen extends ConsumerWidget {
                     },
                   ),
                   _ProfileMenuItem(
-                    icon: Icons.receipt_long_outlined,
+                    iconWidget: const MyReceipts3dIcon(size: 28),
                     title: tr(locale, 'profile.purchases'),
                     onTap: () {
                       HapticFeedback.lightImpact();
@@ -166,7 +166,7 @@ class ProfileScreen extends ConsumerWidget {
                     },
                   ),
                   _ProfileMenuItem(
-                    icon: Icons.local_offer_outlined,
+                    iconWidget: const SizeOffers3dIcon(size: 28),
                     title: tr(locale, 'sizes.offers'),
                     onTap: () {
                       HapticFeedback.lightImpact();
@@ -178,7 +178,7 @@ class ProfileScreen extends ConsumerWidget {
                     },
                   ),
                   _ProfileMenuItem(
-                    icon: Icons.confirmation_number_outlined,
+                    iconWidget: const StatusRules3dIcon(size: 28),
                     title: tr(locale, 'profile.statusesAndRules'),
                     onTap: () {
                       HapticFeedback.lightImpact();
@@ -190,7 +190,7 @@ class ProfileScreen extends ConsumerWidget {
                     },
                   ),
                   _ProfileMenuItem(
-                    icon: Icons.help_outline_rounded,
+                    iconWidget: const StoreContact3dIcon(size: 28),
                     title: tr(locale, 'profile.contactStore'),
                     subtitle: 'WhatsApp',
                     onTap: () => _showStoreContactDialog(
@@ -202,12 +202,12 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ),
                   _ProfileMenuItem(
-                    icon: Icons.info_outline_rounded,
+                    iconWidget: const AboutApp3dIcon(size: 28),
                     title: tr(locale, 'profile.aboutApp'),
                     onTap: () => _showAboutDialog(context, locale),
                   ),
                   _ProfileMenuItem(
-                    icon: Icons.settings_outlined,
+                    iconWidget: const Gear3dIcon(size: 28),
                     title: tr(locale, 'profile.menuSettings'),
                     onTap: () {
                       HapticFeedback.lightImpact();
@@ -688,13 +688,13 @@ class _BannerSlideCard extends StatelessWidget {
 /// 3. Строка меню профиля (8 пунктов как на макете)
 class _ProfileMenuItem extends StatelessWidget {
   const _ProfileMenuItem({
-    required this.icon,
+    required this.iconWidget,
     required this.title,
     this.subtitle,
     required this.onTap,
   });
 
-  final IconData icon;
+  final Widget iconWidget;
   final String title;
   final String? subtitle;
   final VoidCallback onTap;
@@ -716,8 +716,12 @@ class _ProfileMenuItem extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
           child: Row(
             children: [
-              Icon(icon, size: 24, color: PaykColors.textPrimary),
-              const SizedBox(width: 16),
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: Center(child: iconWidget),
+              ),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

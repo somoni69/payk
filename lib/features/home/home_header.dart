@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
+import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/payk_avatar.dart';
 import '../../data/models/models.dart';
 import 'quick_action_cards.dart';
@@ -119,7 +120,10 @@ class HomeHeader extends StatelessWidget {
 
                     // Кнопка уведомлений (колокольчик)
                     _HeaderIconButton(
-                      icon: Icons.notifications_none_rounded,
+                      iconWidget: const Bell3dIcon(
+                        size: 24,
+                        fallbackColor: Colors.white,
+                      ),
                       tooltip: tr(locale, 'home.notifications'),
                       onTap: onNotificationsTap,
                       badgeCount: account.messagesUnread,
@@ -128,7 +132,10 @@ class HomeHeader extends StatelessWidget {
 
                     // Кнопка QR-сканера
                     _HeaderIconButton(
-                      icon: Icons.qr_code_scanner_rounded,
+                      iconWidget: const QrCode3dIcon(
+                        size: 24,
+                        fallbackColor: Colors.white,
+                      ),
                       tooltip: tr(locale, 'home.qrScanner'),
                       onTap: onScannerTap,
                     ),
@@ -157,13 +164,13 @@ class HomeHeader extends StatelessWidget {
 /// Полупрозрачная квадратная кнопка хедера 42x42 dp со скруглением 14 dp
 class _HeaderIconButton extends StatelessWidget {
   const _HeaderIconButton({
-    required this.icon,
+    required this.iconWidget,
     required this.tooltip,
     required this.onTap,
     this.badgeCount = 0,
   });
 
-  final IconData icon;
+  final Widget iconWidget;
   final String tooltip;
   final VoidCallback onTap;
   final int badgeCount;
@@ -193,7 +200,7 @@ class _HeaderIconButton extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  Icon(icon, color: Colors.white, size: 22),
+                  iconWidget,
                   if (badgeCount > 0)
                     Positioned(
                       top: 6,

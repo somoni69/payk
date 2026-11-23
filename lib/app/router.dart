@@ -73,7 +73,17 @@ final routerProvider = Provider<GoRouter>((ref) {
         return null;
       }
 
-      // 4. Авторизованный пользователь не должен попадать на экраны входа, сплэша или пустой корень
+      // 4. После регистрации с подарком показываем экран «Подарок» один раз перед главной
+      final hasGift = (session.pendingWelcomeBonus ?? 0) > 0;
+      final onGift = location == '/welcome-gift';
+      if (hasGift) {
+        return onGift ? null : '/welcome-gift';
+      }
+      if (onGift) {
+        return '/home';
+      }
+
+      // 5. Авторизованный пользователь не должен попадать на экраны входа, сплэша или пустой корень
       if (auth || splash || location == '/') {
         return '/home';
       }
@@ -116,6 +126,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/auth/register',
         redirect: (context, state) => '/auth/profile',
+      ),
+      GoRoute(
+        path: '/welcome-gift',
+        pageBuilder: (context, state) => PaykMotion.buildPage(
+          state: state,
+          child: const WelcomeGiftScreen(),
+        ),
       ),
 
       // Push-маршруты приложения (единая плавная система переходов PaykMotion)

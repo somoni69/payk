@@ -42,7 +42,7 @@ class FriendsScreen extends ConsumerWidget {
         body: AsyncView(
           value: ref.watch(friendsProvider),
           onRetry: () => ref.invalidate(friendsProvider),
-          loading: const FriendsSkeleton(),
+          loading: FriendsSkeleton(locale: locale, canPop: canPop),
           data: (friends) => _FriendsBody(
             friends: friends,
             store: store,
@@ -133,6 +133,9 @@ class _FriendsBody extends StatelessWidget {
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                           gradient: PaykColors.headerGradient,
+                          borderRadius: BorderRadius.vertical(
+                            bottom: Radius.circular(PaykRadius.header),
+                          ),
                         ),
                       ),
                     ),

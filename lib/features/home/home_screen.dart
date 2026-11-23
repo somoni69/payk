@@ -127,20 +127,16 @@ class _HomeBody extends ConsumerWidget {
               ),
             ),
 
-          for (final format in StoreWallets.formats)
-            if (wallet.storeWallets.byFormat(format).debt > 0)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _Notice(
-                  title: tr(locale, 'home.debtTitleWallet', {
-                    'store': tr(locale, 'wallet.$format'),
-                    'amount': formatMoney(
-                      -wallet.storeWallets.byFormat(format).debt,
-                    ),
-                  }),
-                  body: tr(locale, 'home.debtTextWallet'),
-                ),
+          if (wallet.debt > 0)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _Notice(
+                title: tr(locale, 'home.debtTitle', {
+                  'amount': formatMoney(-wallet.debt),
+                }),
+                body: tr(locale, 'home.debtText'),
               ),
+            ),
 
           if (_gift(member, wallet) case final gift?)
             Padding(
@@ -885,17 +881,6 @@ void _openCompaniesModal(BuildContext context, Account account, String locale) {
                             color: PaykColors.textPrimary,
                           ),
                         ),
-                        const SizedBox(height: 3),
-                        Text(
-                          '${tr(locale, 'wallet.SM')}: ${formatMoney(wallet.storeWallets.sm.balance)} · ${tr(locale, 'wallet.CL')}: ${formatMoney(wallet.storeWallets.cl.balance)}',
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: PaykColors.textSecondary,
-                            fontFeatures: [FontFeature.tabularFigures()],
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -1297,18 +1282,14 @@ class _HomeOfferTile extends StatelessWidget {
                                   .clamp(120, 240),
                           errorBuilder: (_, _, _) => Container(
                             color: PaykColors.tile,
-                            child: const Icon(
-                              Icons.local_offer_outlined,
-                              color: PaykColors.primary,
-                            ),
+                            alignment: Alignment.center,
+                            child: const SizeOffers3dIcon(size: 32),
                           ),
                         )
                       : Container(
                           color: PaykColors.tile,
-                          child: const Icon(
-                            Icons.local_offer_outlined,
-                            color: PaykColors.primary,
-                          ),
+                          alignment: Alignment.center,
+                          child: const SizeOffers3dIcon(size: 32),
                         ),
                 ),
               ),
@@ -1496,64 +1477,139 @@ class _SizesHintCardState extends State<_SizesHintCard> {
     final locale = widget.locale;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-      child: PaykPressable(
-        scaleDown: PaykMotion.scaleSubtle,
-        onTap: () => _openSizes(context),
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: PaykColors.sheet,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: PaykColors.border),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: PaykColors.activePill,
-                  borderRadius: BorderRadius.circular(12),
+      child: RepaintBoundary(
+        child: PaykPressable(
+          scaleDown: PaykMotion.scaleSubtle,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            _openSizes(context);
+          },
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: PaykColors.sheet,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: PaykColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.025),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
                 ),
-                child: const Icon(
-                  Icons.straighten_rounded,
-                  color: PaykColors.primary,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      tr(locale, 'home.sizesHint'),
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: PaykColors.textPrimary,
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: PaykColors.activePill,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      alignment: Alignment.center,
+                      child: const Ruler3dIcon(size: 30),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tr(locale, 'home.sizesHint'),
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              height: 1.28,
+                              letterSpacing: -0.2,
+                              color: PaykColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            tr(locale, 'home.sizesHintText'),
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              height: 1.35,
+                              color: PaykColors.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      tr(locale, 'home.sizesHintText'),
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        color: PaykColors.textSecondary,
+                    const SizedBox(width: 8),
+                    Tooltip(
+                      message: tr(locale, 'home.sizesHintHide'),
+                      child: Semantics(
+                        button: true,
+                        label: tr(locale, 'home.sizesHintHide'),
+                        child: Material(
+                          color: PaykColors.surfaceNested,
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            onTap: () {
+                              HapticFeedback.selectionClick();
+                              _dismiss();
+                            },
+                            child: const SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 16,
+                                color: PaykColors.textMuted,
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              IconButton(
-                onPressed: _dismiss,
-                icon: const Icon(Icons.close_rounded, size: 18, color: PaykColors.textMuted),
-                tooltip: tr(locale, 'home.sizesHintHide'),
-              ),
-            ],
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: PaykColors.brandSoft,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          tr(locale, 'offers.setSizes'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: PaykColors.primary,
+                          ),
+                        ),
+                      ),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: PaykColors.primary,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

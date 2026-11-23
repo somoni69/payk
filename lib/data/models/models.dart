@@ -404,6 +404,7 @@ class HistoryEntry {
     this.format,
     this.note,
     this.billExtId,
+    this.expiresAt,
   });
 
   final int id;
@@ -416,6 +417,7 @@ class HistoryEntry {
   final String? format;
   final String? note;
   final String? billExtId;
+  final DateTime? expiresAt;
 
   factory HistoryEntry.fromJson(Map<String, dynamic> json) {
     final bill = json['bill'] is Map ? asMap(json['bill']) : null;
@@ -432,6 +434,7 @@ class HistoryEntry {
           (bill == null ? null : asStringOrNull(bill['format'])),
       note: asStringOrNull(json['note']),
       billExtId: bill == null ? null : asStringOrNull(bill['ext_id']),
+      expiresAt: json['expires_at'] == null ? null : asDate(json['expires_at']),
     );
   }
 }
@@ -829,6 +832,12 @@ class CashierCode {
   }
 }
 
+double? _positiveBonus(Object? raw) {
+  final value = asMoneyOrNull(raw);
+  if (value == null || value <= 0) return null;
+  return value;
+}
+
 class ProgramInfo {
   const ProgramInfo({
     required this.title,
@@ -837,6 +846,7 @@ class ProgramInfo {
     required this.countries,
     required this.birthYearMin,
     required this.birthYearMax,
+    this.welcomeBonus,
   });
 
   final String title;
@@ -845,6 +855,9 @@ class ProgramInfo {
   final List<String> countries;
   final int birthYearMin;
   final int birthYearMax;
+
+  /// Подарок за регистрацию (смн), `null` — подарок выключен.
+  final double? welcomeBonus;
 
   factory ProgramInfo.fromJson(Map<String, dynamic> json) {
     final countries = json['countries'];
@@ -859,6 +872,7 @@ class ProgramInfo {
           : const [],
       birthYearMin: asInt(json['birth_year_min']),
       birthYearMax: asInt(json['birth_year_max']),
+      welcomeBonus: _positiveBonus(json['welcome_bonus']),
     );
   }
 }
@@ -885,6 +899,7 @@ class RulesInfo {
     required this.months,
     this.burnMin = 0,
     this.stackAbs = 0,
+    this.welcomeBonus,
   });
 
   final List<double> thresholds;
@@ -893,6 +908,9 @@ class RulesInfo {
   final int months;
   final double burnMin;
   final double stackAbs;
+
+  /// Подарок за регистрацию (смн), `null` — выключен.
+  final double? welcomeBonus;
 
   double get level1 => referralLevels.isEmpty ? 0 : referralLevels.first;
   double get level2 => referralLevels.length < 2 ? 0 : referralLevels[1];
@@ -911,6 +929,23 @@ class RulesInfo {
       months: asInt(referral['months']),
       burnMin: asMoney(json['burn_min']),
       stackAbs: asMoney(json['stack_abs']),
+      welcomeBonus: _positiveBonus(json['welcome_bonus']),
+    );
+  }
+}
+
+class RegisterResult {
+  const RegisterResult({required this.tokens, this.welcomeBonus});
+
+  final TokenPair tokens;
+
+  /// Сумма подарка, начисленного прямо сейчас; `null` — уже получал или выключен.
+  final double? welcomeBonus;
+
+  factory RegisterResult.fromJson(Map<String, dynamic> json) {
+    return RegisterResult(
+      tokens: TokenPair.fromJson(json),
+      welcomeBonus: _positiveBonus(json['welcome_bonus']),
     );
   }
 }

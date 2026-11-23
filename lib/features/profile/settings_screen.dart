@@ -130,11 +130,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             alignment: Alignment.center,
-                            child: const Icon(
-                              Icons.language_rounded,
-                              size: 20,
-                              color: PaykColors.primary,
-                            ),
+                            child: const Language3dIcon(size: 24),
                           ),
                           const SizedBox(width: 12),
                           Expanded(

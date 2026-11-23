@@ -48,7 +48,7 @@ class LoyaltyApi {
     return VerifyResult.login(TokenPair.fromJson(json));
   }
 
-  Future<TokenPair> register(RegisterInput input) async {
+  Future<RegisterResult> register(RegisterInput input) async {
     if (!input.consentPd) {
       throw ApiException(422, 'Нужно согласие на обработку данных');
     }
@@ -58,7 +58,7 @@ class LoyaltyApi {
       auth: false,
       body: input.toJson(),
     );
-    return TokenPair.fromJson(asMap(json));
+    return RegisterResult.fromJson(asMap(json));
   }
 
   Future<RulesInfo> rules() async {

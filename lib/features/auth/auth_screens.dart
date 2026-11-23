@@ -8,10 +8,12 @@ import 'package:go_router/go_router.dart';
 import 'package:smart_auth/smart_auth.dart';
 
 import '../../core/countries.dart';
+import '../../core/format.dart';
 import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/widgets/birth_date_fields.dart';
+import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/tajik_phone_field.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/screen_skeletons.dart';
@@ -74,6 +76,8 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
     final digits = _phone.text.replaceAll(RegExp(r'\D'), '');
     final isFocused = _focusNode.hasFocus;
     final hasError = _error != null;
+    final locale = ref.watch(localeProvider);
+    final welcomeBonus = ref.watch(programProvider).asData?.value.welcomeBonus;
 
     return Scaffold(
       backgroundColor: PaykColors.canvas,
@@ -259,6 +263,56 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
                 ),
               ),
             ),
+            if (welcomeBonus != null && welcomeBonus > 0) ...[
+              const SizedBox(height: 20),
+              Container(
+                key: const ValueKey('login-welcome-promo'),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: PaykColors.brandSoft,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: PaykColors.primary.withValues(alpha: 0.18),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Gift3dIcon(size: 44),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tr(locale, 'login.giftTitle', {
+                              'amount': formatMoneyAuto(welcomeBonus),
+                            }),
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: PaykColors.textPrimary,
+                              fontFeatures: [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            tr(locale, 'login.giftText'),
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              height: 1.35,
+                              color: PaykColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -598,7 +652,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       _error = null;
     });
     try {
-      await ref.read(sessionProvider.notifier).completeProfile(
+      final gift = await ref.read(sessionProvider.notifier).completeProfile(
         RegisterInput(
           registrationToken: ref.read(sessionProvider).registrationToken ?? '',
           firstName: name,
@@ -613,7 +667,7 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
         ),
       );
       if (!mounted) return;
-      context.go('/home');
+      context.go((gift ?? 0) > 0 ? '/welcome-gift' : '/home');
     } catch (error) {
       if (!mounted) return;
       setState(() => _error = errorText(error));
@@ -658,7 +712,42 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
               height: 1.35,
             ),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 20),
+          if (info.welcomeBonus != null && info.welcomeBonus! > 0) ...[
+            Container(
+              key: const ValueKey('register-gift-banner'),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: PaykColors.brandSoft,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: PaykColors.primary.withValues(alpha: 0.18),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Gift3dIcon(size: 36),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      tr(locale, 'reg.giftBanner', {
+                        'amount': formatMoneyAuto(info.welcomeBonus!),
+                      }),
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                        height: 1.3,
+                        color: PaykColors.textPrimary,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           TextField(
             controller: _name,
             textCapitalization: TextCapitalization.words,
@@ -735,6 +824,115 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Экран «Подарок» сразу после регистрации, если сервер начислил `welcome_bonus`.
+class WelcomeGiftScreen extends ConsumerWidget {
+  const WelcomeGiftScreen({super.key, this.amount});
+
+  /// Явная сумма (для тестов); в приложении берётся из `sessionProvider.pendingWelcomeBonus`.
+  final double? amount;
+
+  void _finish(BuildContext context, WidgetRef ref) {
+    HapticFeedback.lightImpact();
+    ref.read(sessionProvider.notifier).dismissWelcomeBonus();
+    final router = GoRouter.maybeOf(context);
+    if (router != null) {
+      router.go('/home');
+    } else {
+      Navigator.of(context).maybePop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(localeProvider);
+    final bonus = amount ?? ref.watch(sessionProvider).pendingWelcomeBonus ?? 0;
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _finish(context, ref);
+      },
+      child: Scaffold(
+        backgroundColor: PaykColors.canvas,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Gift3dIcon(size: 112),
+                  const SizedBox(height: 20),
+                  Text(
+                    tr(locale, 'gift.title'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.4,
+                      color: PaykColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '+${formatMoneyAuto(bonus)}',
+                    key: const ValueKey('welcome-gift-amount'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 38,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.8,
+                      color: PaykColors.success,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 340),
+                    child: Text(
+                      tr(locale, 'gift.text'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        height: 1.45,
+                        color: PaykColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  PaykPressable(
+                    child: FilledButton(
+                      key: const ValueKey('welcome-gift-done'),
+                      onPressed: () => _finish(context, ref),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(54),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        tr(locale, 'gift.cta'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

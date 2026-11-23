@@ -84,7 +84,8 @@ abstract final class PaykColors {
   static const good = success;
   static const bad = danger;
   static const notice = Color(0xFFFFF4E8);
-  static const skeleton = Color(0xFFEDEBFD);
+  static const skeleton = Color(0xFFEEEFF6);
+  static const skeletonHighlight = Color(0xFFFAF9FE);
   static const frame = Color(0xFF141218);
   static const navShadow = Color(0x0A372CD2);
 

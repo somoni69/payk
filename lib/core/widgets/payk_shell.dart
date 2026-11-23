@@ -40,6 +40,19 @@ class _PaykShellState extends ConsumerState<PaykShell> {
     'assets/3d/trophy.webp',
     'assets/3d/tshirt.webp',
     'assets/3d/coat.webp',
+    'assets/3d/ruler.webp',
+    'assets/3d/cashback-plus.webp',
+    'assets/3d/cashback-minus.webp',
+    'assets/3d/qr-code.webp',
+    'assets/3d/my-sizes.webp',
+    'assets/3d/my-receipts.webp',
+    'assets/3d/size-offers.webp',
+    'assets/3d/status-rules.webp',
+    'assets/3d/store-contact.webp',
+    'assets/3d/about-app.webp',
+    'assets/3d/store.webp',
+    'assets/3d/gear.webp',
+    'assets/3d/language.webp',
   ];
 
   bool _precached = false;

@@ -10,6 +10,7 @@ import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
+import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
 import '../../data/api/api_exception.dart';
@@ -175,9 +176,9 @@ class _ReceiptsTabState extends ConsumerState<ReceiptsTab> {
       child: ListView(
         padding: EdgeInsets.fromLTRB(
           16,
-          8,
           16,
-          28 + MediaQuery.paddingOf(context).bottom,
+          16,
+          104 + MediaQuery.paddingOf(context).bottom,
         ),
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
@@ -298,11 +299,18 @@ class _ReceiptsHeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: PaykColors.sheet,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: PaykColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -359,6 +367,7 @@ class _ReceiptsHeaderCard extends StatelessWidget {
                     child: _HeaderStat(
                       label: tr(locale, 'receipts.head.spent'),
                       value: '−${formatMoney(header.spent)}',
+                      color: PaykColors.danger,
                     ),
                   ),
                 if (header.spent > 0 && (header.toNext != null || header.spendMonth > 0))
@@ -425,6 +434,7 @@ class _HeaderStat extends StatelessWidget {
               fontFamily: 'Inter',
               fontSize: 15,
               fontWeight: FontWeight.w800,
+              fontFeatures: const [FontFeature.tabularFigures()],
               color: color,
             ),
           ),
@@ -763,18 +773,43 @@ class _ReceiptsLoadingSkeleton extends StatelessWidget {
           for (var i = 0; i < 4; i++) ...[
             if (i > 0) const SizedBox(height: 8),
             const SkeletonCard(
-              child: Column(
+              radius: 18,
+              padding: EdgeInsets.all(14),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(child: SkeletonBox(height: 16, width: 140, radius: 6)),
-                      SizedBox(width: 16),
-                      SkeletonBox(height: 16, width: 72, radius: 6),
-                    ],
+                  SkeletonBox(width: 42, height: 42, radius: 13),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: SkeletonBox(
+                                height: 14,
+                                width: 132,
+                                radius: 5,
+                              ),
+                            ),
+                            SizedBox(width: 16),
+                            SkeletonBox(height: 15, width: 72, radius: 5),
+                          ],
+                        ),
+                        SizedBox(height: 8),
+                        SkeletonBox(height: 11, width: 164, radius: 5),
+                        SizedBox(height: 10),
+                        Row(
+                          children: [
+                            SkeletonBox(height: 20, width: 88, radius: 8),
+                            SizedBox(width: 6),
+                            SkeletonBox(height: 20, width: 76, radius: 8),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  SkeletonBox(height: 12, width: 180, radius: 6),
                 ],
               ),
             ),
@@ -1049,6 +1084,8 @@ class _ReceiptRowCard extends StatelessWidget {
         ? tr(locale, 'format.short.$fmt')
         : null;
 
+    final returned = row.isReturned || row.isPartiallyReturned;
+
     return PaykPressable(
       scaleDown: PaykMotion.scaleSubtle,
       onTap: onTap,
@@ -1056,142 +1093,202 @@ class _ReceiptRowCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: PaykColors.sheet,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: PaykColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.025),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Row(
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: returned ? PaykColors.expenseSoft : PaykColors.activePill,
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(
+                  color: (returned ? PaykColors.danger : PaykColors.primary)
+                      .withValues(alpha: 0.14),
+                ),
+              ),
+              alignment: Alignment.center,
+              child: const MyReceipts3dIcon(size: 26),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Flexible(
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                store,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.1,
+                                  color: PaykColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                            if (fmtLabel != null) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: PaykColors.activePill,
+                                  borderRadius: BorderRadius.circular(7),
+                                ),
+                                child: Text(
+                                  fmtLabel,
+                                  style: const TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: PaykColors.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        formatMoney(row.amount),
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                          color: PaykColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: PaykColors.textMuted,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(
                         child: Text(
-                          store,
+                          [
+                            if (row.number.isNotEmpty) '№ ${row.number}',
+                            '${formatShortDate(row.ts)} ${formatTime(row.ts)}',
+                          ].join(' · '),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontFamily: 'Inter',
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: PaykColors.textPrimary,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w500,
+                            color: PaykColors.textSecondary,
                           ),
                         ),
                       ),
-                      if (fmtLabel != null) ...[
-                        const SizedBox(width: 6),
+                      if (returned)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: PaykColors.activePill,
-                            borderRadius: BorderRadius.circular(6),
+                            color: PaykColors.expenseSoft,
+                            borderRadius: BorderRadius.circular(7),
                           ),
                           child: Text(
-                            fmtLabel,
+                            tr(
+                              locale,
+                              row.isReturned
+                                  ? 'receipts.row.returned'
+                                  : 'receipts.row.partial',
+                            ),
                             style: const TextStyle(
                               fontFamily: 'Inter',
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: PaykColors.primary,
+                              color: PaykColors.danger,
                             ),
                           ),
                         ),
-                      ],
                     ],
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  formatMoney(row.amount),
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: PaykColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    [
-                      if (row.number.isNotEmpty) '№ ${row.number}',
-                      '${formatShortDate(row.ts)} ${formatTime(row.ts)}',
-                    ].join(' · '),
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: PaykColors.textSecondary,
+                  if (row.earn > 0 ||
+                      row.burn > 0 ||
+                      row.round > 0 ||
+                      row.coupon > 0) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 5,
+                      children: [
+                        if (row.earn > 0)
+                          _RowChip(
+                            text: tr(locale, 'receipts.row.earn', {
+                              'amount': '+${formatMoney(row.earn)}',
+                            }),
+                            color: PaykColors.success,
+                            background: PaykColors.incomeSoft,
+                            icon: const CashbackPlus3dIcon(
+                              size: 14,
+                              fallbackColor: PaykColors.success,
+                            ),
+                          ),
+                        if (row.burn > 0)
+                          _RowChip(
+                            text: tr(locale, 'receipts.row.burn', {
+                              'amount': '−${formatMoney(row.burn)}',
+                            }),
+                            color: PaykColors.danger,
+                            background: PaykColors.expenseSoft,
+                            icon: const CashbackMinus3dIcon(
+                              size: 14,
+                              fallbackColor: PaykColors.bad,
+                            ),
+                          ),
+                        if (row.round > 0)
+                          _RowChip(
+                            text: tr(locale, 'receipts.row.round', {
+                              'amount': '−${formatMoney(row.round)}',
+                            }),
+                            color: PaykColors.primary,
+                            background: PaykColors.activePill,
+                          ),
+                        if (row.coupon > 0)
+                          _RowChip(
+                            text: tr(locale, 'receipts.row.coupon', {
+                              'amount': '−${formatMoney(row.coupon)}',
+                            }),
+                            color: PaykColors.primary,
+                            background: PaykColors.activePill,
+                          ),
+                      ],
                     ),
-                  ),
-                ),
-                if (row.isReturned || row.isPartiallyReturned)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: PaykColors.danger.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      tr(
-                        locale,
-                        row.isReturned
-                            ? 'receipts.row.returned'
-                            : 'receipts.row.partial',
-                      ),
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: PaykColors.danger,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            if (row.earn > 0 || row.burn > 0 || row.round > 0 || row.coupon > 0) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: [
-                  if (row.earn > 0)
-                    _RowChip(
-                      text: tr(locale, 'receipts.row.earn', {
-                        'amount': '+${formatMoney(row.earn)}',
-                      }),
-                      color: PaykColors.success,
-                    ),
-                  if (row.burn > 0)
-                    _RowChip(
-                      text: tr(locale, 'receipts.row.burn', {
-                        'amount': '−${formatMoney(row.burn)}',
-                      }),
-                      color: PaykColors.textSecondary,
-                    ),
-                  if (row.round > 0)
-                    _RowChip(
-                      text: tr(locale, 'receipts.row.round', {
-                        'amount': '−${formatMoney(row.round)}',
-                      }),
-                      color: PaykColors.primary,
-                    ),
-                  if (row.coupon > 0)
-                    _RowChip(
-                      text: tr(locale, 'receipts.row.coupon', {
-                        'amount': '−${formatMoney(row.coupon)}',
-                      }),
-                      color: PaykColors.primary,
-                    ),
+                  ],
                 ],
               ),
-            ],
+            ),
           ],
         ),
       ),
@@ -1200,27 +1297,48 @@ class _ReceiptRowCard extends StatelessWidget {
 }
 
 class _RowChip extends StatelessWidget {
-  const _RowChip({required this.text, required this.color});
+  const _RowChip({
+    required this.text,
+    required this.color,
+    required this.background,
+    this.icon,
+  });
 
   final String text;
   final Color color;
+  final Color background;
+  final Widget? icon;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(6),
+        color: background,
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: color,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            icon!,
+            const SizedBox(width: 4),
+          ],
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Inter',
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                fontFeatures: const [FontFeature.tabularFigures()],
+                color: color,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

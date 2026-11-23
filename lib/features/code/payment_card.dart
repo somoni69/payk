@@ -699,14 +699,9 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
                         ? tr(locale, 'pay.expired')
                         : tr(locale, 'pay.expiresIn', {'time': _clock(left)}),
                   if (check.balance != null)
-                    (check.wallet == 'SM' || check.wallet == 'CL')
-                        ? tr(locale, 'pay.balanceWallet', {
-                            'store': tr(locale, 'wallet.${check.wallet}'),
-                            'amount': formatMoney(check.balance!),
-                          })
-                        : tr(locale, 'pay.balance', {
-                            'amount': formatMoney(check.balance!),
-                          }),
+                    tr(locale, 'pay.balance', {
+                      'amount': formatMoney(check.balance!),
+                    }),
                 ].join(' · '),
                 style: const TextStyle(
                   color: PaykColors.muted,

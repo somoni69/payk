@@ -8,6 +8,7 @@ import '../../core/payment_choice.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
+import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
 import '../../data/models/models.dart';
@@ -192,288 +193,404 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final historyAsync = ref.watch(historyProvider);
     final canPop = Navigator.of(context).canPop();
 
-    return Scaffold(
-      backgroundColor: PaykColors.canvas,
-      appBar: AppBar(
-        backgroundColor: PaykColors.canvas,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        toolbarHeight: 68,
-        titleSpacing: canPop ? 4 : 16,
-        leading: canPop
-            ? PaykPressable(
-                scaleDown: PaykMotion.scaleIcon,
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.arrow_back_ios_new_rounded,
-                    color: PaykColors.textPrimary,
-                    size: 20,
-                  ),
-                  onPressed: () {
-                    HapticFeedback.lightImpact();
-                    Navigator.of(context).maybePop();
-                  },
-                ),
-              )
-            : null,
-        title: _tab == HistoryTab.ops
-            ? _SearchField(
-                controller: _searchController,
-                hint: tr(locale, 'history.search'),
-                showClear: _searchQuery.isNotEmpty,
-                onClear: _clearSearch,
-                onSubmit: _searchOnServer,
-              )
-            : Text(
-                tr(locale, 'history.tab.bills'),
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: PaykColors.textPrimary,
-                ),
-              ),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
       ),
-      body: SafeArea(
-        top: false,
-        child: Column(
+      child: Scaffold(
+        backgroundColor: PaykColors.canvas,
+        body: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: _HistoryTabBar(
-                tab: _tab,
-                opsLabel: tr(locale, 'history.tab.ops'),
-                billsLabel: tr(locale, 'history.tab.bills'),
-                onChanged: (next) {
-                  if (_tab == next) return;
-                  HapticFeedback.selectionClick();
-                  setState(() => _tab = next);
-                },
-              ),
+            _HistoryHeader(
+              tab: _tab,
+              canPop: canPop,
+              locale: locale,
+              searchController: _searchController,
+              showClear: _searchQuery.isNotEmpty,
+              onClear: _clearSearch,
+              onSubmit: _searchOnServer,
+              onTabChanged: (next) {
+                if (_tab == next) return;
+                HapticFeedback.selectionClick();
+                setState(() => _tab = next);
+              },
             ),
             Expanded(
-              child: AnimatedSwitcher(
-                duration: PaykMotion.duration(context, PaykMotion.normal),
-                switchInCurve: PaykMotion.easeOut,
-                switchOutCurve: PaykMotion.easeOut,
-                transitionBuilder: (child, animation) {
-                  final offset = Tween<Offset>(
-                    begin: const Offset(0, 0.015),
-                    end: Offset.zero,
-                  ).animate(animation);
-                  return FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(position: offset, child: child),
-                  );
+              child: SafeArea(
+                top: false,
+                bottom: false,
+                child: AnimatedSwitcher(
+                  duration: PaykMotion.duration(context, PaykMotion.normal),
+                  switchInCurve: PaykMotion.easeOut,
+                  switchOutCurve: PaykMotion.easeOut,
+                  transitionBuilder: (child, animation) {
+                    final offset = Tween<Offset>(
+                      begin: const Offset(0, 0.015),
+                      end: Offset.zero,
+                    ).animate(animation);
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(position: offset, child: child),
+                    );
+                  },
+                  child: _tab == HistoryTab.bills
+                      ? const KeyedSubtree(
+                          key: ValueKey('tab_bills'),
+                          child: ReceiptsTab(),
+                        )
+                      : KeyedSubtree(
+                          key: const ValueKey('tab_ops'),
+                          child: AsyncView(
+                            value: historyAsync,
+                            onRetry: () => ref.invalidate(historyProvider),
+                            loading: const HistorySkeleton(),
+                            data: (allEntries) {
+              final loaded = [...allEntries, ..._extra];
+              final filteredEntries = _filterEntries(loaded);
+              final showMore = !_moreDone && allEntries.length >= 50;
+              final isFiltered =
+                  _selectedCategory != HistoryCategory.all ||
+                  _searchQuery.isNotEmpty;
+
+              return RefreshIndicator(
+                color: PaykColors.violet,
+                backgroundColor: Colors.white,
+                onRefresh: () async {
+                  setState(() {
+                    _extra.clear();
+                    _moreDone = false;
+                  });
+                  ref.invalidate(historyProvider);
+                  try {
+                    await ref.read(historyProvider.future);
+                  } catch (_) {}
                 },
-                child: _tab == HistoryTab.bills
-                    ? const KeyedSubtree(
-                        key: ValueKey('tab_bills'),
-                        child: ReceiptsTab(),
-                      )
-                    : KeyedSubtree(
-                        key: const ValueKey('tab_ops'),
-                        child: AsyncView(
-                          value: historyAsync,
-                          onRetry: () => ref.invalidate(historyProvider),
-                          loading: const HistorySkeleton(),
-                          data: (allEntries) {
-            final loaded = [...allEntries, ..._extra];
-            final filteredEntries = _filterEntries(loaded);
-            final showMore = !_moreDone && allEntries.length >= 50;
-            final isFiltered =
-                _selectedCategory != HistoryCategory.all ||
-                _searchQuery.isNotEmpty;
-
-            return RefreshIndicator(
-              color: PaykColors.violet,
-              backgroundColor: Colors.white,
-              onRefresh: () async {
-                setState(() {
-                  _extra.clear();
-                  _moreDone = false;
-                });
-                ref.invalidate(historyProvider);
-                try {
-                  await ref.read(historyProvider.future);
-                } catch (_) {}
-              },
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 104),
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                children: [
-                  // Секция категорий (Категорияҳо / Категории)
-                  Text(
-                    tr(locale, 'history.categories'),
-                    style: const TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: PaykColors.textPrimary,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 104),
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  children: [
+                    // Секция категорий (Категорияҳо / Категории)
+                    Text(
+                      tr(locale, 'history.categories'),
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: PaykColors.textPrimary,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
+                    const SizedBox(height: 12),
 
-                  // Сетка из 6 интерактивных 3D-плиток (3x2)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _CategoryTile(
-                          category: HistoryCategory.all,
-                          isSelected: _selectedCategory == HistoryCategory.all,
-                          title: tr(locale, 'history.cat.all'),
-                          onTap: () => _pickCategory(HistoryCategory.all),
+                    // Сетка из 6 интерактивных 3D-плиток (3x2)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _CategoryTile(
+                            category: HistoryCategory.all,
+                            isSelected: _selectedCategory == HistoryCategory.all,
+                            title: tr(locale, 'history.cat.all'),
+                            onTap: () => _pickCategory(HistoryCategory.all),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _CategoryTile(
-                          category: HistoryCategory.purchases,
-                          isSelected:
-                              _selectedCategory == HistoryCategory.purchases,
-                          title: tr(locale, 'history.cat.purchases'),
-                          onTap: () => _pickCategory(HistoryCategory.purchases),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _CategoryTile(
+                            category: HistoryCategory.purchases,
+                            isSelected:
+                                _selectedCategory == HistoryCategory.purchases,
+                            title: tr(locale, 'history.cat.purchases'),
+                            onTap: () => _pickCategory(HistoryCategory.purchases),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _CategoryTile(
-                          category: HistoryCategory.accrual,
-                          isSelected:
-                              _selectedCategory == HistoryCategory.accrual,
-                          title: tr(locale, 'history.cat.accrual'),
-                          onTap: () => _pickCategory(HistoryCategory.accrual),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _CategoryTile(
+                            category: HistoryCategory.accrual,
+                            isSelected:
+                                _selectedCategory == HistoryCategory.accrual,
+                            title: tr(locale, 'history.cat.accrual'),
+                            onTap: () => _pickCategory(HistoryCategory.accrual),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _CategoryTile(
-                          category: HistoryCategory.burn,
-                          isSelected: _selectedCategory == HistoryCategory.burn,
-                          title: tr(locale, 'history.cat.burn'),
-                          onTap: () => _pickCategory(HistoryCategory.burn),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _CategoryTile(
+                            category: HistoryCategory.burn,
+                            isSelected: _selectedCategory == HistoryCategory.burn,
+                            title: tr(locale, 'history.cat.burn'),
+                            onTap: () => _pickCategory(HistoryCategory.burn),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _CategoryTile(
-                          category: HistoryCategory.returns,
-                          isSelected:
-                              _selectedCategory == HistoryCategory.returns,
-                          title: tr(locale, 'history.cat.returns'),
-                          onTap: () => _pickCategory(HistoryCategory.returns),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _CategoryTile(
+                            category: HistoryCategory.returns,
+                            isSelected:
+                                _selectedCategory == HistoryCategory.returns,
+                            title: tr(locale, 'history.cat.returns'),
+                            onTap: () => _pickCategory(HistoryCategory.returns),
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _CategoryTile(
-                          category: HistoryCategory.friends,
-                          isSelected:
-                              _selectedCategory == HistoryCategory.friends,
-                          title: tr(locale, 'history.cat.friends'),
-                          onTap: () => _pickCategory(HistoryCategory.friends),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _CategoryTile(
+                            category: HistoryCategory.friends,
+                            isSelected:
+                                _selectedCategory == HistoryCategory.friends,
+                            title: tr(locale, 'history.cat.friends'),
+                            onTap: () => _pickCategory(HistoryCategory.friends),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
 
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                  // 3. Список операций или карточка пустого состояния
-                  AnimatedSwitcher(
-                    duration: PaykMotion.duration(context, PaykMotion.normal),
-                    switchInCurve: PaykMotion.easeOut,
-                    switchOutCurve: PaykMotion.easeOut,
-                    layoutBuilder: (currentChild, previousChildren) {
-                      return Stack(
-                        alignment: Alignment.topCenter,
-                        children: <Widget>[
-                          ...previousChildren,
-                          ?currentChild,
-                        ],
-                      );
-                    },
-                    child: filteredEntries.isEmpty
-                        ? KeyedSubtree(
-                            key: ValueKey(
-                              'empty_${_selectedCategory.key}_$isFiltered',
-                            ),
-                            child: _EmptyHistoryCard(
-                              isFiltered: isFiltered,
-                              locale: locale,
-                            ),
-                          )
-                        : Container(
-                            key: ValueKey('list_${_selectedCategory.key}'),
-                            decoration: BoxDecoration(
-                              color: PaykColors.sheet,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: PaykColors.border,
-                                width: 1.0,
+                    // 3. Список операций или карточка пустого состояния
+                    AnimatedSwitcher(
+                      duration: PaykMotion.duration(context, PaykMotion.normal),
+                      switchInCurve: PaykMotion.easeOut,
+                      switchOutCurve: PaykMotion.easeOut,
+                      layoutBuilder: (currentChild, previousChildren) {
+                        return Stack(
+                          alignment: Alignment.topCenter,
+                          children: <Widget>[
+                            ...previousChildren,
+                            ?currentChild,
+                          ],
+                        );
+                      },
+                      child: filteredEntries.isEmpty
+                          ? KeyedSubtree(
+                              key: ValueKey(
+                                'empty_${_selectedCategory.key}_$isFiltered',
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.02),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
+                              child: _EmptyHistoryCard(
+                                isFiltered: isFiltered,
+                                locale: locale,
+                              ),
+                            )
+                          : Container(
+                              key: ValueKey('list_${_selectedCategory.key}'),
+                              decoration: BoxDecoration(
+                                color: PaykColors.sheet,
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: PaykColors.border,
+                                  width: 1.0,
                                 ),
-                              ],
-                            ),
-                            clipBehavior: Clip.antiAlias,
-                            child: Column(
-                              children: [
-                                for (
-                                  var i = 0;
-                                  i < filteredEntries.length;
-                                  i++
-                                ) ...[
-                                  if (i > 0)
-                                    const Divider(
-                                      height: 1,
-                                      thickness: 1,
-                                      color: PaykColors.border,
-                                    ),
-                                  _HistoryRow(
-                                    entry: filteredEntries[i],
-                                    locale: locale,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.03),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 3),
                                   ),
                                 ],
-                              ],
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              child: Column(
+                                children: [
+                                  for (
+                                    var i = 0;
+                                    i < filteredEntries.length;
+                                    i++
+                                  ) ...[
+                                    if (i > 0)
+                                      const Divider(
+                                        height: 1,
+                                        thickness: 1,
+                                        indent: 70,
+                                        endIndent: 14,
+                                        color: PaykColors.border,
+                                      ),
+                                    _HistoryRow(
+                                      entry: filteredEntries[i],
+                                      locale: locale,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                    ),
+                    if (showMore)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: TextButton(
+                          onPressed: _loadingMore
+                              ? null
+                              : () => _loadMore(loaded),
+                          child: Text(
+                            tr(
+                              locale,
+                              _loadingMore ? 'history.loading' : 'history.more',
                             ),
                           ),
-                  ),
-                  if (showMore)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: TextButton(
-                        onPressed: _loadingMore
-                            ? null
-                            : () => _loadMore(loaded),
-                        child: Text(
-                          tr(
-                            locale,
-                            _loadingMore ? 'history.loading' : 'history.more',
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
                           ),
                         ),
-                      ),
-                    ),
-                ],
-              ),
-            );
-          },
-                        ),
-                      ),
+                ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Градиентная шапка раздела истории со скруглением PaykRadius.header,
+/// совпадающая с шапками Главной, «PAYK для бизнеса» и «Приглашайте друзей».
+class _HistoryHeader extends StatelessWidget {
+  const _HistoryHeader({
+    required this.tab,
+    required this.canPop,
+    required this.locale,
+    required this.searchController,
+    required this.showClear,
+    required this.onClear,
+    required this.onSubmit,
+    required this.onTabChanged,
+  });
+
+  final HistoryTab tab;
+  final bool canPop;
+  final String locale;
+  final TextEditingController searchController;
+  final bool showClear;
+  final VoidCallback onClear;
+  final VoidCallback onSubmit;
+  final ValueChanged<HistoryTab> onTabChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final dur = PaykMotion.duration(context, PaykMotion.fast);
+
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: PaykColors.headerGradient,
+        borderRadius: BorderRadius.vertical(
+          bottom: Radius.circular(PaykRadius.header),
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                height: 46,
+                child: AnimatedSwitcher(
+                  duration: dur,
+                  switchInCurve: PaykMotion.easeOut,
+                  switchOutCurve: PaykMotion.easeOut,
+                  child: tab == HistoryTab.ops
+                      ? Row(
+                          key: const ValueKey('header_ops'),
+                          children: [
+                            if (canPop) ...[
+                              _HeaderBackButton(
+                                onTap: () => Navigator.of(context).maybePop(),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                            Expanded(
+                              child: _SearchField(
+                                controller: searchController,
+                                hint: tr(locale, 'history.search'),
+                                showClear: showClear,
+                                onClear: onClear,
+                                onSubmit: onSubmit,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
+                          key: const ValueKey('header_bills'),
+                          children: [
+                            if (canPop) ...[
+                              _HeaderBackButton(
+                                onTap: () => Navigator.of(context).maybePop(),
+                              ),
+                              const SizedBox(width: 12),
+                            ],
+                            Expanded(
+                              child: Text(
+                                tr(locale, 'profile.purchases'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.3,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              _HistoryTabBar(
+                tab: tab,
+                opsLabel: tr(locale, 'history.tab.ops'),
+                billsLabel: tr(locale, 'history.tab.bills'),
+                onChanged: onTabChanged,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HeaderBackButton extends StatelessWidget {
+  const _HeaderBackButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return PaykPressable(
+      scaleDown: PaykMotion.scaleIcon,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.lightImpact();
+            onTap();
+          },
+          borderRadius: BorderRadius.circular(14),
+          child: Ink(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: PaykColors.headerButtonBg,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
+          ),
         ),
       ),
     );
@@ -502,9 +619,9 @@ class _HistoryTabBar extends StatelessWidget {
       height: 44,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: PaykColors.surfaceNested,
+        color: Colors.white.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: PaykColors.border),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
       ),
       child: Stack(
         children: [
@@ -517,15 +634,12 @@ class _HistoryTabBar extends StatelessWidget {
               heightFactor: 1,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: PaykColors.sheet,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: PaykColors.primary.withValues(alpha: 0.14),
-                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 6,
+                      color: Colors.black.withValues(alpha: 0.10),
+                      blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ],
@@ -584,7 +698,9 @@ class _SegmentTab extends StatelessWidget {
               fontFamily: 'Inter',
               fontSize: 13.5,
               fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-              color: selected ? PaykColors.primary : PaykColors.textSecondary,
+              color: selected
+                  ? PaykColors.primary
+                  : Colors.white.withValues(alpha: 0.90),
             ),
             child: Text(label, textAlign: TextAlign.center),
           ),
@@ -611,56 +727,70 @@ class _SearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: TextField(
-        controller: controller,
-        textInputAction: TextInputAction.search,
-        onSubmitted: (_) => onSubmit(),
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w500,
-          color: PaykColors.textPrimary,
-        ),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: SizedBox(
+        height: 46,
+        child: TextField(
+          controller: controller,
+          textInputAction: TextInputAction.search,
+          onSubmitted: (_) => onSubmit(),
+          style: const TextStyle(
+            fontFamily: 'Inter',
             fontSize: 15,
-            fontWeight: FontWeight.w400,
-            color: PaykColors.textSecondary,
+            fontWeight: FontWeight.w500,
+            color: PaykColors.textPrimary,
           ),
-          prefixIcon: const Icon(
-            Icons.search_rounded,
-            color: PaykColors.textSecondary,
-            size: 20,
-          ),
-          suffixIcon: showClear
-              ? IconButton(
-                  icon: const Icon(
-                    Icons.close_rounded,
-                    color: PaykColors.textSecondary,
-                    size: 18,
-                  ),
-                  onPressed: onClear,
-                )
-              : null,
-          filled: true,
-          fillColor: PaykColors.surfaceNested,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 16,
-            vertical: 0,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 14.5,
+              fontWeight: FontWeight.w400,
+              color: PaykColors.textSecondary,
+            ),
+            prefixIcon: const Icon(
+              Icons.search_rounded,
+              color: PaykColors.primary,
+              size: 20,
+            ),
+            suffixIcon: showClear
+                ? IconButton(
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: PaykColors.textSecondary,
+                      size: 18,
+                    ),
+                    onPressed: onClear,
+                  )
+                : null,
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 0,
+            ),
           ),
         ),
       ),
@@ -835,91 +965,178 @@ class _HistoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final positive = entry.amount >= 0;
+    final accentColor = positive ? PaykColors.success : PaykColors.danger;
+    final softBg = positive ? PaykColors.incomeSoft : PaykColors.expenseSoft;
+    final formatLabel = entry.format == 'SM'
+        ? tr(locale, 'format.SM')
+        : entry.format == 'CL'
+            ? tr(locale, 'format.CL')
+            : null;
+    final billMeta = [
+      if (entry.billExtId != null) '№ ${entry.billExtId}',
+      if (entry.billAmount != null)
+        tr(locale, 'history.billAmount', {
+          'amount': formatMoney(entry.billAmount!),
+        }),
+    ].join(' · ');
+    final hasMeta = formatLabel != null || billMeta.isNotEmpty;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 42,
-            height: 42,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: positive ? PaykColors.incomeSoft : PaykColors.expenseSoft,
+              color: softBg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: accentColor.withValues(alpha: 0.14),
+              ),
             ),
             alignment: Alignment.center,
-            child: Icon(
-              positive
-                  ? Icons.arrow_downward_rounded
-                  : Icons.arrow_upward_rounded,
-              size: 20,
-              color: positive ? PaykColors.success : PaykColors.bad,
-            ),
+            child: positive
+                ? const CashbackPlus3dIcon(
+                    size: 28,
+                    fallbackColor: PaykColors.success,
+                  )
+                : const CashbackMinus3dIcon(
+                    size: 28,
+                    fallbackColor: PaykColors.bad,
+                  ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  tr(locale, 'history.type.${_known(entry.type)}'),
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                    color: PaykColors.textPrimary,
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          _historyEntryTitle(locale, entry),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Inter',
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14.5,
+                            height: 1.25,
+                            letterSpacing: -0.15,
+                            color: PaykColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: softBg,
+                        borderRadius: BorderRadius.circular(9),
+                      ),
+                      child: Text(
+                        formatMoney(entry.amount, signed: true),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13.5,
+                          letterSpacing: -0.2,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                          color: accentColor,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  [
-                    formatDate(entry.createdAt),
-                    if (entry.billExtId != null) '№ ${entry.billExtId}',
-                    if (entry.billAmount != null)
-                      tr(locale, 'history.billAmount', {
-                        'amount': formatMoney(entry.billAmount!),
+                const SizedBox(height: 6),
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 2,
+                  children: [
+                    Text(
+                      formatDate(entry.createdAt),
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        color: PaykColors.textSecondary,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      tr(locale, 'history.balanceAfter', {
+                        'amount': formatMoney(entry.balanceAfter),
                       }),
-                    if (entry.format == 'SM') tr(locale, 'format.SM'),
-                    if (entry.format == 'CL') tr(locale, 'format.CL'),
-                  ].join(' · '),
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    color: PaykColors.textSecondary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        color: PaykColors.textMuted,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  (entry.format == 'SM' || entry.format == 'CL')
-                      ? tr(locale, 'history.balanceAfterWallet', {
-                          'store': tr(locale, 'wallet.${entry.format}'),
-                          'amount': formatMoney(entry.balanceAfter),
-                        })
-                      : tr(locale, 'history.balanceAfter', {
-                          'amount': formatMoney(entry.balanceAfter),
-                        }),
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    color: PaykColors.textMuted,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    fontFeatures: [FontFeature.tabularFigures()],
+                if (hasMeta) ...[
+                  const SizedBox(height: 7),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      if (formatLabel != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: PaykColors.activePill,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: Text(
+                            formatLabel,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: PaykColors.primary,
+                            ),
+                          ),
+                        ),
+                      if (billMeta.isNotEmpty)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 2.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: PaykColors.surfaceNested,
+                            borderRadius: BorderRadius.circular(7),
+                          ),
+                          child: Text(
+                            billMeta,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: PaykColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                ),
+                ],
               ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            formatMoney(entry.amount, signed: true),
-            style: TextStyle(
-              fontFamily: 'Inter',
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              letterSpacing: -0.2,
-              fontFeatures: const [FontFeature.tabularFigures()],
-              color: positive ? PaykColors.success : PaykColors.textPrimary,
             ),
           ),
         ],
@@ -928,9 +1145,22 @@ class _HistoryRow extends StatelessWidget {
   }
 }
 
+String _historyEntryTitle(String locale, HistoryEntry entry) {
+  final known = _known(entry.type);
+  if (known != 'other') {
+    return tr(locale, 'history.type.$known');
+  }
+  return tr(
+    locale,
+    entry.amount >= 0 ? 'history.type.otherIncome' : 'history.type.otherExpense',
+  );
+}
+
 String _known(String type) {
   const known = {
     'accrual',
+    'bonus',
+    'welcome',
     'burn',
     'round',
     'referral',

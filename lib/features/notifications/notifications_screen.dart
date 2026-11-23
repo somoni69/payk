@@ -449,6 +449,8 @@ class _NotificationCard extends StatelessWidget {
     final hasOffersLink =
         !hasReceiptLink &&
         (item.kind == 'size_flash' || item.kind == 'size_new');
+    final isGiftKind =
+        item.kind == 'welcome_bonus' || item.kind == 'dob_bonus';
 
     final card = AnimatedContainer(
       duration: PaykMotion.duration(context, PaykMotion.normal),
@@ -486,16 +488,14 @@ class _NotificationCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(11),
                 ),
                 alignment: Alignment.center,
-                child: hasOffersLink
-                    ? Icon(
-                        Icons.local_offer_outlined,
-                        color: isUnread ? PaykColors.primary : PaykColors.textSecondary,
-                        size: 20,
-                      )
-                    : Opacity(
-                        opacity: isUnread ? 1.0 : 0.72,
-                        child: const Bell3dIcon(size: 24),
-                      ),
+                child: Opacity(
+                  opacity: isUnread ? 1.0 : 0.72,
+                  child: hasOffersLink
+                      ? const SizeOffers3dIcon(size: 24)
+                      : isGiftKind
+                      ? const Gift3dIcon(size: 24)
+                      : const Bell3dIcon(size: 24),
+                ),
               ),
               const SizedBox(width: 10),
               Expanded(

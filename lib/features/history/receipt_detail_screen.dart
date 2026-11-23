@@ -71,8 +71,10 @@ class _ReceiptDetailScreenState extends ConsumerState<ReceiptDetailScreen> {
   Future<void> _openClaimSheet(ReceiptView receipt, String locale) async {
     final submitted = await showModalBottomSheet<bool>(
       context: context,
+      useRootNavigator: true,
       isScrollControlled: true,
       backgroundColor: PaykColors.sheet,
+      sheetAnimationStyle: PaykMotion.sheetStyle(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -211,11 +213,10 @@ class _ReceiptDetailBodyState extends State<_ReceiptDetailBody> {
       if (!mounted) return;
       final returnsContext = _returnsKey.currentContext;
       if (returnsContext != null) {
-        final reduce = MediaQuery.disableAnimationsOf(context);
         Scrollable.ensureVisible(
           returnsContext,
           alignment: 0.35,
-          duration: reduce ? Duration.zero : PaykMotion.page,
+          duration: PaykMotion.duration(context, PaykMotion.page),
           curve: PaykMotion.easeOut,
         );
       }

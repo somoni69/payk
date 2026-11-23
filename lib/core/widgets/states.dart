@@ -52,6 +52,7 @@ class AsyncView<T> extends StatelessWidget {
       duration: PaykMotion.duration(context, PaykMotion.fast),
       switchInCurve: PaykMotion.easeOut,
       switchOutCurve: PaykMotion.easeOut,
+      layoutBuilder: PaykMotion.topAlignedLayoutBuilder,
       child: child,
     );
   }

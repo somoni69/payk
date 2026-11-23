@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:payk/core/liquid_glass/liquid_glass_bottom_bar.dart';
 import 'package:payk/core/motion/payk_motion.dart';
 import 'package:payk/core/theme/payk_colors.dart';
+import 'package:payk/core/widgets/states.dart';
 import 'package:payk/data/models/models.dart';
 import 'package:payk/data/providers.dart';
 import 'package:payk/features/friends/friends_screen.dart';
@@ -73,6 +75,38 @@ void main() {
 
       expect(reduced, isFalse);
       expect(resolved, PaykMotion.page);
+    });
+
+    testWidgets('sheetStyle returns AnimationStyle.noAnimation under reduced motion', (tester) async {
+      late AnimationStyle reducedStyle;
+      late AnimationStyle normalStyle;
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: Builder(
+            builder: (context) {
+              reducedStyle = PaykMotion.sheetStyle(context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(disableAnimations: false),
+          child: Builder(
+            builder: (context) {
+              normalStyle = PaykMotion.sheetStyle(context);
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+
+      expect(reducedStyle, equals(AnimationStyle.noAnimation));
+      expect(normalStyle, equals(PaykMotion.sheetAnimationStyle));
     });
   });
 
@@ -150,6 +184,151 @@ void main() {
 
       expect(transformWidget().transform.storage[0], closeTo(1.0, 0.0001));
       await gesture.up();
+    });
+
+    testWidgets('releases pressed scale when disabled mid-press', (tester) async {
+      var enabled = true;
+      late StateSetter rebuild;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  rebuild = setState;
+                  return PaykPressable(
+                    enabled: enabled,
+                    scaleDown: 0.95,
+                    child: const SizedBox(width: 120, height: 60, child: Text('Submit')),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      Transform transformWidget() => tester.widget<Transform>(
+            find.descendant(
+              of: find.byType(PaykPressable),
+              matching: find.byType(Transform),
+            ),
+          );
+
+      final gesture = await tester.startGesture(tester.getCenter(find.text('Submit')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 90));
+      expect(transformWidget().transform.storage[0], closeTo(0.95, 0.005));
+
+      rebuild(() => enabled = false);
+      await tester.pumpAndSettle();
+
+      expect(transformWidget().transform.storage[0], closeTo(1.0, 0.0001));
+      await gesture.up();
+    });
+  });
+
+  group('Compositor Dialogs, AsyncView Alignment & LiquidGlassBottomBar FPS', () {
+    testWidgets('PaykMotion.showDialog uses compositor Fade+Scale >= entranceScale and RepaintBoundary', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => PaykMotion.showDialog<void>(
+                    context: context,
+                    builder: (_) => const AlertDialog(
+                      title: Text('Confirm Action'),
+                    ),
+                  ),
+                  child: const Text('Open Dialog'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Dialog'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 40));
+
+      final dialogFinder = find.byType(AlertDialog);
+      expect(dialogFinder, findsOneWidget);
+
+      final scaleFinder = find.ancestor(
+        of: dialogFinder,
+        matching: find.byType(ScaleTransition),
+      );
+      expect(scaleFinder, findsOneWidget);
+      final scale = tester.widget<ScaleTransition>(scaleFinder).scale.value;
+      expect(scale, greaterThanOrEqualTo(PaykMotion.entranceScale));
+
+      expect(
+        find.ancestor(of: dialogFinder, matching: find.byType(RepaintBoundary)),
+        findsWidgets,
+      );
+
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('AsyncView pins crossfade to Alignment.topCenter to avoid vertical jump', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: AsyncView<String>(
+              value: AsyncValue.data('Loaded'),
+              onRetry: _noop,
+              data: _textWidget,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final switcher = tester.widget<AnimatedSwitcher>(find.byType(AnimatedSwitcher));
+      expect(switcher.layoutBuilder, equals(PaykMotion.topAlignedLayoutBuilder));
+    });
+
+    testWidgets('LiquidGlassBottomBar keeps lift alive across tap and rapid interrupts', (tester) async {
+      var activeIndex = 0;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) {
+              return Scaffold(
+                bottomNavigationBar: LiquidGlassBottomBar(
+                  currentIndex: activeIndex,
+                  onTap: (idx) => setState(() => activeIndex = idx),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap tab 3 ("Друзья") and verify lens lifts without getting cancelled by didUpdateWidget
+      await tester.tap(find.bySemanticsLabel('Друзья'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 80));
+
+      final midFlightRect = tester.getRect(find.byKey(LiquidGlassBottomBar.lensKey));
+      expect(midFlightRect.height, greaterThan(56.0));
+
+      // Rapidly interrupt with tap on tab 0 ("Главная") before first spring finishes
+      await tester.tap(find.bySemanticsLabel('Главная'));
+      await tester.pump(const Duration(milliseconds: 40));
+      await tester.pumpAndSettle();
+
+      expect(activeIndex, equals(0));
+      final settledRect = tester.getRect(find.byKey(LiquidGlassBottomBar.lensKey));
+      final homeCenter = tester.getCenter(find.bySemanticsLabel('Главная'));
+      expect((settledRect.center.dx - homeCenter.dx).abs(), lessThan(1.5));
+      expect(settledRect.height, closeTo(54.0, 0.5));
     });
   });
 
@@ -437,3 +616,7 @@ void main() {
     });
   });
 }
+
+void _noop() {}
+
+Widget _textWidget(String data) => Text(data);

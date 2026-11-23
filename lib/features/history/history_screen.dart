@@ -225,6 +225,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   duration: PaykMotion.duration(context, PaykMotion.normal),
                   switchInCurve: PaykMotion.easeOut,
                   switchOutCurve: PaykMotion.easeOut,
+                  layoutBuilder: PaykMotion.topAlignedLayoutBuilder,
                   transitionBuilder: (child, animation) {
                     final offset = Tween<Offset>(
                       begin: const Offset(0, 0.015),
@@ -232,7 +233,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     ).animate(animation);
                     return FadeTransition(
                       opacity: animation,
-                      child: SlideTransition(position: offset, child: child),
+                      child: SlideTransition(
+                        position: offset,
+                        child: RepaintBoundary(child: child),
+                      ),
                     );
                   },
                   child: _tab == HistoryTab.bills
@@ -359,15 +363,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       duration: PaykMotion.duration(context, PaykMotion.normal),
                       switchInCurve: PaykMotion.easeOut,
                       switchOutCurve: PaykMotion.easeOut,
-                      layoutBuilder: (currentChild, previousChildren) {
-                        return Stack(
-                          alignment: Alignment.topCenter,
-                          children: <Widget>[
-                            ...previousChildren,
-                            ?currentChild,
-                          ],
-                        );
-                      },
+                      layoutBuilder: PaykMotion.topAlignedLayoutBuilder,
                       child: filteredEntries.isEmpty
                           ? KeyedSubtree(
                               key: ValueKey(
@@ -632,17 +628,19 @@ class _HistoryTabBar extends StatelessWidget {
             child: FractionallySizedBox(
               widthFactor: 0.5,
               heightFactor: 1,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.10),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+              child: RepaintBoundary(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.10),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -814,64 +812,66 @@ class _CategoryTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PaykPressable(
-      scaleDown: PaykMotion.scaleButton,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: AnimatedContainer(
-            duration: PaykMotion.duration(context, PaykMotion.fast),
-            curve: PaykMotion.easeOut,
-            height: 100,
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? PaykColors.activePill
-                  : PaykColors.surfaceNested,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: isSelected ? PaykColors.primary : Colors.transparent,
-                width: 2.0,
+    return RepaintBoundary(
+      child: PaykPressable(
+        scaleDown: PaykMotion.scaleButton,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(18),
+            child: AnimatedContainer(
+              duration: PaykMotion.duration(context, PaykMotion.fast),
+              curve: PaykMotion.easeOut,
+              height: 100,
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? PaykColors.activePill
+                    : PaykColors.surfaceNested,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: isSelected ? PaykColors.primary : Colors.transparent,
+                  width: 2.0,
+                ),
               ),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Stack(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 10, 8),
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 13.0,
-                      fontWeight: FontWeight.w700,
-                      color: isSelected
-                          ? PaykColors.primary
-                          : PaykColors.textPrimary,
-                      height: 1.25,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Positioned(
-                  right: -2,
-                  bottom: -2,
-                  child: AnimatedScale(
-                    scale: isSelected ? 1.07 : 1.0,
-                    duration: PaykMotion.duration(context, PaykMotion.fast),
-                    curve: PaykMotion.easeOut,
-                    child: Image.asset(
-                      'assets/3d/${category.image}.webp',
-                      width: 48,
-                      height: 48,
-                      fit: BoxFit.contain,
-                      filterQuality: FilterQuality.medium,
+              clipBehavior: Clip.antiAlias,
+              child: Stack(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 10, 8),
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13.0,
+                        fontWeight: FontWeight.w700,
+                        color: isSelected
+                            ? PaykColors.primary
+                            : PaykColors.textPrimary,
+                        height: 1.25,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                ),
-              ],
+                  Positioned(
+                    right: -2,
+                    bottom: -2,
+                    child: AnimatedScale(
+                      scale: isSelected ? 1.07 : 1.0,
+                      duration: PaykMotion.duration(context, PaykMotion.fast),
+                      curve: PaykMotion.easeOut,
+                      child: Image.asset(
+                        'assets/3d/${category.image}.webp',
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.medium,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

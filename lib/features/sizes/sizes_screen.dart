@@ -117,6 +117,9 @@ class _SizesScreenState extends ConsumerState<SizesScreen> {
           final dirty = _currentPatch().isNotEmpty;
           return ListView(
             padding: EdgeInsets.fromLTRB(20, 8, 20, 24 + MediaQuery.paddingOf(context).bottom),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
             children: [
               Text(
                 tr(locale, 'sizes.lead'),
@@ -174,14 +177,17 @@ class _SizesScreenState extends ConsumerState<SizesScreen> {
                 Text(_error!, style: const TextStyle(color: PaykColors.danger, fontWeight: FontWeight.w600)),
               ],
               const SizedBox(height: 20),
-              FilledButton(
-                onPressed: (_saving || !dirty) ? null : _save,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  backgroundColor: PaykColors.primary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              PaykPressable(
+                enabled: !_saving && dirty,
+                child: FilledButton(
+                  onPressed: (_saving || !dirty) ? null : _save,
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    backgroundColor: PaykColors.primary,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Text(_saving ? tr(locale, 'profile.saving') : tr(locale, 'sizes.save')),
                 ),
-                child: Text(_saving ? tr(locale, 'profile.saving') : tr(locale, 'sizes.save')),
               ),
             ],
           );
@@ -306,7 +312,9 @@ class _SizeChip extends StatelessWidget {
     return PaykPressable(
       scaleDown: PaykMotion.scaleIcon,
       onTap: onTap,
-      child: Container(
+      child: AnimatedContainer(
+        duration: PaykMotion.duration(context, PaykMotion.micro),
+        curve: PaykMotion.easeOut,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: selected ? PaykColors.primary : PaykColors.tile,

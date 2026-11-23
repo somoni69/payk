@@ -140,7 +140,9 @@ class _SizeOffersScreenState extends ConsumerState<SizeOffersScreen> {
     _openCodeOfferId = offer.id;
     await showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       backgroundColor: PaykColors.sheet,
+      sheetAnimationStyle: PaykMotion.sheetStyle(context),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -496,15 +498,20 @@ class _OfferCardState extends State<_OfferCard> {
                   ),
                   if (offer.description.isNotEmpty) ...[
                     const SizedBox(height: 6),
-                    Text(
-                      offer.description,
-                      maxLines: _expanded ? null : 4,
-                      overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14,
-                        height: 1.35,
-                        color: PaykColors.textSecondary,
+                    AnimatedSize(
+                      duration: PaykMotion.duration(context, PaykMotion.fast),
+                      curve: PaykMotion.easeOut,
+                      alignment: Alignment.topLeft,
+                      child: Text(
+                        offer.description,
+                        maxLines: _expanded ? null : 4,
+                        overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 14,
+                          height: 1.35,
+                          color: PaykColors.textSecondary,
+                        ),
                       ),
                     ),
                     if (longDesc) ...[
@@ -569,103 +576,116 @@ class _OfferCardState extends State<_OfferCard> {
                     ],
                   ],
                   const SizedBox(height: 12),
-                  switch (action) {
-                    OfferAction.issued => Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: PaykColors.success.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.check_circle_outline_rounded, size: 18, color: PaykColors.success),
-                            const SizedBox(width: 8),
-                            Text(
-                              tr(locale, 'offers.issued'),
-                              style: const TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: PaykColors.success,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    OfferAction.code => PaykPressable(
-                        scaleDown: PaykMotion.scaleButton,
-                        onTap: widget.onOpenCode,
-                        child: Container(
+                  AnimatedSwitcher(
+                    duration: PaykMotion.duration(context, PaykMotion.fast),
+                    switchInCurve: PaykMotion.easeOut,
+                    switchOutCurve: PaykMotion.easeOut,
+                    layoutBuilder: PaykMotion.topAlignedLayoutBuilder,
+                    child: switch (action) {
+                      OfferAction.issued => Container(
+                          key: const ValueKey('offer-action-issued'),
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
-                            color: PaykColors.activePill,
+                            color: PaykColors.success.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: PaykColors.primary.withValues(alpha: 0.25)),
                           ),
-                          child: Column(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
+                              const Icon(Icons.check_circle_outline_rounded, size: 18, color: PaykColors.success),
+                              const SizedBox(width: 8),
                               Text(
-                                formatPromoCode(offer.promoCode!),
+                                tr(locale, 'offers.issued'),
                                 style: const TextStyle(
                                   fontFamily: 'Inter',
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1.5,
-                                  color: PaykColors.primary,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                tr(locale, 'offers.showCashier'),
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: PaykColors.textSecondary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: PaykColors.success,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                    OfferAction.claim => FilledButton(
-                        onPressed: widget.busy ? null : widget.onClaim,
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size.fromHeight(46),
-                          backgroundColor: PaykColors.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: Text(
-                          widget.busy
-                              ? tr(locale, 'profile.saving')
-                              : tr(locale, 'offers.claim'),
-                        ),
-                      ),
-                    OfferAction.none => Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: PaykColors.tile,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          tr(
-                            locale,
-                            status == 'SOLD_OUT' ? 'offers.claimSoldOut' : 'offers.claimExpired',
+                      OfferAction.code => PaykPressable(
+                          key: ValueKey('offer-action-code-${offer.promoCode}'),
+                          scaleDown: PaykMotion.scaleButton,
+                          onTap: widget.onOpenCode,
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: PaykColors.activePill,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: PaykColors.primary.withValues(alpha: 0.25)),
+                            ),
+                            child: Column(
+                              children: [
+                                Text(
+                                  formatPromoCode(offer.promoCode!),
+                                  style: const TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 1.5,
+                                    color: PaykColors.primary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  tr(locale, 'offers.showCashier'),
+                                  style: const TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: PaykColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: PaykColors.textMuted,
+                        ),
+                      OfferAction.claim => PaykPressable(
+                          key: const ValueKey('offer-action-claim'),
+                          enabled: !widget.busy,
+                          child: FilledButton(
+                            onPressed: widget.busy ? null : widget.onClaim,
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size.fromHeight(46),
+                              backgroundColor: PaykColors.primary,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text(
+                              widget.busy
+                                  ? tr(locale, 'profile.saving')
+                                  : tr(locale, 'offers.claim'),
+                            ),
                           ),
                         ),
-                      ),
-                  },
+                      OfferAction.none => Container(
+                          key: ValueKey('offer-action-none-$status'),
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: PaykColors.tile,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            tr(
+                              locale,
+                              status == 'SOLD_OUT' ? 'offers.claimSoldOut' : 'offers.claimExpired',
+                            ),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: PaykColors.textMuted,
+                            ),
+                          ),
+                        ),
+                    },
+                  ),
                 ],
               ),
             ),

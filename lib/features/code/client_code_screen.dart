@@ -353,6 +353,7 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen>
               duration: PaykMotion.duration(context, PaykMotion.normal),
               switchInCurve: PaykMotion.easeOut,
               switchOutCurve: PaykMotion.easeOut,
+              layoutBuilder: PaykMotion.topAlignedLayoutBuilder,
               child: _paymentChild(locale),
             ),
           ],
@@ -470,11 +471,13 @@ class _CodeCard extends StatelessWidget {
                   opacity: isStale ? 0.35 : 1.0,
                   duration: fadeDuration,
                   curve: PaykMotion.easeOut,
-                  child: QrImageView(
-                    data: code.qr,
-                    size: 240,
-                    backgroundColor: Colors.white,
-                    padding: EdgeInsets.zero,
+                  child: RepaintBoundary(
+                    child: QrImageView(
+                      data: code.qr,
+                      size: 240,
+                      backgroundColor: Colors.white,
+                      padding: EdgeInsets.zero,
+                    ),
                   ),
                 ),
                 if (isStale)
@@ -587,39 +590,48 @@ class _CountdownRing extends StatelessWidget {
     final hasHours = compact && secondsLeft >= 3600;
     final label = _countdownLabel(secondsLeft, totalSeconds);
 
-    return SizedBox(
-      width: 54,
-      height: 54,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          SizedBox.expand(
-            child: CircularProgressIndicator(
-              value: progress,
-              backgroundColor: PaykColors.border,
-              color: PaykColors.primary,
-              strokeWidth: 3.5,
-              strokeCap: StrokeCap.round,
+    return RepaintBoundary(
+      child: SizedBox(
+        width: 54,
+        height: 54,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            SizedBox.expand(
+              child: TweenAnimationBuilder<double>(
+                tween: Tween<double>(end: progress),
+                duration: PaykMotion.duration(context, PaykMotion.normal),
+                curve: PaykMotion.easeOut,
+                builder: (context, animatedProgress, _) {
+                  return CircularProgressIndicator(
+                    value: animatedProgress,
+                    backgroundColor: PaykColors.border,
+                    color: PaykColors.primary,
+                    strokeWidth: 3.5,
+                    strokeCap: StrokeCap.round,
+                  );
+                },
+              ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: hasHours ? 9 : 8),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                pendingText ? '…' : label,
-                maxLines: 1,
-                style: TextStyle(
-                  fontSize: hasHours ? 10.5 : (compact ? 12.0 : 15.0),
-                  fontWeight: FontWeight.w700,
-                  color: PaykColors.textPrimary,
-                  fontFamily: 'Inter',
-                  fontFeatures: const [FontFeature.tabularFigures()],
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: hasHours ? 9 : 8),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  pendingText ? '…' : label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    fontSize: hasHours ? 10.5 : (compact ? 12.0 : 15.0),
+                    fontWeight: FontWeight.w700,
+                    color: PaykColors.textPrimary,
+                    fontFamily: 'Inter',
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

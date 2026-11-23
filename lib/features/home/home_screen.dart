@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
@@ -87,33 +88,36 @@ class _HomeBody extends ConsumerWidget {
       },
       child: ListView(
         padding: EdgeInsets.zero,
+        scrollCacheExtent: const ScrollCacheExtent.pixels(420),
         physics: const AlwaysScrollableScrollPhysics(
           parent: BouncingScrollPhysics(),
         ),
         children: [
           // 1. Фиолетовая шапка UDC с аватаром, кнопками и быстрыми действиями
-          HomeHeader(
-            account: account,
-            locale: locale,
-            onProfileTap: () => PaykMotion.push<void>(
-              context,
-              '/profile/details',
-              fallback: () => const ProfileDetailsScreen(),
+          RepaintBoundary(
+            child: HomeHeader(
+              account: account,
+              locale: locale,
+              onProfileTap: () => PaykMotion.push<void>(
+                context,
+                '/profile/details',
+                fallback: () => const ProfileDetailsScreen(),
+              ),
+              onScannerTap: () => PaykMotion.push<void>(
+                context,
+                '/code',
+                fallback: () => const ClientCodeScreen(),
+              ),
+              onNotificationsTap: () => _openMessages(context, ref, locale),
+              onCodeTap: () => PaykMotion.push<void>(
+                context,
+                '/code',
+                fallback: () => const ClientCodeScreen(),
+              ),
+              onCompaniesTap: () => _openCompaniesModal(context, account, locale),
+              onCertificatesTap: () =>
+                  _openCertificatesModal(context, account, locale),
             ),
-            onScannerTap: () => PaykMotion.push<void>(
-              context,
-              '/code',
-              fallback: () => const ClientCodeScreen(),
-            ),
-            onNotificationsTap: () => _openMessages(context, ref, locale),
-            onCodeTap: () => PaykMotion.push<void>(
-              context,
-              '/code',
-              fallback: () => const ClientCodeScreen(),
-            ),
-            onCompaniesTap: () => _openCompaniesModal(context, account, locale),
-            onCertificatesTap: () =>
-                _openCertificatesModal(context, account, locale),
           ),
 
           const SizedBox(height: 20),
@@ -219,7 +223,9 @@ class _HomeBody extends ConsumerWidget {
           // 2. Карточка «Дӯстонро даъват кунед» (реферальный код и шаринг)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _InviteFriendsCard(member: member, locale: locale),
+            child: RepaintBoundary(
+              child: _InviteFriendsCard(member: member, locale: locale),
+            ),
           ),
 
           const SizedBox(height: 14),
@@ -227,9 +233,11 @@ class _HomeBody extends ConsumerWidget {
           // 3. Плитка переключателя «Огоҳиномаҳо» (уведомления)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: _NotificationToggleCard(
-              initialValue: member.messages,
-              locale: locale,
+            child: RepaintBoundary(
+              child: _NotificationToggleCard(
+                initialValue: member.messages,
+                locale: locale,
+              ),
             ),
           ),
 
@@ -771,7 +779,7 @@ void _openCompaniesModal(BuildContext context, Account account, String locale) {
     useRootNavigator: true,
     isScrollControlled: true,
     backgroundColor: PaykColors.canvas,
-    sheetAnimationStyle: PaykMotion.sheetAnimationStyle,
+    sheetAnimationStyle: PaykMotion.sheetStyle(context),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
@@ -974,7 +982,7 @@ void _openCertificatesModal(
     useRootNavigator: true,
     isScrollControlled: true,
     backgroundColor: PaykColors.canvas,
-    sheetAnimationStyle: PaykMotion.sheetAnimationStyle,
+    sheetAnimationStyle: PaykMotion.sheetStyle(context),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -1158,74 +1166,87 @@ class _HomeOffersSectionState extends ConsumerState<_HomeOffersSection> {
   Widget build(BuildContext context) {
     final async = ref.watch(sizeOffersPreviewProvider);
     final response = async.asData?.value;
-    if (response == null) {
-      _syncTicker(false);
-      return const SizedBox.shrink();
-    }
-    final activeOffers = response.items
-        .where((offer) => showOfferOnHome(offer, liveOfferStatus(offer, _now)))
-        .toList();
-    if (activeOffers.isEmpty) {
-      _syncTicker(false);
-      return const SizedBox.shrink();
-    }
-    _syncTicker(activeOffers.any((o) => o.flash && o.expiresAt != null));
-    final preview = activeOffers.take(2).toList();
+    final activeOffers = response == null
+        ? const <SizeOffer>[]
+        : response.items
+            .where((offer) => showOfferOnHome(offer, liveOfferStatus(offer, _now)))
+            .toList();
+    final hasOffers = activeOffers.isNotEmpty;
+    _syncTicker(hasOffers && activeOffers.any((o) => o.flash && o.expiresAt != null));
+
+    final dur = PaykMotion.duration(context, PaykMotion.fast);
+    final preview = hasOffers ? activeOffers.take(2).toList() : const <SizeOffer>[];
     final locale = widget.locale;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  tr(locale, 'home.offers'),
-                  style: const TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: PaykColors.textPrimary,
-                  ),
-                ),
-              ),
-              GestureDetector(
-                onTap: () => _openAll(context),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+    return AnimatedSize(
+      duration: dur,
+      curve: PaykMotion.easeOut,
+      alignment: Alignment.topCenter,
+      clipBehavior: Clip.hardEdge,
+      child: AnimatedSwitcher(
+        duration: dur,
+        switchInCurve: PaykMotion.easeOut,
+        switchOutCurve: PaykMotion.easeOut,
+        layoutBuilder: PaykMotion.topAlignedLayoutBuilder,
+        child: !hasOffers
+            ? const SizedBox.shrink(key: ValueKey('home-offers-empty'))
+            : Padding(
+                key: const ValueKey('home-offers-list'),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${tr(locale, 'home.offersAll')} (${activeOffers.length})',
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: PaykColors.primary,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            tr(locale, 'home.offers'),
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: PaykColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        PaykPressable(
+                          scaleDown: PaykMotion.scaleIcon,
+                          onTap: () => _openAll(context),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${tr(locale, 'home.offersAll')} (${activeOffers.length})',
+                                style: const TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: PaykColors.primary,
+                                ),
+                              ),
+                              const Icon(
+                                Icons.chevron_right_rounded,
+                                size: 18,
+                                color: PaykColors.primary,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    for (var i = 0; i < preview.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 10),
+                      _HomeOfferTile(
+                        offer: preview[i],
+                        locale: locale,
+                        now: _now,
+                        onTap: () => _openAll(context, focusId: preview[i].id),
                       ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      size: 18,
-                      color: PaykColors.primary,
-                    ),
+                    ],
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          for (var i = 0; i < preview.length; i++) ...[
-            if (i > 0) const SizedBox(height: 10),
-            _HomeOfferTile(
-              offer: preview[i],
-              locale: locale,
-              now: _now,
-              onTap: () => _openAll(context, focusId: preview[i].id),
-            ),
-          ],
-        ],
       ),
     );
   }
@@ -1473,145 +1494,161 @@ class _SizesHintCardState extends State<_SizesHintCard> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_loaded || _dismissed) return const SizedBox.shrink();
+    final visible = _loaded && !_dismissed;
+    final dur = PaykMotion.duration(context, PaykMotion.fast);
     final locale = widget.locale;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-      child: RepaintBoundary(
-        child: PaykPressable(
-          scaleDown: PaykMotion.scaleSubtle,
-          onTap: () {
-            HapticFeedback.lightImpact();
-            _openSizes(context);
-          },
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: PaykColors.sheet,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: PaykColors.border),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.025),
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 46,
-                      height: 46,
+    return AnimatedSize(
+      duration: dur,
+      curve: PaykMotion.easeOut,
+      alignment: Alignment.topCenter,
+      clipBehavior: Clip.hardEdge,
+      child: AnimatedSwitcher(
+        duration: dur,
+        switchInCurve: PaykMotion.easeOut,
+        switchOutCurve: PaykMotion.easeOut,
+        layoutBuilder: PaykMotion.topAlignedLayoutBuilder,
+        child: !visible
+            ? const SizedBox.shrink(key: ValueKey('sizes-hint-hidden'))
+            : Padding(
+                key: const ValueKey('sizes-hint-visible'),
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+                child: RepaintBoundary(
+                  child: PaykPressable(
+                    scaleDown: PaykMotion.scaleSubtle,
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      _openSizes(context);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: PaykColors.activePill,
-                        borderRadius: BorderRadius.circular(14),
+                        color: PaykColors.sheet,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: PaykColors.border),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.025),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
-                      alignment: Alignment.center,
-                      child: const Ruler3dIcon(size: 30),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            tr(locale, 'home.sizesHint'),
-                            style: const TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              height: 1.28,
-                              letterSpacing: -0.2,
-                              color: PaykColors.textPrimary,
-                            ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 46,
+                                height: 46,
+                                decoration: BoxDecoration(
+                                  color: PaykColors.activePill,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                alignment: Alignment.center,
+                                child: const Ruler3dIcon(size: 30),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tr(locale, 'home.sizesHint'),
+                                      style: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                        height: 1.28,
+                                        letterSpacing: -0.2,
+                                        color: PaykColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      tr(locale, 'home.sizesHintText'),
+                                      style: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                        height: 1.35,
+                                        color: PaykColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Tooltip(
+                                message: tr(locale, 'home.sizesHintHide'),
+                                child: Semantics(
+                                  button: true,
+                                  label: tr(locale, 'home.sizesHintHide'),
+                                  child: Material(
+                                    color: PaykColors.surfaceNested,
+                                    shape: const CircleBorder(),
+                                    child: InkWell(
+                                      customBorder: const CircleBorder(),
+                                      onTap: () {
+                                        HapticFeedback.selectionClick();
+                                        _dismiss();
+                                      },
+                                      child: const SizedBox(
+                                        width: 28,
+                                        height: 28,
+                                        child: Icon(
+                                          Icons.close_rounded,
+                                          size: 16,
+                                          color: PaykColors.textMuted,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            tr(locale, 'home.sizesHintText'),
-                            style: const TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              height: 1.35,
-                              color: PaykColors.textSecondary,
+                          const SizedBox(height: 12),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: PaykColors.brandSoft,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    tr(locale, 'offers.setSizes'),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: PaykColors.primary,
+                                    ),
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.chevron_right_rounded,
+                                  size: 18,
+                                  color: PaykColors.primary,
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Tooltip(
-                      message: tr(locale, 'home.sizesHintHide'),
-                      child: Semantics(
-                        button: true,
-                        label: tr(locale, 'home.sizesHintHide'),
-                        child: Material(
-                          color: PaykColors.surfaceNested,
-                          shape: const CircleBorder(),
-                          child: InkWell(
-                            customBorder: const CircleBorder(),
-                            onTap: () {
-                              HapticFeedback.selectionClick();
-                              _dismiss();
-                            },
-                            child: const SizedBox(
-                              width: 28,
-                              height: 28,
-                              child: Icon(
-                                Icons.close_rounded,
-                                size: 16,
-                                color: PaykColors.textMuted,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: PaykColors.brandSoft,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          tr(locale, 'offers.setSizes'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 13.5,
-                            fontWeight: FontWeight.w700,
-                            color: PaykColors.primary,
-                          ),
-                        ),
-                      ),
-                      const Icon(
-                        Icons.chevron_right_rounded,
-                        size: 18,
-                        color: PaykColors.primary,
-                      ),
-                    ],
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
+              ),
       ),
     );
   }

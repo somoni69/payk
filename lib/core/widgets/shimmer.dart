@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../motion/payk_motion.dart';
 import '../theme/payk_colors.dart';
 
 /// Единая диагональная волна блика на весь экран скелетона.
@@ -33,7 +34,7 @@ class _ShimmerSweepState extends State<ShimmerSweep>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final reduce = MediaQuery.disableAnimationsOf(context);
+    final reduce = PaykMotion.shouldReduceMotion(context);
     if (reduce) {
       _controller.stop();
     } else if (!_controller.isAnimating) {
@@ -101,7 +102,7 @@ class SkeletonBox extends LeafRenderObjectWidget {
   @override
   RenderObject createRenderObject(BuildContext context) {
     final scope = _ShimmerScope.maybeOf(context);
-    final reduce = MediaQuery.disableAnimationsOf(context);
+    final reduce = PaykMotion.shouldReduceMotion(context);
     return _RenderSkeletonBox(
       width,
       height,
@@ -117,7 +118,7 @@ class SkeletonBox extends LeafRenderObjectWidget {
   @override
   void updateRenderObject(BuildContext context, RenderObject renderObject) {
     final scope = _ShimmerScope.maybeOf(context);
-    final reduce = MediaQuery.disableAnimationsOf(context);
+    final reduce = PaykMotion.shouldReduceMotion(context);
     (renderObject as _RenderSkeletonBox)
       ..desiredWidth = width
       ..desiredHeight = height
@@ -140,14 +141,38 @@ class _RenderSkeletonBox extends RenderBox {
     this._shineColor,
     this._animation,
     this._rootBox,
-  );
+  ) {
+    _rebuildGradientColors();
+  }
 
   // Угол волны ~18° (cos 18° ≈ 0.9511, sin 18° ≈ 0.3090).
   static const _dx = 0.9511;
   static const _dy = 0.3090;
   static const _activeFraction = 0.78;
+  static const _gradientStops = <double>[0.0, 0.28, 0.5, 0.72, 1.0];
 
   final Paint _paint = Paint()..isAntiAlias = true;
+  late List<Color> _gradientColors;
+  bool _wasResting = false;
+
+  void _rebuildGradientColors() {
+    final midColor = Color.lerp(_baseColor, _shineColor, 0.42)!;
+    _gradientColors = <Color>[
+      _baseColor,
+      midColor,
+      _shineColor,
+      midColor,
+      _baseColor,
+    ];
+  }
+
+  void _onTick() {
+    final raw = _animation?.value;
+    final resting = raw == null || raw >= _activeFraction;
+    if (resting && _wasResting) return;
+    _wasResting = resting;
+    markNeedsPaint();
+  }
 
   double? _desiredWidth;
   set desiredWidth(double? value) {
@@ -181,6 +206,7 @@ class _RenderSkeletonBox extends RenderBox {
   set baseColor(Color value) {
     if (_baseColor == value) return;
     _baseColor = value;
+    _rebuildGradientColors();
     markNeedsPaint();
   }
 
@@ -188,15 +214,17 @@ class _RenderSkeletonBox extends RenderBox {
   set shineColor(Color value) {
     if (_shineColor == value) return;
     _shineColor = value;
+    _rebuildGradientColors();
     markNeedsPaint();
   }
 
   Animation<double>? _animation;
   set animation(Animation<double>? value) {
     if (_animation == value) return;
-    if (attached) _animation?.removeListener(markNeedsPaint);
+    if (attached) _animation?.removeListener(_onTick);
     _animation = value;
-    if (attached) _animation?.addListener(markNeedsPaint);
+    _wasResting = false;
+    if (attached) _animation?.addListener(_onTick);
     markNeedsPaint();
   }
 
@@ -210,12 +238,13 @@ class _RenderSkeletonBox extends RenderBox {
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
-    _animation?.addListener(markNeedsPaint);
+    _wasResting = false;
+    _animation?.addListener(_onTick);
   }
 
   @override
   void detach() {
-    _animation?.removeListener(markNeedsPaint);
+    _animation?.removeListener(_onTick);
     super.detach();
   }
 
@@ -278,14 +307,13 @@ class _RenderSkeletonBox extends RenderBox {
         rootOrigin.dy + _dy * (wavePos + bandHalf),
       );
 
-      final midColor = Color.lerp(_baseColor, _shineColor, 0.42)!;
       _paint
         ..color = _baseColor
         ..shader = ui.Gradient.linear(
           start,
           end,
-          [_baseColor, midColor, _shineColor, midColor, _baseColor],
-          const [0.0, 0.28, 0.5, 0.72, 1.0],
+          _gradientColors,
+          _gradientStops,
           TileMode.clamp,
         );
     }

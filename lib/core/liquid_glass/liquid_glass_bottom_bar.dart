@@ -105,10 +105,16 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar>
   /// Прогресс подъёма капли (`0.0` — спокойная капсула, `1.0` — объёмная линза).
   late final AnimationController _liftController;
 
+  /// Объединённый слушатель, создаётся один раз в `initState`, чтобы не
+  /// пересоздавать подписки в `AnimatedBuilder` на каждом `build`.
+  late final Listenable _barAnimation;
+
   bool _isDragging = false;
   double _dragVelocityX = 0.0;
   double _lastDragX = 0.0;
   int _lastScrubSlot = 0;
+  int _targetIndex = 0;
+  int _springGeneration = 0;
   DateTime _lastDragTime = DateTime.now();
 
   static const SpringDescription _spring = SpringDescription(
@@ -123,28 +129,37 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar>
   @override
   void initState() {
     super.initState();
-    _lastScrubSlot = _clampedCurrentIndex;
+    _targetIndex = _clampedCurrentIndex;
+    _lastScrubSlot = _targetIndex;
     _positionController = AnimationController.unbounded(
       vsync: this,
-      value: _clampedCurrentIndex.toDouble(),
+      value: _targetIndex.toDouble(),
     );
     _liftController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 140),
       reverseDuration: const Duration(milliseconds: 220),
     );
+    _barAnimation = Listenable.merge([_positionController, _liftController]);
   }
 
   @override
   void didUpdateWidget(covariant LiquidGlassBottomBar oldWidget) {
     super.didUpdateWidget(oldWidget);
     final maxIndex = (widget.items.length - 1).toDouble();
+    final target = _clampedCurrentIndex;
     if (_positionController.value > maxIndex) {
-      _positionController.value = _clampedCurrentIndex.toDouble();
+      _positionController.value = target.toDouble();
     }
     if (widget.currentIndex != oldWidget.currentIndex && !_isDragging) {
-      _lastScrubSlot = _clampedCurrentIndex;
-      _springToTab(_clampedCurrentIndex);
+      _lastScrubSlot = target;
+      // Не перезапускаем пружину, если она уже летит к этой же вкладке
+      // (после _selectTab или _onHorizontalDragEnd), чтобы не обрывать подъём капли.
+      if (_targetIndex != target ||
+          (!_positionController.isAnimating &&
+              (_positionController.value - target).abs() > 0.001)) {
+        _springToTab(target);
+      }
     }
   }
 
@@ -156,7 +171,10 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar>
   }
 
   void _springToTab(int targetIndex, {double velocity = 0.0}) {
-    final target = targetIndex.clamp(0, widget.items.length - 1).toDouble();
+    final clamped = targetIndex.clamp(0, widget.items.length - 1);
+    _targetIndex = clamped;
+    final target = clamped.toDouble();
+    final gen = ++_springGeneration;
     if (PaykMotion.shouldReduceMotion(context)) {
       _positionController.stop();
       _positionController.value = target;
@@ -175,7 +193,7 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar>
     final simulation = SpringSimulation(_spring, from, target, velocity);
     _liftController.forward();
     _positionController.animateWith(simulation).whenCompleteOrCancel(() {
-      if (!_isDragging && mounted) {
+      if (gen == _springGeneration && !_isDragging && mounted) {
         _dragVelocityX = 0.0;
         _liftController.reverse();
       }
@@ -232,6 +250,7 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar>
 
   void _onHorizontalDragStart(DragStartDetails details, double tabWidth) {
     _isDragging = true;
+    ++_springGeneration;
     _lastDragX = details.localPosition.dx;
     _lastDragTime = DateTime.now();
     _dragVelocityX = 0.0;
@@ -315,6 +334,61 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar>
         capsuleWidth - LiquidGlassBottomBar._trackHorizontalInset * 2;
     final tabWidth = trackWidth / widget.items.length;
 
+    const barHeight = LiquidGlassBottomBar.barHeight;
+    const barRadius = barHeight / 2.0;
+
+    // Статическая стеклянная капсула (один BackdropFilter на всю Z-плоскость)
+    // вынесена за пределы AnimatedBuilder, чтобы не пересоздавать блюр 120 раз в секунду.
+    final glassCapsule = Positioned.fill(
+      child: RepaintBoundary(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(barRadius),
+            boxShadow: LiquidGlassTokens.floatingShadow(),
+          ),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(barRadius),
+              gradient: LiquidGlassTokens.specularBorder(solid: solid),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(1.2),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(barRadius - 1.2),
+                child: solid
+                    ? const ColoredBox(color: PaykColors.sheet)
+                    : BackdropFilter(
+                        filter: LiquidGlassBottomBar._barBlur,
+                        child: const ColoredBox(
+                          color: LiquidGlassTokens.surfaceLight,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Статические ряды иконок собираются один раз при build(), а на кадрах пружины
+    // пересчитываются только маска выреза и матрица трансформации капли.
+    final outerIconsRow = RepaintBoundary(
+      child: _buildIconsRow(
+        tabWidth: tabWidth,
+        isMagnified: false,
+        highlightIndex: _clampedCurrentIndex,
+      ),
+    );
+    final innerIconsRow = RepaintBoundary(
+      child: _buildIconsRow(
+        tabWidth: tabWidth,
+        isMagnified: true,
+      ),
+    );
+    final semanticsOverlay = Positioned.fill(
+      child: _buildSemanticsOverlay(tabWidth: tabWidth),
+    );
+
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         systemNavigationBarColor: Colors.transparent,
@@ -328,7 +402,7 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar>
           padding: EdgeInsets.only(bottom: bottomPadding),
           child: SizedBox(
             width: capsuleWidth,
-            height: LiquidGlassBottomBar.barHeight,
+            height: barHeight,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTapDown: _onTapDown,
@@ -341,18 +415,26 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar>
               onHorizontalDragEnd: (details) =>
                   _onHorizontalDragEnd(details, tabWidth),
               onHorizontalDragCancel: _onHorizontalDragCancel,
-              child: AnimatedBuilder(
-                animation: Listenable.merge([
-                  _positionController,
-                  _liftController,
-                ]),
-                builder: (context, _) {
-                  return _buildCapsule(
-                    capsuleWidth: capsuleWidth,
-                    tabWidth: tabWidth,
-                    solid: solid,
-                  );
-                },
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  glassCapsule,
+                  Positioned.fill(
+                    child: AnimatedBuilder(
+                      animation: _barAnimation,
+                      builder: (context, _) {
+                        return _buildMovingLayers(
+                          capsuleWidth: capsuleWidth,
+                          tabWidth: tabWidth,
+                          solid: solid,
+                          outerIconsRow: outerIconsRow,
+                          innerIconsRow: innerIconsRow,
+                        );
+                      },
+                    ),
+                  ),
+                  semanticsOverlay,
+                ],
               ),
             ),
           ),
@@ -361,13 +443,14 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar>
     );
   }
 
-  Widget _buildCapsule({
+  Widget _buildMovingLayers({
     required double capsuleWidth,
     required double tabWidth,
     required bool solid,
+    required Widget outerIconsRow,
+    required Widget innerIconsRow,
   }) {
     const barHeight = LiquidGlassBottomBar.barHeight;
-    const barRadius = barHeight / 2.0;
     const inset = LiquidGlassBottomBar._trackHorizontalInset;
 
     final pos = _positionController.value;
@@ -406,36 +489,6 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar>
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        // 1. Парящая стеклянная капсула (один BackdropFilter на всю Z-плоскость).
-        Positioned.fill(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(barRadius),
-              boxShadow: LiquidGlassTokens.floatingShadow(),
-            ),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(barRadius),
-                gradient: LiquidGlassTokens.specularBorder(solid: solid),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(1.2),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(barRadius - 1.2),
-                  child: solid
-                      ? const ColoredBox(color: PaykColors.sheet)
-                      : BackdropFilter(
-                          filter: LiquidGlassBottomBar._barBlur,
-                          child: const ColoredBox(
-                            color: LiquidGlassTokens.surfaceLight,
-                          ),
-                        ),
-                ),
-              ),
-            ),
-          ),
-        ),
-
         // 2. Спокойная активная подложка (плавно растворяется при подъёме линзы).
         if (lift < 0.99)
           Positioned.fromRect(
@@ -462,11 +515,7 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar>
           child: ExcludeSemantics(
             child: ClipPath(
               clipper: _HoleCutoutClipper(dropletRRect),
-              child: _buildIconsRow(
-                tabWidth: tabWidth,
-                isMagnified: false,
-                highlightIndex: _clampedCurrentIndex,
-              ),
+              child: outerIconsRow,
             ),
           ),
         ),
@@ -486,14 +535,10 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar>
                 tabWidth: tabWidth,
                 centerX: dropletCenterX,
                 centerY: dropletCenterY,
+                innerIconsRow: innerIconsRow,
               ),
             ),
           ),
-        ),
-
-        // 5. Семантический слой и доступность для скринридеров (без обрезки ClipPath).
-        Positioned.fill(
-          child: _buildSemanticsOverlay(tabWidth: tabWidth),
         ),
       ],
     );
@@ -509,6 +554,7 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar>
     required double tabWidth,
     required double centerX,
     required double centerY,
+    required Widget innerIconsRow,
   }) {
     const barHeight = LiquidGlassBottomBar.barHeight;
     final radius = dropletHeight / 2.0;
@@ -517,6 +563,7 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar>
       (centerX / capsuleWidth).clamp(0.0, 1.0),
       (centerY / barHeight).clamp(0.0, 1.0),
     );
+    final isScaled = (scale - 1.0).abs() > 0.001;
 
     return DecoratedBox(
       key: LiquidGlassBottomBar.lensKey,
@@ -567,49 +614,46 @@ class _LiquidGlassBottomBarState extends State<LiquidGlassBottomBar>
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Симуляция хроматической аберрации на гранях капли при движении.
+                  // Хроматическая аберрация через прямой alpha в цвете штриха
+                  // (без Opacity saveLayer — экономит два offscreen-прохода на кадр).
                   if (!solid && lift > 0.1) ...[
                     Transform.translate(
                       offset: Offset(-1.5 * lift, 0.0),
-                      child: Opacity(
-                        opacity: 0.22 * lift,
-                        child: Transform(
-                          alignment: pivot,
-                          transform: Matrix4.diagonal3Values(scale, scale, 1.0),
-                          child: _buildIconsRow(
-                            tabWidth: tabWidth,
-                            isMagnified: true,
-                            customColor: const Color(0xFF00E5FF),
-                          ),
+                      child: Transform(
+                        alignment: pivot,
+                        transform: Matrix4.diagonal3Values(scale, scale, 1.0),
+                        child: _buildIconsRow(
+                          tabWidth: tabWidth,
+                          isMagnified: true,
+                          customColor: const Color(0xFF00E5FF)
+                              .withValues(alpha: (0.22 * lift).clamp(0.0, 1.0)),
                         ),
                       ),
                     ),
                     Transform.translate(
                       offset: Offset(1.5 * lift, 0.0),
-                      child: Opacity(
-                        opacity: 0.18 * lift,
-                        child: Transform(
-                          alignment: pivot,
-                          transform: Matrix4.diagonal3Values(scale, scale, 1.0),
-                          child: _buildIconsRow(
-                            tabWidth: tabWidth,
-                            isMagnified: true,
-                            customColor: const Color(0xFFFF007A),
-                          ),
+                      child: Transform(
+                        alignment: pivot,
+                        transform: Matrix4.diagonal3Values(scale, scale, 1.0),
+                        child: _buildIconsRow(
+                          tabWidth: tabWidth,
+                          isMagnified: true,
+                          customColor: const Color(0xFFFF007A)
+                              .withValues(alpha: (0.18 * lift).clamp(0.0, 1.0)),
                         ),
                       ),
                     ),
                   ],
 
                   // Основной резкий увеличенный слой внутри линзы.
-                  Transform(
-                    alignment: pivot,
-                    transform: Matrix4.diagonal3Values(scale, scale, 1.0),
-                    child: _buildIconsRow(
-                      tabWidth: tabWidth,
-                      isMagnified: true,
-                    ),
-                  ),
+                  if (isScaled)
+                    Transform(
+                      alignment: pivot,
+                      transform: Matrix4.diagonal3Values(scale, scale, 1.0),
+                      child: innerIconsRow,
+                    )
+                  else
+                    innerIconsRow,
                 ],
               ),
             ),

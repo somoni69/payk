@@ -108,6 +108,53 @@ abstract final class PaykMotion {
     reverseCurve: easeOut,
   );
 
+  /// Контекстно-зависимый стиль модальной шторки с учётом `prefers-reduced-motion`.
+  static AnimationStyle sheetStyle(BuildContext context) {
+    return shouldReduceMotion(context)
+        ? AnimationStyle.noAnimation
+        : sheetAnimationStyle;
+  }
+
+  /// LayoutBuilder для `AnimatedSwitcher`, закрепляющий сменяемые блоки по верхнему краю
+  /// вместо центрирования по умолчанию (устраняет вертикальный скачок скелетон -> контент).
+  static Widget topAlignedLayoutBuilder(
+    Widget? currentChild,
+    List<Widget> previousChildren,
+  ) {
+    return Stack(
+      alignment: Alignment.topCenter,
+      children: <Widget>[
+        ...previousChildren,
+        ?currentChild,
+      ],
+    );
+  }
+
+  /// Единый композиторный диалог (`scale(0.96 -> 1.0)` + `opacity`, `easeOut`, 220ms)
+  /// с поддержкой `prefers-reduced-motion` и изоляцией в `RepaintBoundary`.
+  static Future<T?> showDialog<T>({
+    required BuildContext context,
+    required WidgetBuilder builder,
+    bool barrierDismissible = true,
+    Color barrierColor = Colors.black54,
+    bool useRootNavigator = true,
+  }) {
+    final reduce = shouldReduceMotion(context);
+    return showGeneralDialog<T>(
+      context: context,
+      barrierDismissible: barrierDismissible,
+      barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+      barrierColor: barrierColor,
+      useRootNavigator: useRootNavigator,
+      transitionDuration: reduce ? Duration.zero : normal,
+      pageBuilder: (dialogContext, _, _) => builder(dialogContext),
+      transitionBuilder: (dialogContext, animation, secondaryAnimation, child) {
+        if (reduce || shouldReduceMotion(dialogContext)) return child;
+        return _PaykFadeScale(animation: animation, child: child);
+      },
+    );
+  }
+
   // ===========================================================================
   // 6. ПЕРЕХОДЫ МЕЖДУ ЭКРАНАМИ (COMPOSITOR-ONLY: TRANSFORM + OPACITY)
   // ===========================================================================
@@ -458,6 +505,15 @@ class _PaykPressableState extends State<PaykPressable>
   );
 
   Offset? _downPosition;
+
+  @override
+  void didUpdateWidget(covariant PaykPressable oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.enabled && !widget.enabled) {
+      _downPosition = null;
+      _release();
+    }
+  }
 
   @override
   void dispose() {

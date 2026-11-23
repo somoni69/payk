@@ -118,15 +118,25 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/splash',
-        builder: (context, state) => const SplashScreen(),
+        pageBuilder: (context, state) => NoTransitionPage<void>(
+          key: state.pageKey,
+          name: state.name ?? state.path,
+          child: const SplashScreen(),
+        ),
       ),
       GoRoute(
         path: '/onboarding',
-        builder: (context, state) => const OnboardingScreen(),
+        pageBuilder: (context, state) => PaykMotion.buildFadeScalePage(
+          state: state,
+          child: const OnboardingScreen(),
+        ),
       ),
       GoRoute(
         path: '/auth/phone',
-        builder: (context, state) => const PhoneScreen(),
+        pageBuilder: (context, state) => PaykMotion.buildFadeScalePage(
+          state: state,
+          child: const PhoneScreen(),
+        ),
       ),
       GoRoute(
         path: '/auth/code',
@@ -147,7 +157,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/welcome-gift',
-        pageBuilder: (context, state) => PaykMotion.buildPage(
+        pageBuilder: (context, state) => PaykMotion.buildFadeScalePage(
           state: state,
           child: const WelcomeGiftScreen(),
         ),

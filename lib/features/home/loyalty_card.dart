@@ -139,7 +139,6 @@ class LoyaltyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final level = loyaltyTierLevel(wallet.status, tiers: tiers);
-    final reduce = MediaQuery.disableAnimationsOf(context);
     final name = _holderName(member);
     final code = member.referralCode.trim();
 
@@ -147,7 +146,7 @@ class LoyaltyCard extends StatelessWidget {
     final clRate = wallet.rates.clothes;
 
     final card = AnimatedSwitcher(
-      duration: reduce ? Duration.zero : PaykMotion.page,
+      duration: PaykMotion.duration(context, PaykMotion.page),
       switchInCurve: PaykMotion.easeOut,
       switchOutCurve: PaykMotion.easeOut,
       transitionBuilder: (child, animation) {

@@ -128,6 +128,7 @@ class _PaykBusinessScreenState extends ConsumerState<PaykBusinessScreen>
                   duration: PaykMotion.duration(context, PaykMotion.fast),
                   switchInCurve: PaykMotion.easeOut,
                   switchOutCurve: PaykMotion.easeOut,
+                  layoutBuilder: PaykMotion.topAlignedLayoutBuilder,
                   child: loading
                       ? const KeyedSubtree(
                           key: ValueKey('payk-cards-loading'),
@@ -193,11 +194,13 @@ List<Widget> _feedBody({
   return [
     for (var i = 0; i < feed.cards.length; i++) ...[
       if (i > 0) const SizedBox(height: 16),
-      ShowcaseCardView(
-        card: feed.cards[i],
-        locale: locale,
-        sent: feed.leadSentToday,
-        onWant: () => onWant(feed.cards[i].id),
+      RepaintBoundary(
+        child: ShowcaseCardView(
+          card: feed.cards[i],
+          locale: locale,
+          sent: feed.leadSentToday,
+          onWant: () => onWant(feed.cards[i].id),
+        ),
       ),
     ],
   ];

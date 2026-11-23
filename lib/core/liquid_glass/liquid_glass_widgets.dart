@@ -1,6 +1,5 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../motion/payk_motion.dart';
 import '../theme/payk_colors.dart';
@@ -27,6 +26,11 @@ class LiquidGlassCard extends StatelessWidget {
   final Color backgroundColor;
   final VoidCallback? onTap;
 
+  static final ImageFilter _defaultBlur = ImageFilter.blur(
+    sigmaX: LiquidGlassTokens.blurLg,
+    sigmaY: LiquidGlassTokens.blurLg,
+  );
+
   @override
   Widget build(BuildContext context) {
     final solid = LiquidGlassTokens.shouldReduceTransparency(context);
@@ -40,27 +44,31 @@ class LiquidGlassCard extends StatelessWidget {
 
     if (!solid) {
       content = BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+        filter: blurSigma == LiquidGlassTokens.blurLg
+            ? _defaultBlur
+            : ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
         child: content,
       );
     }
 
-    Widget card = Container(
-      margin: margin,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: LiquidGlassTokens.floatingShadow(),
-      ),
-      child: DecoratedBox(
+    Widget card = RepaintBoundary(
+      child: Container(
+        margin: margin,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(borderRadius),
-          gradient: LiquidGlassTokens.specularBorder(solid: solid),
+          boxShadow: LiquidGlassTokens.floatingShadow(),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(1.2),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(borderRadius - 1.2),
-            child: content,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(borderRadius),
+            gradient: LiquidGlassTokens.specularBorder(solid: solid),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(1.2),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(borderRadius - 1.2),
+              child: content,
+            ),
           ),
         ),
       ),
@@ -79,8 +87,8 @@ class LiquidGlassCard extends StatelessWidget {
   }
 }
 
-/// Интерактивная кнопка Liquid Glass с пружинным масштабированием и зеркальным бликом.
-class LiquidGlassButton extends StatefulWidget {
+/// Интерактивная кнопка Liquid Glass с прерываемым масштабированием и зеркальным бликом.
+class LiquidGlassButton extends StatelessWidget {
   const LiquidGlassButton({
     super.key,
     required this.onPressed,
@@ -98,104 +106,51 @@ class LiquidGlassButton extends StatefulWidget {
   final EdgeInsetsGeometry padding;
   final Color? backgroundColor;
 
-  @override
-  State<LiquidGlassButton> createState() => _LiquidGlassButtonState();
-}
-
-class _LiquidGlassButtonState extends State<LiquidGlassButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _scaleCtrl = AnimationController(
-    vsync: this,
-    duration: PaykMotion.pressDown,
-    reverseDuration: PaykMotion.pressUp,
-    lowerBound: 0.94,
-    upperBound: 1.0,
-    value: 1.0,
+  static final ImageFilter _buttonBlur = ImageFilter.blur(
+    sigmaX: LiquidGlassTokens.blurMd,
+    sigmaY: LiquidGlassTokens.blurMd,
   );
-
-  @override
-  void dispose() {
-    _scaleCtrl.dispose();
-    super.dispose();
-  }
-
-  void _onTapDown(TapDownDetails _) {
-    if (!PaykMotion.shouldReduceMotion(context)) {
-      _scaleCtrl.animateBack(
-        0.94,
-        duration: PaykMotion.pressDown,
-        curve: PaykMotion.easeOut,
-      );
-    }
-    HapticFeedback.lightImpact();
-  }
-
-  void _onTapUp(TapUpDetails _) {
-    _scaleCtrl.animateTo(
-      1.0,
-      duration: PaykMotion.pressUp,
-      curve: PaykMotion.easeOut,
-    );
-    widget.onPressed();
-  }
-
-  void _onTapCancel() {
-    _scaleCtrl.animateTo(
-      1.0,
-      duration: PaykMotion.pressUp,
-      curve: PaykMotion.easeOut,
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     final solid = LiquidGlassTokens.shouldReduceTransparency(context);
-    final bg = widget.backgroundColor ?? (solid ? PaykColors.sheet : LiquidGlassTokens.surfaceLight);
+    final bg =
+        backgroundColor ?? (solid ? PaykColors.sheet : LiquidGlassTokens.surfaceLight);
 
-    return AnimatedBuilder(
-      animation: _scaleCtrl,
-      builder: (context, child) {
-        return Transform.scale(
-          scale: _scaleCtrl.value,
-          child: child,
-        );
-      },
-      child: GestureDetector(
-        onTapDown: _onTapDown,
-        onTapUp: _onTapUp,
-        onTapCancel: _onTapCancel,
+    return PaykPressable(
+      scaleDown: 0.94,
+      haptic: true,
+      onTap: onPressed,
+      child: RepaintBoundary(
         child: Container(
-          height: widget.height,
+          height: height,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(widget.borderRadius),
+            borderRadius: BorderRadius.circular(borderRadius),
             boxShadow: LiquidGlassTokens.floatingShadow(),
           ),
           child: DecoratedBox(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(widget.borderRadius),
+              borderRadius: BorderRadius.circular(borderRadius),
               gradient: LiquidGlassTokens.specularBorder(solid: solid),
             ),
             child: Padding(
               padding: const EdgeInsets.all(1.2),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(widget.borderRadius - 1.2),
+                borderRadius: BorderRadius.circular(borderRadius - 1.2),
                 child: solid
                     ? Container(
-                        padding: widget.padding,
+                        padding: padding,
                         color: bg,
                         alignment: Alignment.center,
-                        child: widget.child,
+                        child: child,
                       )
                     : BackdropFilter(
-                        filter: ImageFilter.blur(
-                          sigmaX: LiquidGlassTokens.blurMd,
-                          sigmaY: LiquidGlassTokens.blurMd,
-                        ),
+                        filter: _buttonBlur,
                         child: Container(
-                          padding: widget.padding,
+                          padding: padding,
                           color: bg,
                           alignment: Alignment.center,
-                          child: widget.child,
+                          child: child,
                         ),
                       ),
               ),

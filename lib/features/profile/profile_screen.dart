@@ -851,7 +851,7 @@ void _showStoreDialog(BuildContext context, Account account, String locale) {
     useRootNavigator: true,
     isScrollControlled: true,
     backgroundColor: PaykColors.canvas,
-    sheetAnimationStyle: PaykMotion.sheetAnimationStyle,
+    sheetAnimationStyle: PaykMotion.sheetStyle(context),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -937,7 +937,7 @@ void _showStoreContactDialog(
     useRootNavigator: true,
     isScrollControlled: true,
     backgroundColor: PaykColors.canvas,
-    sheetAnimationStyle: PaykMotion.sheetAnimationStyle,
+    sheetAnimationStyle: PaykMotion.sheetStyle(context),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -1066,7 +1066,7 @@ void _showAboutDialog(BuildContext context, String locale) {
     useRootNavigator: true,
     isScrollControlled: true,
     backgroundColor: PaykColors.canvas,
-    sheetAnimationStyle: PaykMotion.sheetAnimationStyle,
+    sheetAnimationStyle: PaykMotion.sheetStyle(context),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -2018,7 +2018,7 @@ Future<void> showEditProfileSheet(
     useRootNavigator: true,
     isScrollControlled: true,
     backgroundColor: PaykColors.sheet,
-    sheetAnimationStyle: PaykMotion.sheetAnimationStyle,
+    sheetAnimationStyle: PaykMotion.sheetStyle(context),
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
@@ -2111,7 +2111,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
       addingDate = !hadDate && birth.date != null;
       if (addingDate) {
         final locale = ref.read(localeProvider);
-        final confirmed = await showDialog<bool>(
+        final confirmed = await PaykMotion.showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
             title: Text(tr(locale, 'edit.confirmDateTitle')),
@@ -2418,7 +2418,7 @@ Future<void> _confirmLogout(
   WidgetRef ref,
   String locale,
 ) async {
-  final confirmed = await showDialog<bool>(
+  final confirmed = await PaykMotion.showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(tr(locale, 'profile.logoutTitle')),
@@ -2470,7 +2470,7 @@ Future<void> _confirmDeleteAccount(
   WidgetRef ref,
   String locale,
 ) async {
-  final confirmed = await showDialog<bool>(
+  final confirmed = await PaykMotion.showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
       title: Text(tr(locale, 'profile.deleteTitle')),

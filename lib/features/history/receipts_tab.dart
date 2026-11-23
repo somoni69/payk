@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/format.dart';
 import '../../core/i18n/locale_controller.dart';
@@ -149,16 +148,11 @@ class _ReceiptsTabState extends ConsumerState<ReceiptsTab> {
 
   void _openDetail(ReceiptRow row) {
     HapticFeedback.lightImpact();
-    final router = GoRouter.maybeOf(context);
-    if (router != null) {
-      router.push('/history/receipt/${row.id}');
-    } else {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => ReceiptDetailScreen(receiptId: row.id),
-        ),
-      );
-    }
+    PaykMotion.push<void>(
+      context,
+      '/history/receipt/${row.id}',
+      fallback: () => ReceiptDetailScreen(receiptId: row.id),
+    );
   }
 
   @override
@@ -208,49 +202,77 @@ class _ReceiptsTabState extends ConsumerState<ReceiptsTab> {
             },
           ),
           const SizedBox(height: 12),
-          if (_loading && _items.isEmpty)
-            const _ReceiptsLoadingSkeleton()
-          else if (_error != null && _items.isEmpty)
-            ErrorState(
-              message: _error is ApiException
-                  ? (_error as ApiException).message
-                  : tr(locale, 'receipts.loadError'),
-              onRetry: () => _fetch(reset: true),
-            )
-          else if (_items.isEmpty)
-            _EmptyReceiptsCard(
-              filtered: _query.isFiltered,
-              locale: locale,
-              onReset: _query.isFiltered
-                  ? () {
-                      _searchCtrl.clear();
-                      _applyQuery(const ReceiptsQuery());
-                    }
-                  : null,
-            )
-          else ...[
-            ..._buildGroupedRows(locale, monthsByKey),
-            if (_nextBeforeId != null) ...[
-              const SizedBox(height: 14),
-              Center(
-                child: OutlinedButton(
-                  onPressed: _loadingMore ? null : () => _fetch(reset: false),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: PaykColors.primary,
-                    side: const BorderSide(color: PaykColors.border),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    _loadingMore
-                        ? tr(locale, 'history.loading')
-                        : tr(locale, 'history.more'),
-                  ),
-                ),
-              ),
-            ],
-          ],
+          AnimatedSwitcher(
+            duration: PaykMotion.duration(context, PaykMotion.fast),
+            switchInCurve: PaykMotion.easeOut,
+            switchOutCurve: PaykMotion.easeOut,
+            layoutBuilder: PaykMotion.topAlignedLayoutBuilder,
+            child: _loading && _items.isEmpty
+                ? const KeyedSubtree(
+                    key: ValueKey('receipts-loading'),
+                    child: _ReceiptsLoadingSkeleton(),
+                  )
+                : _error != null && _items.isEmpty
+                    ? KeyedSubtree(
+                        key: const ValueKey('receipts-error'),
+                        child: ErrorState(
+                          message: _error is ApiException
+                              ? (_error as ApiException).message
+                              : tr(locale, 'receipts.loadError'),
+                          onRetry: () => _fetch(reset: true),
+                        ),
+                      )
+                    : _items.isEmpty
+                        ? KeyedSubtree(
+                            key: ValueKey('receipts-empty-${_query.isFiltered}'),
+                            child: _EmptyReceiptsCard(
+                              filtered: _query.isFiltered,
+                              locale: locale,
+                              onReset: _query.isFiltered
+                                  ? () {
+                                      _searchCtrl.clear();
+                                      _applyQuery(const ReceiptsQuery());
+                                    }
+                                  : null,
+                            ),
+                          )
+                        : Column(
+                            key: const ValueKey('receipts-list'),
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              ..._buildGroupedRows(locale, monthsByKey),
+                              if (_nextBeforeId != null) ...[
+                                const SizedBox(height: 14),
+                                Center(
+                                  child: PaykPressable(
+                                    enabled: !_loadingMore,
+                                    scaleDown: PaykMotion.scaleButton,
+                                    child: OutlinedButton(
+                                      onPressed: _loadingMore
+                                          ? null
+                                          : () => _fetch(reset: false),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: PaykColors.primary,
+                                        side: const BorderSide(
+                                          color: PaykColors.border,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        _loadingMore
+                                            ? tr(locale, 'history.loading')
+                                            : tr(locale, 'history.more'),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+          ),
         ],
       ),
     );
@@ -590,9 +612,16 @@ class _FilterBar extends StatelessWidget {
           duration: PaykMotion.duration(context, PaykMotion.normal),
           curve: PaykMotion.easeOut,
           alignment: Alignment.topCenter,
-          child: filtersOpen
-              ? Padding(
-                  padding: const EdgeInsets.only(top: 10),
+          clipBehavior: Clip.hardEdge,
+          child: AnimatedSwitcher(
+            duration: PaykMotion.duration(context, PaykMotion.fast),
+            switchInCurve: PaykMotion.easeOut,
+            switchOutCurve: PaykMotion.easeOut,
+            layoutBuilder: PaykMotion.topAlignedLayoutBuilder,
+            child: filtersOpen
+                ? Padding(
+                    key: const ValueKey('receipts-filters-open'),
+                    padding: const EdgeInsets.only(top: 10),
                   child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -701,7 +730,8 @@ class _FilterBar extends StatelessWidget {
                     ),
                   ),
                 )
-              : const SizedBox.shrink(),
+              : const SizedBox.shrink(key: ValueKey('receipts-filters-closed')),
+          ),
         ),
       ],
     );
@@ -1086,10 +1116,11 @@ class _ReceiptRowCard extends StatelessWidget {
 
     final returned = row.isReturned || row.isPartiallyReturned;
 
-    return PaykPressable(
-      scaleDown: PaykMotion.scaleSubtle,
-      onTap: onTap,
-      child: Container(
+    return RepaintBoundary(
+      child: PaykPressable(
+        scaleDown: PaykMotion.scaleSubtle,
+        onTap: onTap,
+        child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: PaykColors.sheet,
@@ -1291,6 +1322,7 @@ class _ReceiptRowCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

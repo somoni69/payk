@@ -18,6 +18,7 @@ import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/payk_avatar.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
+import '../../data/api/api_config.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
 import '../code/client_code_screen.dart';
@@ -383,8 +384,7 @@ class _InviteFriendsCard extends StatelessWidget {
 
   Future<void> _share(BuildContext context, String code) async {
     HapticFeedback.lightImpact();
-    final text =
-        'Присоединяйтесь к бонусной программе ПАЙК — кэшбэк с каждой покупки. Мой код приглашения: $code';
+    final text = ApiConfig.referralShareText(code: code);
     try {
       final res = await SharePlus.instance.share(ShareParams(text: text));
       if (res.status == ShareResultStatus.unavailable && context.mounted) {

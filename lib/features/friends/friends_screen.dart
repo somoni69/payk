@@ -12,6 +12,7 @@ import '../../core/widgets/message.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
 import '../../core/widgets/telephone_3d_icon.dart';
+import '../../data/api/api_config.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
 
@@ -77,10 +78,10 @@ class _FriendsBody extends StatelessWidget {
   final Future<void> Function() onRefresh;
 
   Future<void> _share(BuildContext context) async {
-    final where = store.isEmpty ? '' : ' в $store';
-    final link = friends.link;
-    final text =
-        'Присоединяйтесь к бонусной программе ПАЙК$where — кэшбэк с каждой покупки. Мой код приглашения: ${friends.code}${link == null ? '' : '\n$link'}';
+    final text = ApiConfig.referralShareText(
+      code: friends.code,
+      store: store,
+    );
 
     final result = await SharePlus.instance.share(ShareParams(text: text));
     if (!context.mounted) return;

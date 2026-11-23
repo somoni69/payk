@@ -7,6 +7,7 @@ import 'package:payk/app/router.dart';
 import 'package:payk/core/i18n/locale_controller.dart';
 import 'package:payk/core/i18n/strings.dart';
 import 'package:payk/core/theme/payk_theme.dart';
+import 'package:payk/data/api/api_config.dart';
 import 'package:payk/data/api/loyalty_api.dart';
 import 'package:payk/data/models/models.dart';
 import 'package:payk/data/providers.dart';
@@ -168,6 +169,25 @@ void main() {
     test('gift.text capitalizes and quotes Супермаркет in RU and TJ (2d058c1)', () {
       expect(tr('ru', 'gift.text'), contains('«Супермаркете»'));
       expect(tr('tj', 'gift.text'), contains('«Супермаркет»'));
+    });
+
+    test('referralShareText includes only Google Play (with Install Referrer) and App Store without vercel link', () {
+      final text = ApiConfig.referralShareText(
+        code: 'so-6850',
+        store: 'Алмоси',
+      );
+      expect(text, contains('SO-6850'));
+      expect(text, isNot(contains('vercel.app')));
+      expect(
+        text,
+        contains(
+          'Google Play: https://play.google.com/store/apps/details?id=app.payk.payk&hl=ru&referrer=payk_ref%3DSO-6850',
+        ),
+      );
+      expect(
+        text,
+        contains('App Store: https://apps.apple.com/us/app/payk/id6831621113'),
+      );
     });
 
     test('ReferralService reads initial link + install referrer, matches via API, and clears pending', () async {

@@ -1169,7 +1169,7 @@ void _showAboutDialog(BuildContext context, String locale) {
                         border: Border.all(color: PaykColors.border),
                       ),
                       child: const Text(
-                        'Версия 1.0.0 (Build 1)',
+                        'Версия 1.0.6 (Build 8)',
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 12,

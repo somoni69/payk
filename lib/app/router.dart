@@ -19,6 +19,7 @@ import '../features/notifications/notifications_screen.dart';
 import '../features/profile/connect_screen.dart';
 import '../features/profile/phone_change_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/raffles/raffles_screen.dart';
 import '../features/rules/rules_screen.dart';
 import '../features/showcase/payk_business_screen.dart';
 import '../features/sizes/size_offers_screen.dart';
@@ -207,6 +208,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/rules',
         pageBuilder: (context, state) =>
             PaykMotion.buildPage(state: state, child: const RulesScreen()),
+      ),
+      GoRoute(
+        path: '/raffles',
+        pageBuilder: (context, state) =>
+            PaykMotion.buildPage(state: state, child: const RafflesScreen()),
       ),
       GoRoute(
         path: '/almosi',

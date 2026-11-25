@@ -253,7 +253,17 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
     final y = limit.y ?? 0;
     final min = burnMinOf(check);
     final aStar = limit.aStar ?? 0;
+    final roundSource = couponShifted ? shifted : check;
+    final roundBurn = roundSource?.roundBurn;
+    final roundCash = roundSource?.roundCash;
     final canBurn = !limitsPending && canBurnOn(check, limit: y);
+    final showRound =
+        canBurn &&
+        roundBurn != null &&
+        roundCash != null &&
+        roundBurn <= y + paymentAmountEps;
+    final roundPicked =
+        showRound && (_burn - roundBurn).abs() <= paymentAmountEps;
     final pristine = !waiting && !_confirmed && key == choiceKeyOf(check);
     final canConfirm = settled && _quoteMessage == null && !calculating;
     final loses =
@@ -438,6 +448,18 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
                   ),
                 ),
               if (canBurn) ...[
+                if (showRound && check.roundSuggested) ...[
+                  _RoundOptionButton(
+                    burn: roundBurn,
+                    cash: roundCash,
+                    suggested: true,
+                    picked: roundPicked,
+                    disabled: _phase == _Phase.sending || limitsPending,
+                    locale: locale,
+                    onTap: () => _setBurn(roundBurn),
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 Row(
                   children: [
                     Expanded(
@@ -484,6 +506,18 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
                     ),
                   ],
                 ),
+                if (showRound && !check.roundSuggested) ...[
+                  const SizedBox(height: 8),
+                  _RoundOptionButton(
+                    burn: roundBurn,
+                    cash: roundCash,
+                    suggested: false,
+                    picked: roundPicked,
+                    disabled: _phase == _Phase.sending || limitsPending,
+                    locale: locale,
+                    onTap: () => _setBurn(roundBurn),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Slider(
                   value: _burn.clamp(0, y).toDouble(),
@@ -642,7 +676,9 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
             if (pristine) ...[
               const SizedBox(height: 8),
               Text(
-                (view.x ?? 0) > 0
+                check.roundSuggested && check.roundBurn != null
+                    ? tr(locale, 'pay.roundAuto')
+                    : (view.x ?? 0) > 0
                     ? tr(locale, 'pay.auto', {
                         'x': formatMoney(view.x ?? 0, signed: true),
                       })
@@ -787,6 +823,128 @@ class _Choice extends StatelessWidget {
                     fontSize: 11,
                   ),
                 ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// «Без сдачи» (ТЗ 24.11.2026, п. 1): одним нажатием подставляет сумму списания для круглой доплаты.
+class _RoundOptionButton extends StatelessWidget {
+  const _RoundOptionButton({
+    required this.burn,
+    required this.cash,
+    required this.suggested,
+    required this.picked,
+    required this.disabled,
+    required this.locale,
+    required this.onTap,
+  });
+
+  final double burn;
+  final double cash;
+  final bool suggested;
+  final bool picked;
+  final bool disabled;
+  final String locale;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = picked
+        ? PaykColors.violet
+        : suggested
+        ? PaykColors.violet.withValues(alpha: 0.6)
+        : PaykColors.border;
+    final bgColor = picked
+        ? PaykColors.brandSoft
+        : suggested
+        ? PaykColors.brandSoft.withValues(alpha: 0.55)
+        : PaykColors.canvas;
+
+    return PaykPressable(
+      enabled: !disabled,
+      scaleDown: PaykMotion.scaleSubtle,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: const ValueKey('spend-round'),
+          onTap: disabled
+              ? null
+              : () {
+                  HapticFeedback.selectionClick();
+                  onTap();
+                },
+          borderRadius: BorderRadius.circular(14),
+          child: AnimatedContainer(
+            duration: PaykMotion.duration(context, PaykMotion.fast),
+            curve: PaykMotion.easeOut,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: borderColor, width: 1.5),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.payments_outlined,
+                  size: 20,
+                  color: PaykColors.violet,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (suggested) ...[
+                        Container(
+                          key: const ValueKey('spend-round-suggested'),
+                          margin: const EdgeInsets.only(bottom: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: PaykColors.violet,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            tr(locale, 'pay.coinSuggested'),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                      Text(
+                        tr(locale, 'pay.roundOption', {
+                          'v': formatMoney(burn),
+                          'cash': formatMoney(cash),
+                        }),
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: PaykColors.ink,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (picked) ...[
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    size: 20,
+                    color: PaykColors.violet,
+                  ),
+                ],
               ],
             ),
           ),

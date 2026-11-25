@@ -212,13 +212,38 @@ class RulesScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             SectionTitle('Друзья и рефералы'),
             SoftPanel(
-              child: Text(
-                tr(locale, 'rules.referral', {
-                  'l1': formatPercent(rules.level1),
-                  'l2': formatPercent(rules.level2),
-                  'months': '${rules.months}',
-                }),
-                style: const TextStyle(fontWeight: FontWeight.w600, height: 1.45, fontSize: 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tr(locale, 'rules.referral', {
+                      'l1': formatPercent(rules.level1),
+                      'l2': formatPercent(rules.level2),
+                      'months': '${rules.months}',
+                    }),
+                    style: const TextStyle(fontWeight: FontWeight.w600, height: 1.45, fontSize: 14),
+                  ),
+                  if (rules.firstBonus > 0) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      rules.firstBonusMin > 0
+                          ? tr(locale, 'friends.firstBonusMin', {
+                              'bonus': formatMoneyAuto(rules.firstBonus),
+                              'min': formatMoneyAuto(rules.firstBonusMin),
+                            })
+                          : tr(locale, 'friends.firstBonus', {
+                              'bonus': formatMoneyAuto(rules.firstBonus),
+                            }),
+                      key: const ValueKey('rules-first-bonus'),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        height: 1.4,
+                        fontSize: 14,
+                        color: PaykColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             const SizedBox(height: 12),
@@ -228,7 +253,12 @@ class RulesScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    tr(locale, 'rules.check'),
+                    tr(
+                      locale,
+                      rules.burnKeepsCashback
+                          ? 'rules.modesNoteKeep'
+                          : 'rules.check',
+                    ),
                     style: const TextStyle(fontWeight: FontWeight.w600, height: 1.45, fontSize: 14),
                   ),
                   const SizedBox(height: 8),

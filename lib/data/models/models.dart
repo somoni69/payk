@@ -337,6 +337,7 @@ class Account {
     this.tierCount = 5,
     this.messagesUnread = 0,
     this.coupon,
+    this.burnKeepsCashback = false,
   });
 
   final Member member;
@@ -346,6 +347,9 @@ class Account {
   final int tierCount;
   final int messagesUnread;
   final BirthdayCoupon? coupon;
+
+  /// Кешбэк с оплаты деньгами при любом списании (24.11.2026): на экране кода два варианта вместо трёх.
+  final bool burnKeepsCashback;
 
   factory Account.fromJson(Map<String, dynamic> json) {
     final program = json['program'] is Map
@@ -368,6 +372,7 @@ class Account {
       coupon: json['coupon'] is Map
           ? BirthdayCoupon.fromJson(asMap(json['coupon']))
           : null,
+      burnKeepsCashback: json['burn_keeps_cashback'] == true,
       wallet: Wallet(
         status: asInt(json['status']),
         balance: asMoney(json['balance']),
@@ -476,6 +481,8 @@ class FriendsInfo {
     required this.month,
     required this.invitees,
     this.link,
+    this.firstBonus = 0,
+    this.firstBonusMin = 0,
   });
 
   final String code;
@@ -487,6 +494,10 @@ class FriendsInfo {
   final double total;
   final double month;
   final List<Invitee> invitees;
+
+  /// Разовый бонус за первую покупку приглашённого друга (0 — выключен) и минимальный чек.
+  final double firstBonus;
+  final double firstBonusMin;
 
   double get level1 => levels.isEmpty ? 0 : levels.first;
   double get level2 => levels.length < 2 ? 0 : levels[1];
@@ -502,6 +513,8 @@ class FriendsInfo {
       countL2: asInt(json['count_l2']),
       total: asMoney(json['total']),
       month: asMoney(json['month']),
+      firstBonus: asMoney(json['first_bonus']),
+      firstBonusMin: asMoney(json['first_bonus_min']),
       invitees: raw is List
           ? [for (final item in raw) Invitee.fromJson(asMap(item))]
           : const [],
@@ -588,6 +601,9 @@ class PendingCheck {
     this.coin10Available = false,
     this.coinDeclined = false,
     this.coinSuggested = false,
+    this.roundBurn,
+    this.roundCash,
+    this.roundSuggested = false,
     this.cardAmount = 0,
     this.toPay,
     this.cashToPay,
@@ -632,6 +648,11 @@ class PendingCheck {
   final bool coin10Available;
   final bool coinDeclined;
   final bool coinSuggested;
+
+  /// «Без сдачи» (ТЗ 24.11.2026, п. 1): списать roundBurn — доплата деньгами roundCash.
+  final double? roundBurn;
+  final double? roundCash;
+  final bool roundSuggested;
   final double cardAmount;
   final double? toPay;
   final double? cashToPay;
@@ -683,6 +704,9 @@ class PendingCheck {
       coin10Available: json['coin10_available'] == true,
       coinDeclined: json['coin_declined'] == true,
       coinSuggested: json['coin_suggested'] == true,
+      roundBurn: asMoneyOrNull(json['round_burn']),
+      roundCash: asMoneyOrNull(json['round_cash']),
+      roundSuggested: json['round_suggested'] == true,
       cardAmount: asMoney(json['card_amount']),
       toPay: asMoneyOrNull(json['to_pay']),
       cashToPay:
@@ -897,20 +921,28 @@ class RulesInfo {
     required this.statuses,
     required this.referralLevels,
     required this.months,
+    this.firstBonus = 0,
+    this.firstBonusMin = 0,
     this.burnMin = 0,
     this.stackAbs = 0,
     this.welcomeBonus,
+    this.burnKeepsCashback = false,
   });
 
   final List<double> thresholds;
   final List<TierRule> statuses;
   final List<double> referralLevels;
   final int months;
+  final double firstBonus;
+  final double firstBonusMin;
   final double burnMin;
   final double stackAbs;
 
   /// Подарок за регистрацию (смн), `null` — выключен.
   final double? welcomeBonus;
+
+  /// Кешбэк с оплаты деньгами при любом списании (24.11.2026).
+  final bool burnKeepsCashback;
 
   double get level1 => referralLevels.isEmpty ? 0 : referralLevels.first;
   double get level2 => referralLevels.length < 2 ? 0 : referralLevels[1];
@@ -927,9 +959,12 @@ class RulesInfo {
           : const [],
       referralLevels: asDoubleList(referral['levels']),
       months: asInt(referral['months']),
+      firstBonus: asMoney(referral['first_bonus']),
+      firstBonusMin: asMoney(referral['first_bonus_min']),
       burnMin: asMoney(json['burn_min']),
       stackAbs: asMoney(json['stack_abs']),
       welcomeBonus: _positiveBonus(json['welcome_bonus']),
+      burnKeepsCashback: json['burn_keeps_cashback'] == true,
     );
   }
 }
@@ -1455,4 +1490,155 @@ int? _positiveInt(Object? value) {
   final parsed = asIntOrNull(value);
   if (parsed == null || parsed <= 0) return null;
   return parsed;
+}
+
+/// Чек, за который выдан промокод розыгрыша.
+class RaffleBill {
+  const RaffleBill({
+    required this.id,
+    required this.extId,
+    required this.amount,
+  });
+
+  final int id;
+  final String extId;
+  final double amount;
+
+  factory RaffleBill.fromJson(Map<String, dynamic> json) {
+    return RaffleBill(
+      id: asInt(json['id']),
+      extId: asString(json['ext_id']),
+      amount: asMoney(json['amount']),
+    );
+  }
+}
+
+/// Промокод клиента в розыгрыше: `active`, `cancelled` (возврат) или `won`.
+class RaffleCode {
+  const RaffleCode({
+    required this.code,
+    required this.state,
+    this.place,
+    this.cancelReason,
+    this.createdAt,
+    this.bill,
+  });
+
+  final String code;
+  final String state;
+  final int? place;
+  final String? cancelReason;
+  final DateTime? createdAt;
+  final RaffleBill? bill;
+
+  bool get isWon => state == 'won';
+  bool get isCancelled => state == 'cancelled';
+  bool get isActive => state == 'active';
+
+  factory RaffleCode.fromJson(Map<String, dynamic> json) {
+    final state = asString(json['state']);
+    return RaffleCode(
+      code: asString(json['code']),
+      state: state.isEmpty ? 'active' : state,
+      place: asIntOrNull(json['place']),
+      cancelReason: asStringOrNull(json['cancel_reason']),
+      createdAt: _dateOrNull(json['created_at']),
+      bill: json['bill'] is Map ? RaffleBill.fromJson(asMap(json['bill'])) : null,
+    );
+  }
+}
+
+class RaffleWinner {
+  const RaffleWinner({required this.code, required this.place});
+
+  final String code;
+  final int place;
+
+  factory RaffleWinner.fromJson(Map<String, dynamic> json) {
+    return RaffleWinner(
+      code: asString(json['code']),
+      place: asInt(json['place']),
+    );
+  }
+}
+
+/// Розыгрыш (ТЗ 24.11.2026, п. 3): за каждые полные `stepAmount` смн чека в период — промокод.
+class RaffleInfo {
+  const RaffleInfo({
+    required this.id,
+    required this.title,
+    required this.prizes,
+    required this.startsOn,
+    required this.endsOn,
+    required this.stepAmount,
+    required this.winnersCount,
+    required this.state,
+    this.drawnAt,
+    this.codes = const [],
+    this.winners = const [],
+  });
+
+  final int id;
+  final String title;
+  final String prizes;
+  final String startsOn;
+  final String endsOn;
+  final double stepAmount;
+  final int winnersCount;
+  final String state;
+  final DateTime? drawnAt;
+  final List<RaffleCode> codes;
+  final List<RaffleWinner> winners;
+
+  bool get isActive => state == 'active';
+  bool get isDrawn => state == 'drawn';
+
+  int get liveCodesCount => codes.where((c) => !c.isCancelled).length;
+
+  factory RaffleInfo.fromJson(Map<String, dynamic> json) {
+    final rawCodes = json['codes'];
+    final rawWinners = json['winners'];
+    final state = asString(json['state']);
+    return RaffleInfo(
+      id: asInt(json['id']),
+      title: asString(json['title']),
+      prizes: asString(json['prizes']),
+      startsOn: asString(json['starts_on']),
+      endsOn: asString(json['ends_on']),
+      stepAmount: asMoney(json['step_amount']),
+      winnersCount: asInt(json['winners_count']),
+      state: state.isEmpty ? 'upcoming' : state,
+      drawnAt: _dateOrNull(json['drawn_at']),
+      codes: rawCodes is List
+          ? [for (final item in rawCodes) RaffleCode.fromJson(asMap(item))]
+          : const [],
+      winners: rawWinners is List
+          ? [for (final item in rawWinners) RaffleWinner.fromJson(asMap(item))]
+          : const [],
+    );
+  }
+}
+
+class RafflesResponse {
+  const RafflesResponse({
+    this.current,
+    this.raffles = const [],
+    this.activeCodes = 0,
+  });
+
+  final RaffleInfo? current;
+  final List<RaffleInfo> raffles;
+  final int activeCodes;
+
+  factory RafflesResponse.fromJson(Map<String, dynamic> json) {
+    final rawCurrent = json['current'];
+    final rawRaffles = json['raffles'];
+    return RafflesResponse(
+      current: rawCurrent is Map ? RaffleInfo.fromJson(asMap(rawCurrent)) : null,
+      raffles: rawRaffles is List
+          ? [for (final item in rawRaffles) RaffleInfo.fromJson(asMap(item))]
+          : const [],
+      activeCodes: asInt(json['active_codes']),
+    );
+  }
 }

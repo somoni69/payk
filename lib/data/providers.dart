@@ -46,6 +46,27 @@ final friendsProvider = FutureProvider<FriendsInfo>((ref) async {
   return ref.watch(loyaltyApiProvider).friends();
 });
 
+final rafflesProvider = FutureProvider<RafflesResponse>((ref) async {
+  final token = ref.watch(sessionProvider.select((session) => session.accessToken));
+  if (token == null || token.isEmpty) {
+    throw ApiException(401, 'Войдите снова');
+  }
+  return ref.watch(loyaltyApiProvider).raffles();
+});
+
+final rafflesPreviewProvider = FutureProvider<RafflesResponse?>(
+  (ref) async {
+    final token = ref.watch(sessionProvider.select((session) => session.accessToken));
+    if (token == null || token.isEmpty) return null;
+    try {
+      return await ref.watch(loyaltyApiProvider).raffles();
+    } catch (_) {
+      return null;
+    }
+  },
+  retry: (_, _) => null,
+);
+
 final sizeOffersProvider = FutureProvider<List<SizeOffer>>((ref) async {
   final token = ref.watch(sessionProvider.select((session) => session.accessToken));
   if (token == null || token.isEmpty) return const [];

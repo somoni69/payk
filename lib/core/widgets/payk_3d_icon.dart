@@ -442,3 +442,27 @@ class Gift3dIcon extends StatelessWidget {
     );
   }
 }
+
+/// 3D-виджет кубка (`assets/3d/trophy.webp`) для выигрышей и розыгрышей.
+class Trophy3dIcon extends StatelessWidget {
+  const Trophy3dIcon({
+    super.key,
+    this.size = 24,
+    this.fallbackColor = PaykColors.primary,
+  });
+
+  static const assetPath = 'assets/3d/trophy.webp';
+
+  final double size;
+  final Color fallbackColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Payk3dIcon(
+      assetPath: assetPath,
+      fallbackIcon: Icons.emoji_events_outlined,
+      size: size,
+      fallbackColor: fallbackColor,
+    );
+  }
+}

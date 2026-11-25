@@ -175,7 +175,11 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen>
       final previous = _pending;
       setState(() {
         final next = snapshot.pending;
-        if (next?.id != _pending?.id) _paymentHidden = false;
+        final roundOffered = next != null &&
+            next.roundSuggested &&
+            next.roundBurn != null &&
+            !(previous?.roundSuggested ?? false);
+        if (next?.id != _pending?.id || roundOffered) _paymentHidden = false;
         _pending = next;
         _fetchedAt = _now();
       });
@@ -199,6 +203,8 @@ class _ClientCodeScreenState extends ConsumerState<ClientCodeScreen>
     ref.invalidate(meProvider);
     ref.invalidate(historyProvider);
     ref.invalidate(friendsProvider);
+    ref.invalidate(rafflesProvider);
+    ref.invalidate(rafflesPreviewProvider);
   }
 
   Widget _paymentChild(String locale) {
@@ -653,6 +659,10 @@ class _SpendChoiceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final wallet = account?.wallet;
+    final keepsCashback = account?.burnKeepsCashback == true;
+    final options = keepsCashback
+        ? const [SpendPref.earn, SpendPref.max]
+        : SpendPref.values;
     final rawCoupon = account?.coupon;
     final coupon =
         rawCoupon != null && rawCoupon.status == 'issued' ? rawCoupon : null;
@@ -717,18 +727,22 @@ class _SpendChoiceCard extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  for (var i = 0; i < SpendPref.values.length; i++) ...[
+                  for (var i = 0; i < options.length; i++) ...[
                     if (i > 0) const SizedBox(width: 4),
                     Expanded(
                       child: _SpendOptionButton(
-                        key: ValueKey('spend-${SpendPref.values[i].apiValue}'),
+                        key: ValueKey('spend-${options[i].apiValue}'),
                         label: tr(
                           locale,
-                          'code.spend.${SpendPref.values[i].apiValue}',
+                          'code.spend.${options[i].apiValue}',
                         ),
-                        selected: choice.spend == SpendPref.values[i],
+                        selected:
+                            choice.spend == options[i] ||
+                            (keepsCashback &&
+                                options[i] == SpendPref.max &&
+                                choice.spend == SpendPref.keep),
                         onTap: () => onPick(
-                          choice.copyWith(spend: SpendPref.values[i]),
+                          choice.copyWith(spend: options[i]),
                         ),
                       ),
                     ),
@@ -739,7 +753,14 @@ class _SpendChoiceCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            tr(locale, 'code.spend.${choice.spend.apiValue}Text'),
+            keepsCashback
+                ? tr(
+                    locale,
+                    choice.spend == SpendPref.earn
+                        ? 'code.spend.earnText'
+                        : 'code.spend.maxTextKeep',
+                  )
+                : tr(locale, 'code.spend.${choice.spend.apiValue}Text'),
             style: const TextStyle(
               fontFamily: 'Inter',
               fontSize: 13,

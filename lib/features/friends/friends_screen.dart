@@ -201,6 +201,40 @@ class _FriendsBody extends StatelessWidget {
                                     ),
                                   ),
                                 ),
+                                if (friends.firstBonus > 0) ...[
+                                  const SizedBox(height: 10),
+                                  Padding(
+                                    padding: const EdgeInsets.only(right: 108),
+                                    child: Container(
+                                      key: const ValueKey('friends-first-bonus'),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(999),
+                                      ),
+                                      child: Text(
+                                        friends.firstBonusMin > 0
+                                            ? tr(locale, 'friends.firstBonusMin', {
+                                                'bonus': formatMoneyAuto(friends.firstBonus),
+                                                'min': formatMoneyAuto(friends.firstBonusMin),
+                                              })
+                                            : tr(locale, 'friends.firstBonus', {
+                                                'bonus': formatMoneyAuto(friends.firstBonus),
+                                              }),
+                                        style: const TextStyle(
+                                          fontFamily: 'Inter',
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                           ),

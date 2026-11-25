@@ -280,6 +280,12 @@ class LoyaltyApi {
     return FriendsInfo.fromJson(asMap(json));
   }
 
+  /// «Мои промокоды» (ТЗ 24.11.2026, п. 3): текущий розыгрыш и розыгрыши с кодами клиента.
+  Future<RafflesResponse> raffles() async {
+    final json = await _client.send('/me/raffles');
+    return RafflesResponse.fromJson(asMap(json));
+  }
+
   Future<List<LoyaltyMessageItem>> messages({int? beforeId}) async {
     final query = beforeId != null ? '?before_id=$beforeId' : '';
     final json = asMap(await _client.send('/me/messages$query'));

@@ -89,8 +89,12 @@ class _PendingPaymentHostState extends ConsumerState<PendingPaymentHost> {
       final previous = _pending;
       final next = snapshot.pending;
       if (previous != null || next != null) {
+        final roundOffered = next != null &&
+            next.roundSuggested &&
+            next.roundBurn != null &&
+            !(previous?.roundSuggested ?? false);
         setState(() {
-          if (next?.id != _pending?.id) _hidden = false;
+          if (next?.id != _pending?.id || roundOffered) _hidden = false;
           _pending = next;
           _fetchedAt = DateTime.now();
         });
@@ -130,6 +134,8 @@ class _PendingPaymentHostState extends ConsumerState<PendingPaymentHost> {
     ref.invalidate(meProvider);
     ref.invalidate(historyProvider);
     ref.invalidate(friendsProvider);
+    ref.invalidate(rafflesProvider);
+    ref.invalidate(rafflesPreviewProvider);
   }
 
   @override

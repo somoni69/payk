@@ -25,6 +25,7 @@ import '../../data/providers.dart';
 import '../code/client_code_screen.dart';
 import '../notifications/notifications_screen.dart';
 import '../profile/profile_screen.dart';
+import '../raffles/raffles_screen.dart';
 import '../sizes/size_offers_screen.dart';
 import '../sizes/sizes_screen.dart';
 import '../store/almosi_store_screen.dart';
@@ -82,6 +83,7 @@ class _HomeBody extends ConsumerWidget {
       displacement: 28,
       onRefresh: () async {
         ref.invalidate(meProvider);
+        ref.invalidate(rafflesPreviewProvider);
         try {
           await ref.read(meProvider.future);
         } catch (_) {}
@@ -215,6 +217,8 @@ class _HomeBody extends ConsumerWidget {
             const SizedBox(height: 14),
           ],
 
+          _HomeRaffleSection(locale: locale),
+
           _HomeOffersSection(locale: locale),
 
           if (isSizesEmpty(member))
@@ -243,6 +247,112 @@ class _HomeBody extends ConsumerWidget {
 
           const SizedBox(height: 96),
         ],
+      ),
+    );
+  }
+}
+
+/// Главная: карточка активного розыгрыша со ссылкой на «Мои промокоды» (ТЗ 24.11.2026, п. 3).
+class _HomeRaffleSection extends ConsumerWidget {
+  const _HomeRaffleSection({required this.locale});
+
+  final String locale;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final data = ref.watch(rafflesPreviewProvider).asData?.value;
+    final current = data?.current;
+    if (data == null || current == null || !current.isActive) {
+      return const SizedBox.shrink();
+    }
+
+    var mine = 0;
+    for (final raffle in data.raffles) {
+      if (raffle.id == current.id) {
+        mine = raffle.liveCodesCount;
+        break;
+      }
+    }
+    final unit = locale == 'tj'
+        ? 'промокод'
+        : plural(mine, 'промокод', 'промокода', 'промокодов');
+    final ruleText = tr(locale, 'raffle.homeText', {
+      'amount': formatMoneyAuto(current.stepAmount),
+    });
+    final subtitle = mine > 0
+        ? '$ruleText · ${tr(locale, 'raffle.homeCodes', {'n': '$mine', 'unit': unit})}'
+        : ruleText;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+      child: RepaintBoundary(
+        child: PaykPressable(
+          scaleDown: PaykMotion.scaleSubtle,
+          onTap: () {
+            HapticFeedback.lightImpact();
+            PaykMotion.push<void>(
+              context,
+              '/raffles',
+              fallback: () => const RafflesScreen(),
+            );
+          },
+          child: Container(
+            key: const ValueKey('home-raffle'),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: PaykColors.brandSoft,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: PaykColors.primary.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Ticket3dIcon(size: 42),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tr(locale, 'raffle.homeTitle', {'title': current.title}),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: PaykColors.textPrimary,
+                          height: 1.25,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: PaykColors.textSecondary,
+                          height: 1.3,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: PaykColors.textMuted,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

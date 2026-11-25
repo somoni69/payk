@@ -24,6 +24,7 @@ import '../../data/models/models.dart';
 import '../../data/providers.dart';
 import '../friends/friends_screen.dart';
 import '../history/history_screen.dart';
+import '../raffles/raffles_screen.dart';
 import '../rules/rules_screen.dart';
 import '../sizes/size_offers_screen.dart';
 import '../sizes/sizes_screen.dart';
@@ -174,6 +175,18 @@ class ProfileScreen extends ConsumerWidget {
                         context,
                         '/size-offers',
                         fallback: () => const SizeOffersScreen(),
+                      );
+                    },
+                  ),
+                  _ProfileMenuItem(
+                    iconWidget: const Ticket3dIcon(size: 28),
+                    title: tr(locale, 'profile.raffles'),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      PaykMotion.push<void>(
+                        context,
+                        '/raffles',
+                        fallback: () => const RafflesScreen(),
                       );
                     },
                   ),

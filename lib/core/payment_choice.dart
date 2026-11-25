@@ -30,6 +30,7 @@ bool needsChoice(PendingCheck check) {
   return canBurnOn(check) ||
       couponOffered(check) ||
       (check.coinSuggested && check.coin10Available) ||
+      (check.roundSuggested && check.roundBurn != null) ||
       check.clientConfirmed;
 }
 
@@ -62,6 +63,8 @@ bool sameCheckNumbers(PendingCheck a, PendingCheck b) {
       a.y == b.y &&
       a.cardAmount == b.cardAmount &&
       a.coin10Available == b.coin10Available &&
+      a.roundBurn == b.roundBurn &&
+      a.roundCash == b.roundCash &&
       a.toPay == b.toPay &&
       a.amountBeforeCoupon == b.amountBeforeCoupon &&
       a.coupon?.offer == b.coupon?.offer &&

@@ -12,7 +12,9 @@ import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
+import '../friends/friends_screen.dart';
 import '../history/receipt_detail_screen.dart';
+import '../raffles/raffles_screen.dart';
 import '../sizes/size_offers_screen.dart';
 
 /// Отдельный полноценный экран уведомлений и сообщений в стиле UDC / Payk
@@ -78,6 +80,22 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
       context,
       '/size-offers',
       fallback: () => const SizeOffersScreen(),
+    );
+  }
+
+  void _openRaffles(BuildContext context) {
+    PaykMotion.push<void>(
+      context,
+      '/raffles',
+      fallback: () => const RafflesScreen(),
+    );
+  }
+
+  void _openFriends(BuildContext context) {
+    PaykMotion.push<void>(
+      context,
+      '/friends',
+      fallback: () => const FriendsScreen(),
     );
   }
 
@@ -235,6 +253,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                             : item,
                         locale: locale,
                         onOpenOffers: () => _openOffers(context),
+                        onOpenRaffles: () => _openRaffles(context),
+                        onOpenFriends: () => _openFriends(context),
                         onOpenReceipt: item.billId != null
                             ? () => _openReceipt(context, item)
                             : null,
@@ -427,12 +447,16 @@ class _NotificationCard extends StatelessWidget {
     required this.item,
     required this.locale,
     required this.onOpenOffers,
+    required this.onOpenRaffles,
+    required this.onOpenFriends,
     this.onOpenReceipt,
   });
 
   final LoyaltyMessageItem item;
   final String locale;
   final VoidCallback onOpenOffers;
+  final VoidCallback onOpenRaffles;
+  final VoidCallback onOpenFriends;
   final VoidCallback? onOpenReceipt;
 
   String _kindTitle() {
@@ -449,8 +473,17 @@ class _NotificationCard extends StatelessWidget {
     final hasOffersLink =
         !hasReceiptLink &&
         (item.kind == 'size_flash' || item.kind == 'size_new');
+    final hasRafflesLink =
+        !hasReceiptLink &&
+        (item.kind == 'raffle_code' || item.kind == 'raffle_win');
+    final hasFriendsLink =
+        !hasReceiptLink && item.kind == 'referral_bonus';
     final isGiftKind =
-        item.kind == 'welcome_bonus' || item.kind == 'dob_bonus';
+        item.kind == 'welcome_bonus' ||
+        item.kind == 'dob_bonus' ||
+        item.kind == 'referral_bonus';
+    final isWinKind = item.kind == 'raffle_win';
+    final isRaffleCodeKind = item.kind == 'raffle_code';
 
     final card = AnimatedContainer(
       duration: PaykMotion.duration(context, PaykMotion.normal),
@@ -492,6 +525,10 @@ class _NotificationCard extends StatelessWidget {
                   opacity: isUnread ? 1.0 : 0.72,
                   child: hasOffersLink
                       ? const SizeOffers3dIcon(size: 24)
+                      : isWinKind
+                      ? const Trophy3dIcon(size: 24)
+                      : isRaffleCodeKind
+                      ? const Ticket3dIcon(size: 24)
                       : isGiftKind
                       ? const Gift3dIcon(size: 24)
                       : const Bell3dIcon(size: 24),
@@ -593,6 +630,76 @@ class _NotificationCard extends StatelessWidget {
                   children: [
                     Text(
                       tr(locale, 'messages.openOffers'),
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: PaykColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 16,
+                      color: PaykColors.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (hasRafflesLink) ...[
+            const SizedBox(height: 12),
+            PaykPressable(
+              scaleDown: PaykMotion.scaleButton,
+              onTap: onOpenRaffles,
+              child: Container(
+                key: ValueKey('message-raffles-${item.id}'),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: PaykColors.activePill,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      tr(locale, 'messages.openRaffles'),
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: PaykColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      size: 16,
+                      color: PaykColors.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          if (hasFriendsLink) ...[
+            const SizedBox(height: 12),
+            PaykPressable(
+              scaleDown: PaykMotion.scaleButton,
+              onTap: onOpenFriends,
+              child: Container(
+                key: ValueKey('message-friends-${item.id}'),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: PaykColors.activePill,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      tr(locale, 'messages.openFriends'),
                       style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 13,

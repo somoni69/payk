@@ -727,6 +727,9 @@ class _ReceiptLineTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final fullRet = line.isFullReturned;
     final partialRet = line.isPartialReturned;
+    // Скидка строки (ТЗ 24.11.2026, п. 4): цена × количество больше суммы строки — скидка кассы или купон.
+    final discount =
+        ((line.qty * line.price - line.amount) * 100).round() / 100.0;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -753,6 +756,22 @@ class _ReceiptLineTile extends StatelessWidget {
                   color: PaykColors.textSecondary,
                 ),
               ),
+              if (discount >= 0.01 && !fullRet) ...[
+                const SizedBox(height: 2),
+                Text(
+                  tr(locale, 'receipts.line.discount', {
+                    'amount': formatMoney(-discount),
+                  }),
+                  key: ValueKey('receipt-line-discount-${line.lineNo}'),
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: PaykColors.success,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
               if (fullRet || partialRet) ...[
                 const SizedBox(height: 4),
                 Container(

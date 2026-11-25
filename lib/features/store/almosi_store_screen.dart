@@ -578,7 +578,13 @@ class AlmosiDirectionScreen extends ConsumerWidget {
                     'tier': tierName,
                     'pct': burnPct,
                   }),
-                  tr(locale, 'store.burnRule2', {'pct': burnPct}),
+                  tr(
+                    locale,
+                    account.burnKeepsCashback
+                        ? 'store.burnRule2Keep'
+                        : 'store.burnRule2',
+                    {'pct': burnPct},
+                  ),
                   tr(locale, 'store.burnRule3'),
                 ],
               ),

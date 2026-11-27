@@ -54,12 +54,34 @@ class GoogleAuthService {
       }
       return token;
     } on GoogleSignInException catch (error) {
-      if (error.code == GoogleSignInExceptionCode.canceled ||
-          error.code == GoogleSignInExceptionCode.interrupted) {
+      debugPrint(
+        'GoogleSignInException(${error.code}): ${error.description} ${error.details}',
+      );
+      if (isSilentUserCancel(error)) {
         return null;
       }
       rethrow;
     }
+  }
+
+  /// Play Services часто оборачивает ошибку конфигурации SHA-1/OAuth
+  /// (`[16] Account reauth failed`, `28444`) в `GetCredentialCancellationException`.
+  /// Настоящую отмену пользователем игнорируем, а сбой конфигурации показываем.
+  @visibleForTesting
+  static bool isSilentUserCancel(GoogleSignInException error) {
+    if (error.code != GoogleSignInExceptionCode.canceled &&
+        error.code != GoogleSignInExceptionCode.interrupted) {
+      return false;
+    }
+    final desc = (error.description ?? '').toLowerCase();
+    if (desc.contains('reauth') ||
+        desc.contains('[16]') ||
+        desc.contains('28444') ||
+        desc.contains('developer') ||
+        desc.contains('configuration')) {
+      return false;
+    }
+    return true;
   }
 
   Future<void> signOut() async {

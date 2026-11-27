@@ -79,7 +79,8 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
         if (error.status == 503) _googleDisabledByServer = true;
         _googleError = errorText(error);
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('Google Sign-In failed: $error\n$stackTrace');
       if (!mounted) return;
       setState(() => _googleError = tr(locale, 'google.failed'));
     } finally {

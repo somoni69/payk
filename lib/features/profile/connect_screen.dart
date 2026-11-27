@@ -159,7 +159,8 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
       }
     } on ApiException catch (error) {
       if (mounted) showPaykMessage(context, errorText(error));
-    } catch (_) {
+    } catch (error, stackTrace) {
+      debugPrint('Google link failed: $error\n$stackTrace');
       if (mounted) showPaykMessage(context, tr(locale, 'google.failed'));
     } finally {
       if (mounted) setState(() => _googleBusy = false);

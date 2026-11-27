@@ -112,9 +112,10 @@ void main() {
         expect(find.byIcon(Icons.chat_bubble_outline_rounded), findsOneWidget);
         expect(find.byIcon(Icons.send_rounded), findsOneWidget);
 
-        // Галочка зеленая на SMS и плюс на Telegram (потому что telegram: false)
+        // Галочка зеленая на SMS и плюсы на Telegram + Google (потому что не привязаны)
+        expect(find.byKey(const ValueKey('method-google')), findsOneWidget);
         expect(find.byIcon(Icons.check_rounded), findsOneWidget);
-        expect(find.byIcon(Icons.add_rounded), findsOneWidget);
+        expect(find.byIcon(Icons.add_rounded), findsNWidgets(2));
 
         // 3. Баннер «Статусҳои ПАЙК» (первый слайд скроллящейся карусели)
         expect(find.text('Статусҳои ПАЙК'), findsOneWidget);
@@ -262,7 +263,7 @@ void main() {
       ); // Menu item + modal header
       expect(find.text('WhatsApp · MSX Алмоси'), findsOneWidget);
       expect(find.textContaining('+992 55 551 82 20'), findsNWidgets(2));
-      expect(find.byType(SvgPicture), findsNWidgets(2));
+      expect(find.byType(SvgPicture), findsNWidgets(3));
       expect(find.byIcon(Icons.chat_rounded), findsNothing);
     });
   });

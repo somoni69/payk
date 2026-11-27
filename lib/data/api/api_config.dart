@@ -30,10 +30,11 @@ class ApiConfig {
   );
 
   /// Веб OAuth Client ID сервера PAYK (`GOOGLE_OAUTH_CLIENT_ID`) для нативного Google Sign-In.
-  /// Передаётся через `--dart-define=GOOGLE_SERVER_CLIENT_ID=...`. Пусто — кнопка Google скрыта.
+  /// Можно переопределить через `--dart-define=GOOGLE_SERVER_CLIENT_ID=...` (пустое значение скроет кнопку).
   static const googleServerClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',
-    defaultValue: '',
+    defaultValue:
+        '504084251664-teedidul1839hu2i1cq17ka0v2dm2fvk.apps.googleusercontent.com',
   );
 
   /// Ссылка-приглашение участника: адрес с сервера (`member.referral_link` / `friends.link`),

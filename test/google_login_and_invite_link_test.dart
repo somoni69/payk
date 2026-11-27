@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -281,6 +282,27 @@ void main() {
         platformOverride: TargetPlatform.android,
       );
       expect(androidReady.isAvailable, isTrue);
+    });
+
+    test('treats Play Services [16] Account reauth failed as an error, not silent cancel', () {
+      expect(
+        GoogleAuthService.isSilentUserCancel(
+          const GoogleSignInException(
+            code: GoogleSignInExceptionCode.canceled,
+            description: 'activity is cancelled by the user.',
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        GoogleAuthService.isSilentUserCancel(
+          const GoogleSignInException(
+            code: GoogleSignInExceptionCode.canceled,
+            description: '[16] Account reauth failed.',
+          ),
+        ),
+        isFalse,
+      );
     });
   });
 

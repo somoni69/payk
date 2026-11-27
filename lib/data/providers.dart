@@ -2,12 +2,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/size_offers_logic.dart';
 import 'api/api_exception.dart';
+import 'auth/google_auth_service.dart';
 import 'models/models.dart';
 import 'referral/referral_service.dart';
 import 'session/session_controller.dart';
 
+export 'auth/google_auth_service.dart';
 export 'referral/referral_service.dart';
 export 'session/session_controller.dart';
+
+final googleAuthServiceProvider = Provider<GoogleAuthService>((ref) {
+  return GoogleAuthService();
+});
 
 final referralServiceProvider = Provider<ReferralService>((ref) {
   final service = ReferralService();

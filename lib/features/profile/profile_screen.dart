@@ -12,6 +12,7 @@ import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
 import '../../core/widgets/birth_date_fields.dart';
+import '../../core/widgets/google_widgets.dart';
 import '../../core/widgets/message.dart';
 import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/payk_avatar.dart';
@@ -114,6 +115,9 @@ class ProfileScreen extends ConsumerWidget {
                     child: _LoginMethodsBanner(
                       locale: locale,
                       member: member,
+                      showGoogle:
+                          member.google != null ||
+                          ref.watch(googleAuthServiceProvider).isAvailable,
                       onTap: () {
                         HapticFeedback.lightImpact();
                         PaykMotion.push<void>(
@@ -343,11 +347,13 @@ class _LoginMethodsBanner extends StatelessWidget {
   const _LoginMethodsBanner({
     required this.locale,
     required this.member,
+    required this.showGoogle,
     required this.onTap,
   });
 
   final String locale;
   final Member member;
+  final bool showGoogle;
   final VoidCallback onTap;
 
   @override
@@ -406,6 +412,21 @@ class _LoginMethodsBanner extends StatelessWidget {
                 highlightColor: Colors.transparent,
                 child: const _SocialCheckBadge(type: _SocialBadgeType.sms),
               ),
+              if (showGoogle) ...[
+                const SizedBox(width: 12),
+                InkWell(
+                  key: const ValueKey('method-google'),
+                  onTap: onTap,
+                  borderRadius: BorderRadius.circular(12),
+                  splashFactory: NoSplash.splashFactory,
+                  splashColor: Colors.transparent,
+                  highlightColor: Colors.transparent,
+                  child: _SocialCheckBadge(
+                    type: _SocialBadgeType.google,
+                    isConnected: member.google != null,
+                  ),
+                ),
+              ],
               const SizedBox(width: 12),
               InkWell(
                 onTap: onTap,
@@ -426,7 +447,7 @@ class _LoginMethodsBanner extends StatelessWidget {
   }
 }
 
-enum _SocialBadgeType { sms, telegram }
+enum _SocialBadgeType { sms, google, telegram }
 
 class _SocialCheckBadge extends StatelessWidget {
   const _SocialCheckBadge({required this.type, this.isConnected = true});
@@ -437,6 +458,7 @@ class _SocialCheckBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSms = type == _SocialBadgeType.sms;
+    final isGoogle = type == _SocialBadgeType.google;
 
     return SizedBox(
       width: 48,
@@ -459,6 +481,8 @@ class _SocialCheckBadge extends StatelessWidget {
                     size: 22,
                     color: PaykColors.primary,
                   )
+                : isGoogle
+                ? const GoogleMark(size: 22)
                 : const Icon(
                     Icons.send_rounded,
                     size: 22,

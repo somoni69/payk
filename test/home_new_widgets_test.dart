@@ -132,12 +132,14 @@ void main() {
       expect(find.text('Статуси ман'), findsNothing);
       expect(find.byType(LinearProgressIndicator), findsNothing);
 
-      // 2. Дӯстонро даъват кунед card
+      // 2. Дӯстонро даъват кунед card (ссылка-приглашение вместо кода)
       expect(
         find.text('Дӯстонро даъват кунед ва аз харидҳои онҳо 1% гиред'),
         findsOneWidget,
       );
-      expect(find.text('SO - 4654'), findsOneWidget);
+      expect(find.byKey(const ValueKey('home-referral-link')), findsOneWidget);
+      expect(find.text('payk-loyalty.vercel.app'), findsOneWidget);
+      expect(find.text('/r/SO-4654'), findsOneWidget);
       expect(find.byIcon(Icons.arrow_forward_rounded), findsOneWidget);
       expect(find.byIcon(Icons.help_outline_rounded), findsNothing);
 
@@ -169,30 +171,39 @@ void main() {
     });
 
     testWidgets(
-      'Tapping on referral code copies it to clipboard and shows snackbar',
+      'Tapping on referral link copies full URL to clipboard and shows snackbar',
       (tester) async {
         tester.view.physicalSize = const Size(1080, 4000);
         tester.view.devicePixelRatio = 2.0;
         addTearDown(tester.view.resetPhysicalSize);
 
+        String? copiedText;
         tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
           SystemChannels.platform,
           (MethodCall methodCall) async {
             if (methodCall.method == 'Clipboard.setData') {
+              copiedText = (methodCall.arguments as Map)['text'] as String?;
               return null;
             }
             return null;
           },
         );
+        addTearDown(() {
+          tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            SystemChannels.platform,
+            null,
+          );
+        });
 
         await tester.pumpWidget(wrapWithScope(locale: 'tj'));
         await tester.pumpAndSettle();
 
-        await tester.tap(find.text('SO - 4654'));
+        await tester.tap(find.byKey(const ValueKey('home-referral-link')));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
 
-        expect(find.text('Пайванд нусха шуд'), findsOneWidget);
+        expect(copiedText, 'https://payk-loyalty.vercel.app/r/SO-4654');
+        expect(find.text('Пайванд нусха бардошта шуд'), findsOneWidget);
       },
     );
   });

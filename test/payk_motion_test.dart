@@ -545,7 +545,9 @@ void main() {
       await tester.pumpAndSettle();
 
       final gesture = await tester.startGesture(const Offset(200, 300));
-      await gesture.moveBy(const Offset(0, 200));
+      await gesture.moveBy(const Offset(0, 25));
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, 175));
       await tester.pump();
 
       final bleedFinder = find.descendant(
@@ -594,7 +596,9 @@ void main() {
       await tester.pumpAndSettle();
 
       final gesture = await tester.startGesture(const Offset(200, 300));
-      await gesture.moveBy(const Offset(0, 200));
+      await gesture.moveBy(const Offset(0, 25));
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, 175));
       await tester.pump();
 
       final bleedFinder = find.descendant(

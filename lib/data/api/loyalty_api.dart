@@ -60,13 +60,22 @@ class LoyaltyApi {
     return OtpChallenge.fromJson(asMap(json));
   }
 
-  Future<VerifyResult> verify(String phone, String code) async {
+  Future<VerifyResult> verify(
+    String phone,
+    String code, {
+    String? googleTicket,
+  }) async {
+    final ticket = googleTicket?.trim();
     final json = asMap(
       await _client.send(
         '/p/$_slug/verify',
         method: 'POST',
         auth: false,
-        body: {'phone': phone, 'code': code},
+        body: {
+          'phone': phone,
+          'code': code,
+          if (ticket != null && ticket.isNotEmpty) 'google_ticket': ticket,
+        },
       ),
     );
     if (json['status'] == 'register') {
@@ -78,6 +87,61 @@ class LoyaltyApi {
       );
     }
     return VerifyResult.login(TokenPair.fromJson(json));
+  }
+
+  /// «Продолжить с Google» (0078): id_token нативного Google Sign-In.
+  Future<GoogleLoginResult> googleLogin(String idToken) async {
+    final json = asMap(
+      await _client.send(
+        '/p/$_slug/google',
+        method: 'POST',
+        auth: false,
+        body: {'id_token': idToken},
+      ),
+    );
+    return GoogleLoginResult.fromJson(json);
+  }
+
+  /// «Способы входа» → «Привязать Google», шаг 1: аккаунт Google выбран.
+  Future<GoogleLinkStart> linkGoogle(String idToken) async {
+    final json = asMap(
+      await _client.send(
+        '/me/google',
+        method: 'POST',
+        body: {'id_token': idToken},
+      ),
+    );
+    return GoogleLinkStart.fromJson(json);
+  }
+
+  /// Шаг 2: SMS-код на номер участника для подтверждения привязки Google.
+  Future<OtpChallenge> googleLinkCode(String googleTicket) async {
+    final json = asMap(
+      await _client.send(
+        '/me/google/code',
+        method: 'POST',
+        body: {'google_ticket': googleTicket},
+      ),
+    );
+    return OtpChallenge.fromJson(json);
+  }
+
+  /// Шаг 3: подтверждение SMS-кода и привязка Google.
+  Future<GoogleLink?> googleLinkConfirm(String googleTicket, String code) async {
+    final json = asMap(
+      await _client.send(
+        '/me/google/confirm',
+        method: 'POST',
+        body: {'google_ticket': googleTicket, 'code': code},
+      ),
+    );
+    final raw = json['google'];
+    return raw is Map ? GoogleLink.fromJson(asMap(raw)) : null;
+  }
+
+  /// Отвязать Google: вход по номеру с SMS остаётся всегда.
+  Future<void> unlinkGoogle() async {
+    await _client.send('/me/google', method: 'DELETE');
   }
 
   Future<RegisterResult> register(RegisterInput input) async {

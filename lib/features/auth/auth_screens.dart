@@ -13,6 +13,7 @@ import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/widgets/birth_date_fields.dart';
+import '../../core/widgets/google_widgets.dart';
 import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/tajik_phone_field.dart';
 import '../../core/theme/payk_colors.dart';
@@ -33,7 +34,10 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
   final _phone = TextEditingController();
   final _focusNode = FocusNode();
   String? _error;
+  String? _googleError;
   var _busy = false;
+  var _googleBusy = false;
+  var _googleDisabledByServer = false;
 
   @override
   void initState() {
@@ -46,6 +50,50 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
     _focusNode.dispose();
     _phone.dispose();
     super.dispose();
+  }
+
+  Future<void> _continueWithGoogle() async {
+    if (_googleBusy || _busy) return;
+    final locale = ref.read(localeProvider);
+    setState(() {
+      _googleBusy = true;
+      _googleError = null;
+      _error = null;
+    });
+    try {
+      final idToken = await ref.read(googleAuthServiceProvider).requestIdToken();
+      if (!mounted) return;
+      if (idToken == null || idToken.isEmpty) {
+        return;
+      }
+      final loggedIn = await ref
+          .read(sessionProvider.notifier)
+          .loginWithGoogle(idToken);
+      if (!mounted) return;
+      if (loggedIn) {
+        GoRouter.maybeOf(context)?.go('/home');
+      }
+    } on ApiException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        if (error.status == 503) _googleDisabledByServer = true;
+        _googleError = errorText(error);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _googleError = tr(locale, 'google.failed'));
+    } finally {
+      if (mounted) setState(() => _googleBusy = false);
+    }
+  }
+
+  void _dropGoogle() {
+    HapticFeedback.lightImpact();
+    ref.read(sessionProvider.notifier).clearPendingGoogle();
+    setState(() {
+      _error = null;
+      _googleError = null;
+    });
   }
 
   Future<void> _submit() async {
@@ -78,6 +126,13 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
     final hasError = _error != null;
     final locale = ref.watch(localeProvider);
     final welcomeBonus = ref.watch(programProvider).asData?.value.welcomeBonus;
+    final pendingGoogle = ref.watch(
+      sessionProvider.select((s) => s.pendingGoogle),
+    );
+    final showGoogleButton =
+        pendingGoogle == null &&
+        !_googleDisabledByServer &&
+        ref.watch(googleAuthServiceProvider).isAvailable;
 
     return Scaffold(
       backgroundColor: PaykColors.canvas,
@@ -85,26 +140,115 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
           children: [
-            const Text(
-              'Войти в Payk',
-              style: TextStyle(
+            Text(
+              pendingGoogle != null
+                  ? tr(locale, 'google.confirmTitle')
+                  : 'Войти в Payk',
+              style: const TextStyle(
                 fontSize: 30,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.6,
                 color: PaykColors.ink,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Номер телефона станет вашей картой лояльности.',
-              style: TextStyle(
-                color: PaykColors.muted,
-                fontWeight: FontWeight.w500,
-                fontSize: 15,
-                height: 1.4,
+            if (pendingGoogle != null) ...[
+              const SizedBox(height: 14),
+              Container(
+                key: const ValueKey('google-pending'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: PaykColors.sheet,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: PaykColors.border),
+                ),
+                child: Row(
+                  children: [
+                    const GoogleMark(size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tr(locale, 'google.account', {
+                              'email': pendingGoogle.email,
+                            }),
+                            key: const ValueKey('google-pending-email'),
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700,
+                              color: PaykColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            tr(locale, 'google.confirmText'),
+                            style: const TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: PaykColors.textSecondary,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 32),
+              const SizedBox(height: 24),
+            ] else ...[
+              const SizedBox(height: 8),
+              const Text(
+                'Номер телефона станет вашей картой лояльности.',
+                style: TextStyle(
+                  color: PaykColors.muted,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 15,
+                  height: 1.4,
+                ),
+              ),
+              if (showGoogleButton) ...[
+                const SizedBox(height: 24),
+                GoogleContinueButton(
+                  key: const ValueKey('google-continue-btn'),
+                  label: tr(locale, 'google.continue'),
+                  busy: _googleBusy,
+                  onPressed: _busy ? null : _continueWithGoogle,
+                ),
+                if (_googleError != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    key: const ValueKey('google-error'),
+                    children: [
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        size: 15,
+                        color: PaykColors.bad,
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          _googleError!,
+                          style: const TextStyle(
+                            color: PaykColors.bad,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                OrDivider(label: tr(locale, 'google.or')),
+              ] else
+                const SizedBox(height: 32),
+            ],
             AnimatedContainer(
               duration: PaykMotion.duration(context, PaykMotion.micro),
               curve: PaykMotion.easeOut,
@@ -278,6 +422,22 @@ class _PhoneScreenState extends ConsumerState<PhoneScreen> {
                 ),
               ),
             ),
+            if (pendingGoogle != null) ...[
+              const SizedBox(height: 10),
+              TextButton(
+                key: const ValueKey('google-pending-cancel'),
+                onPressed: _busy ? null : _dropGoogle,
+                child: Text(
+                  tr(locale, 'google.cancelHint'),
+                  style: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: PaykColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
             if (welcomeBonus != null && welcomeBonus > 0) ...[
               const SizedBox(height: 20),
               Container(
@@ -412,7 +572,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final phone = ref.watch(sessionProvider).pendingPhone;
+    final session = ref.watch(sessionProvider);
+    final phone = session.pendingPhone;
+    final pendingGoogle = session.pendingGoogle;
+    final locale = ref.watch(localeProvider);
     final digits = _code.text.replaceAll(RegExp(r'\D'), '');
     final isFocused = _focusNode.hasFocus;
     final hasError = _error != null;
@@ -450,6 +613,31 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 height: 1.4,
               ),
             ),
+            if (pendingGoogle != null) ...[
+              const SizedBox(height: 10),
+              Row(
+                key: const ValueKey('google-pending-code'),
+                children: [
+                  const GoogleMark(size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      tr(locale, 'google.account', {
+                        'email': pendingGoogle.email,
+                      }),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: PaykColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 32),
             AnimatedContainer(
               duration: PaykMotion.duration(context, PaykMotion.micro),
@@ -647,6 +835,18 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
     _country = info.countries.contains('TJ')
         ? 'TJ'
         : (info.countries.isEmpty ? 'TJ' : info.countries.first);
+    final pendingGoogle = ref.read(sessionProvider).pendingGoogle;
+    if (pendingGoogle != null) {
+      if (pendingGoogle.firstName.isNotEmpty) {
+        _name.text = pendingGoogle.firstName;
+      }
+      if (pendingGoogle.lastName.isNotEmpty) {
+        _lastName.text = pendingGoogle.lastName;
+      }
+      if (pendingGoogle.email.isNotEmpty) {
+        _email.text = pendingGoogle.email;
+      }
+    }
     _referral.addListener(_onManualReferralChanged);
     _referralService = ref.read(referralServiceProvider);
     _referralService.pendingCodeListenable.addListener(_onIncomingReferralLink);
@@ -742,7 +942,10 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
       setState(() => _error = 'Нужно согласие на обработку данных');
       return;
     }
-    final email = _email.text.trim();
+    final pendingGoogle = ref.read(sessionProvider).pendingGoogle;
+    final email = pendingGoogle?.email.isNotEmpty == true
+        ? pendingGoogle!.email
+        : _email.text.trim();
     final autoMatched = _referralCtx.match.found && !_referralDeclined;
     final rawManual = _referral.text.trim().toUpperCase();
     if (!autoMatched &&
@@ -906,10 +1109,29 @@ class _ProfileFormState extends ConsumerState<_ProfileForm> {
             },
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _email,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(hintText: 'Почта, если есть'),
+          Builder(
+            builder: (context) {
+              final googleEmail = ref.watch(
+                sessionProvider.select((s) => s.pendingGoogle?.email),
+              );
+              final locked = googleEmail != null && googleEmail.isNotEmpty;
+              return TextField(
+                key: ValueKey(locked ? 'register-email-google' : 'register-email'),
+                controller: _email,
+                readOnly: locked,
+                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(
+                  hintText: 'Почта, если есть',
+                  helperText: locked ? tr(locale, 'reg.emailGoogle') : null,
+                  prefixIcon: locked
+                      ? const Padding(
+                          padding: EdgeInsets.all(14),
+                          child: GoogleMark(size: 18),
+                        )
+                      : null,
+                ),
+              );
+            },
           ),
           const SizedBox(height: 12),
           AnimatedSize(

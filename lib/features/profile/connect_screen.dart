@@ -9,9 +9,11 @@ import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
+import '../../core/widgets/google_widgets.dart';
 import '../../core/widgets/message.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
+import '../../data/api/api_exception.dart';
 import '../../data/models/models.dart';
 import '../../data/providers.dart';
 
@@ -29,6 +31,8 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
   String? _error;
   bool _busy = false;
   bool _opened = false;
+  bool _googleBusy = false;
+  GoogleLinkStart? _googlePending;
 
   @override
   void initState() {
@@ -136,6 +140,59 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
     }
   }
 
+  Future<void> _linkGoogle() async {
+    if (_googleBusy) return;
+    final locale = ref.read(localeProvider);
+    setState(() => _googleBusy = true);
+    try {
+      final idToken = await ref.read(googleAuthServiceProvider).requestIdToken();
+      if (!mounted) return;
+      if (idToken == null || idToken.isEmpty) return;
+
+      final res = await ref.read(loyaltyApiProvider).linkGoogle(idToken);
+      if (!mounted) return;
+      if (res.needsConfirm) {
+        setState(() => _googlePending = res);
+      } else {
+        ref.invalidate(meProvider);
+        showPaykMessage(context, tr(locale, 'connect.googleLinked'));
+      }
+    } on ApiException catch (error) {
+      if (mounted) showPaykMessage(context, errorText(error));
+    } catch (_) {
+      if (mounted) showPaykMessage(context, tr(locale, 'google.failed'));
+    } finally {
+      if (mounted) setState(() => _googleBusy = false);
+    }
+  }
+
+  Future<void> _unlinkGoogle() async {
+    if (_googleBusy) return;
+    final locale = ref.read(localeProvider);
+    setState(() => _googleBusy = true);
+    try {
+      await ref.read(loyaltyApiProvider).unlinkGoogle();
+      if (!mounted) return;
+      ref.invalidate(meProvider);
+      showPaykMessage(context, tr(locale, 'connect.googleUnlinked'));
+    } catch (error) {
+      if (mounted) showPaykMessage(context, errorText(error));
+    } finally {
+      if (mounted) setState(() => _googleBusy = false);
+    }
+  }
+
+  void _finishGoogleLink() {
+    final locale = ref.read(localeProvider);
+    setState(() => _googlePending = null);
+    ref.invalidate(meProvider);
+    showPaykMessage(context, tr(locale, 'connect.googleLinked'));
+  }
+
+  void _cancelGoogleLink() {
+    setState(() => _googlePending = null);
+  }
+
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
@@ -181,6 +238,10 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
         data: (account) {
           final member = account.member;
           final isLinked = _link?.linked ?? member.telegram;
+          final googleLink = member.google;
+          final googleAvailable = ref.watch(googleAuthServiceProvider).isAvailable;
+          final showGoogleCard =
+              googleLink != null || _googlePending != null || googleAvailable;
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -244,7 +305,126 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Карточка 2: Telegram
+              // Карточка 2: Google (на Android или если уже привязан)
+              if (showGoogleCard) ...[
+                Container(
+                  key: const ValueKey('connect-google'),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: PaykColors.sheet,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: PaykColors.border),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          _MethodIcon(
+                            ok: googleLink != null,
+                            child: const GoogleMark(size: 24),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Google',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: PaykColors.textPrimary,
+                                    fontFamily: 'Inter',
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  googleLink != null
+                                      ? tr(locale, 'connect.googleOn', {
+                                          'email': googleLink.email,
+                                        })
+                                      : tr(locale, 'connect.googleOff'),
+                                  key: const ValueKey('connect-google-state'),
+                                  style: const TextStyle(
+                                    fontSize: 14.0,
+                                    color: PaykColors.textSecondary,
+                                    fontFamily: 'Inter',
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_googlePending != null) ...[
+                        const SizedBox(height: 16),
+                        _GoogleLinkConfirm(
+                          pending: _googlePending!,
+                          locale: locale,
+                          onDone: _finishGoogleLink,
+                          onCancel: _cancelGoogleLink,
+                        ),
+                      ] else if (googleLink != null) ...[
+                        const SizedBox(height: 16),
+                        PaykPressable(
+                          enabled: !_googleBusy,
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 46,
+                            child: OutlinedButton(
+                              key: const ValueKey('connect-google-unlink'),
+                              onPressed: _googleBusy ? null : _unlinkGoogle,
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFFEF4444)),
+                                foregroundColor: const Color(0xFFEF4444),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                              ),
+                              child: _googleBusy
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text(
+                                      tr(locale, 'connect.googleDisconnect'),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 15,
+                                        fontFamily: 'Inter',
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ] else if (googleAvailable) ...[
+                        const SizedBox(height: 16),
+                        GoogleContinueButton(
+                          key: const ValueKey('connect-google-link'),
+                          label: tr(locale, 'connect.googleConnect'),
+                          busy: _googleBusy,
+                          onPressed: _linkGoogle,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
+              // Карточка 3: Telegram
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -484,6 +664,254 @@ class _ConnectScreenState extends ConsumerState<ConnectScreen> {
           );
         },
       ),
+    );
+  }
+}
+
+class _GoogleLinkConfirm extends ConsumerStatefulWidget {
+  const _GoogleLinkConfirm({
+    required this.pending,
+    required this.locale,
+    required this.onDone,
+    required this.onCancel,
+  });
+
+  final GoogleLinkStart pending;
+  final String locale;
+  final VoidCallback onDone;
+  final VoidCallback onCancel;
+
+  @override
+  ConsumerState<_GoogleLinkConfirm> createState() => _GoogleLinkConfirmState();
+}
+
+class _GoogleLinkConfirmState extends ConsumerState<_GoogleLinkConfirm> {
+  final _code = TextEditingController();
+  Timer? _timer;
+  DateTime? _resendAt;
+  String? _debugCode;
+  String? _error;
+  bool _sending = false;
+  bool _busy = false;
+  String _lastTried = '';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _sendCode();
+    });
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _resendAt != null) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _code.dispose();
+    super.dispose();
+  }
+
+  int get _resendLeft {
+    final target = _resendAt;
+    if (target == null) return 0;
+    final left = target.difference(DateTime.now()).inSeconds;
+    return left > 0 ? left : 0;
+  }
+
+  String _formatCountdown(int seconds) {
+    final m = seconds ~/ 60;
+    final s = (seconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  void _abort(Object error) {
+    if (!mounted) return;
+    showPaykMessage(context, errorText(error));
+    widget.onCancel();
+  }
+
+  Future<void> _sendCode() async {
+    final ticket = widget.pending.ticket;
+    if (ticket == null || ticket.isEmpty || _sending) return;
+    setState(() {
+      _sending = true;
+      _error = null;
+    });
+    try {
+      final res = await ref.read(loyaltyApiProvider).googleLinkCode(ticket);
+      if (!mounted) return;
+      setState(() {
+        _resendAt = DateTime.now().add(Duration(seconds: res.resendIn));
+        _debugCode = res.debugCode;
+        _code.clear();
+        _lastTried = '';
+      });
+    } on ApiException catch (error) {
+      if (error.status == 401) {
+        _abort(error);
+      } else if (mounted) {
+        setState(() => _error = errorText(error));
+      }
+    } catch (error) {
+      if (mounted) setState(() => _error = errorText(error));
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  Future<void> _confirm(String digits) async {
+    final ticket = widget.pending.ticket;
+    if (ticket == null || ticket.isEmpty || _busy) return;
+    _lastTried = digits;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await ref.read(loyaltyApiProvider).googleLinkConfirm(ticket, digits);
+      if (!mounted) return;
+      widget.onDone();
+    } on ApiException catch (error) {
+      if (error.status == 401 || error.status == 409) {
+        _abort(error);
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        _error = errorText(error);
+        _code.clear();
+        _busy = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = errorText(error);
+        _code.clear();
+        _busy = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = widget.locale;
+    final left = _resendLeft;
+
+    return Column(
+      key: const ValueKey('connect-google-confirm'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          tr(locale, 'connect.googleConfirm', {
+            'email': widget.pending.email ?? '',
+            'phone': formatPhone(widget.pending.phone ?? ''),
+          }),
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 13.5,
+            fontWeight: FontWeight.w500,
+            color: PaykColors.textPrimary,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          key: const ValueKey('connect-google-code'),
+          controller: _code,
+          enabled: !_busy,
+          keyboardType: TextInputType.number,
+          autofillHints: const [AutofillHints.oneTimeCode],
+          textAlign: TextAlign.center,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(6),
+          ],
+          style: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 8,
+            color: PaykColors.textPrimary,
+            fontFeatures: [FontFeature.tabularFigures()],
+          ),
+          decoration: InputDecoration(
+            labelText: tr(locale, 'connect.googleCode'),
+            errorText: _error,
+          ),
+          onChanged: (value) {
+            final digits = value.replaceAll(RegExp(r'\D'), '');
+            if (_error != null) setState(() => _error = null);
+            if (digits.length == 6 && digits != _lastTried && !_busy) {
+              unawaited(_confirm(digits));
+            }
+          },
+        ),
+        if (_debugCode != null && _debugCode!.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            _debugCode!,
+            style: const TextStyle(
+              fontFamily: 'Inter',
+              fontSize: 12.5,
+              color: PaykColors.textMuted,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+        if (_busy) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: PaykColors.primary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                tr(locale, 'login.verifying'),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: PaykColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (left > 0)
+              Text(
+                tr(locale, 'login.resendIn', {'time': _formatCountdown(left)}),
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 13,
+                  color: PaykColors.textSecondary,
+                  fontFeatures: [FontFeature.tabularFigures()],
+                ),
+              )
+            else
+              TextButton(
+                key: const ValueKey('connect-google-resend'),
+                onPressed: (_sending || _busy) ? null : _sendCode,
+                child: Text(tr(locale, 'login.resend')),
+              ),
+            TextButton(
+              key: const ValueKey('connect-google-cancel'),
+              onPressed: _busy ? null : widget.onCancel,
+              child: Text(tr(locale, 'connect.googleCancel')),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

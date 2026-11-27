@@ -51,6 +51,7 @@ class Member {
     required this.lastName,
     required this.phone,
     required this.referralCode,
+    this.referralLink,
     this.id,
     this.birthYear,
     this.birthDate,
@@ -64,6 +65,7 @@ class Member {
     this.spendPref = SpendPref.earn,
     this.couponPref = true,
     this.telegram = false,
+    this.google,
     this.shoeSize,
     this.pantsSize,
     this.topSize,
@@ -91,6 +93,9 @@ class Member {
   /// Применять ли купон ко дню рождения на экране кода.
   final bool couponPref;
   final String referralCode;
+
+  /// Ссылка-приглашение участника (`https://…/r/<код>`), 26.11.2026.
+  final String? referralLink;
   final String? email;
 
   /// `m` — мужской, `f` — женский.
@@ -98,6 +103,9 @@ class Member {
   final String? avatarUrl;
   final bool messages;
   final bool telegram;
+
+  /// Привязанный аккаунт Google (`{email}`) или `null`.
+  final GoogleLink? google;
 
   /// Размер обуви, брюк и верха. Пусто — клиент ещё не указал.
   final String? shoeSize;
@@ -125,6 +133,7 @@ class Member {
       birthDate: asStringOrNull(json['birth_date']),
       country: asStringOrNull(json['country']),
       referralCode: asString(json['referral_code']),
+      referralLink: asStringOrNull(json['referral_link']),
       email: asStringOrNull(json['email']),
       gender: _memberGender(asStringOrNull(json['gender'])),
       avatarUrl: asStringOrNull(json['avatar_url']),
@@ -140,6 +149,9 @@ class Member {
       couponPref:
           !json.containsKey('coupon_pref') || json['coupon_pref'] == true,
       telegram: json['telegram'] == true,
+      google: json['google'] is Map
+          ? GoogleLink.fromJson(asMap(json['google']))
+          : null,
       shoeSize: asStringOrNull(json['shoe_size']),
       pantsSize: asStringOrNull(json['pants_size']),
       topSize: asStringOrNull(json['top_size']),
@@ -986,12 +998,113 @@ class RegisterResult {
 }
 
 class OtpChallenge {
-  const OtpChallenge({required this.phone});
+  const OtpChallenge({
+    required this.phone,
+    this.resendIn = 60,
+    this.ttl = 300,
+    this.debugCode,
+  });
 
   final String phone;
+  final int resendIn;
+  final int ttl;
+  final String? debugCode;
 
   factory OtpChallenge.fromJson(Map<String, dynamic> json) {
-    return OtpChallenge(phone: asString(json['phone']));
+    final resend = asInt(json['resend_in']);
+    final ttl = asInt(json['ttl']);
+    return OtpChallenge(
+      phone: asString(json['phone']),
+      resendIn: resend > 0 ? resend : 60,
+      ttl: ttl > 0 ? ttl : 300,
+      debugCode: asStringOrNull(json['debug_code']),
+    );
+  }
+}
+
+/// Привязанный аккаунт Google участника (`member.google`).
+class GoogleLink {
+  const GoogleLink({required this.email});
+
+  final String email;
+
+  factory GoogleLink.fromJson(Map<String, dynamic> json) {
+    return GoogleLink(email: asString(json['email']));
+  }
+}
+
+/// Ожидание одноразового подтверждения номера после «Продолжить с Google».
+class GooglePending {
+  const GooglePending({
+    required this.ticket,
+    required this.email,
+    required this.firstName,
+    required this.lastName,
+  });
+
+  final String ticket;
+  final String email;
+  final String firstName;
+  final String lastName;
+}
+
+/// Ответ `POST /p/{slug}/google`: либо сразу вход, либо одноразовое подтверждение номера.
+class GoogleLoginResult {
+  const GoogleLoginResult.login(this.tokens) : pending = null;
+  const GoogleLoginResult.phone(this.pending) : tokens = null;
+
+  final TokenPair? tokens;
+  final GooglePending? pending;
+
+  bool get needsPhone => tokens == null;
+
+  factory GoogleLoginResult.fromJson(Map<String, dynamic> json) {
+    if (json['status'] == 'phone') {
+      return GoogleLoginResult.phone(
+        GooglePending(
+          ticket: asString(json['google_ticket']),
+          email: asString(json['email']),
+          firstName: asString(json['first_name']),
+          lastName: asString(json['last_name']),
+        ),
+      );
+    }
+    return GoogleLoginResult.login(TokenPair.fromJson(json));
+  }
+}
+
+/// Ответ `POST /me/google`: уже привязан (`linked`) или требуется SMS-код (`confirm`).
+class GoogleLinkStart {
+  const GoogleLinkStart.linked(this.google)
+    : ticket = null,
+      email = null,
+      phone = null;
+
+  const GoogleLinkStart.confirm({
+    required this.ticket,
+    required this.email,
+    required this.phone,
+  }) : google = null;
+
+  final GoogleLink? google;
+  final String? ticket;
+  final String? email;
+  final String? phone;
+
+  bool get needsConfirm => ticket != null && ticket!.isNotEmpty;
+
+  factory GoogleLinkStart.fromJson(Map<String, dynamic> json) {
+    if (json['status'] == 'confirm') {
+      return GoogleLinkStart.confirm(
+        ticket: asString(json['google_ticket']),
+        email: asString(json['email']),
+        phone: asString(json['phone']),
+      );
+    }
+    final raw = json['google'];
+    return GoogleLinkStart.linked(
+      raw is Map ? GoogleLink.fromJson(asMap(raw)) : null,
+    );
   }
 }
 

@@ -8,6 +8,7 @@ import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
+import '../../core/widgets/google_widgets.dart';
 import '../../core/widgets/message.dart';
 import '../../core/widgets/screen_skeletons.dart';
 import '../../core/widgets/states.dart';
@@ -96,11 +97,22 @@ class _FriendsBody extends StatelessWidget {
     await Clipboard.setData(ClipboardData(text: friends.code));
     if (!context.mounted) return;
     HapticFeedback.lightImpact();
-    showPaykMessage(context, tr(locale, 'friends.copied'));
+    showPaykMessage(context, tr(locale, 'common.copied'));
+  }
+
+  Future<void> _copyLink(BuildContext context, String link) async {
+    await Clipboard.setData(ClipboardData(text: link));
+    if (!context.mounted) return;
+    HapticFeedback.lightImpact();
+    showPaykMessage(context, tr(locale, 'friends.linkCopied'));
   }
 
   @override
   Widget build(BuildContext context) {
+    final inviteUrl = ApiConfig.referralLink(
+      code: friends.code,
+      serverLink: friends.link,
+    );
     return RefreshIndicator(
       color: PaykColors.violet,
       backgroundColor: Colors.white,
@@ -255,14 +267,14 @@ class _FriendsBody extends StatelessWidget {
                   ],
                 ),
 
-              // Белая нижняя часть с кодом и кнопкой
+              // Белая нижняя часть со ссылкой-приглашением, запасным кодом и кнопкой
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      tr(locale, 'friends.yourCode'),
+                      tr(locale, 'friends.yourLink'),
                       style: const TextStyle(
                         fontFamily: 'Inter',
                         fontSize: 13,
@@ -272,7 +284,7 @@ class _FriendsBody extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
 
-                    // Пунктирный блок кода
+                    // Пунктирный блок ссылки-приглашения
                     CustomPaint(
                       painter: _DashedBorderPainter(
                         color: PaykColors.primary.withValues(alpha: 0.35),
@@ -282,46 +294,85 @@ class _FriendsBody extends StatelessWidget {
                         radius: 14.0,
                       ),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
+                        key: const ValueKey('referral-link'),
+                        constraints: const BoxConstraints(minHeight: 54),
                         decoration: BoxDecoration(
                           color: PaykColors.activePill,
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                friends.code,
-                                style: const TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1.8,
-                                  color: PaykColors.primary,
-                                  fontFeatures: [FontFeature.tabularFigures()],
+                        alignment: Alignment.centerLeft,
+                        child: InviteLinkDisplay(
+                          link: inviteUrl,
+                          semanticsLabel: tr(locale, 'friends.copyLink'),
+                          textColor: PaykColors.primary,
+                          iconColor: PaykColors.primary,
+                          fontSize: 16,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          onCopy: () => _copyLink(context, inviteUrl),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // Запасной путь: код приглашения для ручного ввода при регистрации
+                    Text.rich(
+                      TextSpan(
+                        style: const TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 13,
+                          height: 1.6,
+                          color: PaykColors.textSecondary,
+                        ),
+                        children: [
+                          TextSpan(text: '${tr(locale, 'friends.codeLabel')} '),
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: InkWell(
+                              key: const ValueKey('referral-code'),
+                              borderRadius: BorderRadius.circular(6),
+                              onTap: () => _copyCode(context),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 2,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      friends.code,
+                                      style: const TextStyle(
+                                        fontFamily: 'Inter',
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.8,
+                                        color: PaykColors.textPrimary,
+                                        fontFeatures: [
+                                          FontFeature.tabularFigures(),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(
+                                      Icons.copy_rounded,
+                                      size: 13,
+                                      color: PaykColors.textSecondary,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
-                             PaykPressable(
-                               scaleDown: PaykMotion.scaleIcon,
-                               child: IconButton(
-                                 icon: const Icon(
-                                   Icons.copy_rounded,
-                                   color: PaykColors.primary,
-                                   size: 22,
-                                 ),
-                                 onPressed: () => _copyCode(context),
-                                 tooltip: tr(locale, 'code.copy'),
-                               ),
-                             ),
-                           ],
-                         ),
-                       ),
-                     ),
-                     const SizedBox(height: 14),
+                          ),
+                          TextSpan(
+                            text: '\u00A0— ${tr(locale, 'friends.codeHint')}',
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 14),
 
                      // Кнопка «Даъват фиристодан»
                      PaykPressable(

@@ -14,6 +14,7 @@ import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/size_offers_logic.dart';
 import '../../core/theme/payk_colors.dart';
+import '../../core/widgets/google_widgets.dart';
 import '../../core/widgets/message.dart';
 import '../../core/widgets/payk_3d_icon.dart';
 import '../../core/widgets/payk_avatar.dart';
@@ -519,11 +520,11 @@ class _InviteFriendsCard extends StatelessWidget {
     }
   }
 
-  Future<void> _copy(BuildContext context, String code) async {
+  Future<void> _copyLink(BuildContext context, String link) async {
     HapticFeedback.lightImpact();
-    await Clipboard.setData(ClipboardData(text: code));
+    await Clipboard.setData(ClipboardData(text: link));
     if (context.mounted) {
-      showPaykMessage(context, tr(locale, 'friends.copied'));
+      showPaykMessage(context, tr(locale, 'friends.linkCopied'));
     }
   }
 
@@ -531,7 +532,10 @@ class _InviteFriendsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final rawCode = member.referralCode.trim();
     final code = rawCode.isNotEmpty ? rawCode : 'SO-4654';
-    final displayCode = code.contains('-') ? code.replaceAll('-', ' - ') : code;
+    final link = ApiConfig.referralLink(
+      code: code,
+      serverLink: member.referralLink,
+    );
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -555,54 +559,55 @@ class _InviteFriendsCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: PaykPressable(
-                  scaleDown: PaykMotion.scaleSubtle,
-                  onTap: () => _copy(context, code),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 13,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: PaykColors.border),
-                    ),
-                    child: Text(
-                      displayCode,
-                      style: const TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.2,
-                        color: PaykColors.textPrimary,
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: PaykPressable(
+                    scaleDown: PaykMotion.scaleSubtle,
+                    child: Container(
+                      key: const ValueKey('home-referral-link'),
+                      constraints: const BoxConstraints(minHeight: 50),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: PaykColors.border),
+                      ),
+                      alignment: Alignment.centerLeft,
+                      child: InviteLinkDisplay(
+                        link: link,
+                        semanticsLabel: tr(locale, 'home.inviteCopy'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 10,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        onCopy: () => _copyLink(context, link),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              PaykPressable(
-                scaleDown: PaykMotion.scaleIcon,
-                onTap: () => _share(context, code),
-                child: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: PaykColors.primary,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(
-                    Icons.arrow_forward_rounded,
-                    color: Colors.white,
-                    size: 22,
+                const SizedBox(width: 10),
+                PaykPressable(
+                  scaleDown: PaykMotion.scaleIcon,
+                  onTap: () => _share(context, code),
+                  child: Container(
+                    width: 50,
+                    constraints: const BoxConstraints(minHeight: 50),
+                    decoration: BoxDecoration(
+                      color: PaykColors.primary,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

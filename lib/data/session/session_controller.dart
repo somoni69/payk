@@ -24,6 +24,7 @@ class SessionState {
     this.refreshToken,
     this.pendingPhone,
     this.registrationToken,
+    this.pendingGoogle,
     this.pendingWelcomeBonus,
     this.onboardingSeen = false,
     this.ready = false,
@@ -33,6 +34,9 @@ class SessionState {
   final String? refreshToken;
   final String? pendingPhone;
   final String? registrationToken;
+
+  /// Ожидание одноразового подтверждения номера после «Продолжить с Google».
+  final GooglePending? pendingGoogle;
 
   /// Сумма подарка, начисленного при регистрации (показываем экран «Подарок» один раз).
   final double? pendingWelcomeBonus;
@@ -46,11 +50,13 @@ class SessionState {
     String? refreshToken,
     String? pendingPhone,
     String? registrationToken,
+    GooglePending? pendingGoogle,
     double? pendingWelcomeBonus,
     bool? ready,
     bool? onboardingSeen,
     bool clearPhone = false,
     bool clearRegistration = false,
+    bool clearGoogle = false,
     bool clearWelcomeBonus = false,
   }) {
     return SessionState(
@@ -60,6 +66,7 @@ class SessionState {
       registrationToken: clearRegistration
           ? null
           : (registrationToken ?? this.registrationToken),
+      pendingGoogle: clearGoogle ? null : (pendingGoogle ?? this.pendingGoogle),
       pendingWelcomeBonus: clearWelcomeBonus
           ? null
           : (pendingWelcomeBonus ?? this.pendingWelcomeBonus),
@@ -152,20 +159,55 @@ class SessionController extends Notifier<SessionState> {
     state = state.copyWith(pendingPhone: normalized, clearRegistration: true);
   }
 
+  /// «Продолжить с Google»: возвращает `true`, если клиент сразу вошёл; `false`, если нужно подтвердить номер.
+  Future<bool> loginWithGoogle(String idToken) async {
+    final result = await _api.googleLogin(idToken);
+    if (!result.needsPhone) {
+      final tokens = result.tokens;
+      if (tokens == null) throw ApiException(0, 'Неожиданный ответ сервера');
+      await _persistLogin(tokens.accessToken, tokens.refreshToken);
+      return true;
+    }
+    state = state.copyWith(
+      pendingGoogle: result.pending,
+      clearRegistration: true,
+    );
+    return false;
+  }
+
+  void clearPendingGoogle() {
+    if (state.pendingGoogle == null) return;
+    state = state.copyWith(clearGoogle: true);
+  }
+
   Future<bool> confirmCode(String code) async {
     final phone = state.pendingPhone;
     if (phone == null || phone.isEmpty) {
       throw ApiException(401, 'Запросите код ещё раз');
     }
-    final result = await _api.verify(phone, code);
-    if (result.needsRegistration) {
-      state = state.copyWith(registrationToken: result.registrationToken);
-      return false;
+    final pendingGoogle = state.pendingGoogle;
+    try {
+      final result = await _api.verify(
+        phone,
+        code,
+        googleTicket: pendingGoogle?.ticket,
+      );
+      if (result.needsRegistration) {
+        state = state.copyWith(registrationToken: result.registrationToken);
+        return false;
+      }
+      final tokens = result.tokens;
+      if (tokens == null) throw ApiException(0, 'Неожиданный ответ сервера');
+      await _persistLogin(tokens.accessToken, tokens.refreshToken);
+      return true;
+    } on ApiException catch (error) {
+      // Билет Google устарел (401) или этот Google занят другим номером (409):
+      // SMS-код не сгорает — снимаем привязку Google, чтобы клиент мог войти по номеру тем же кодом.
+      if (pendingGoogle != null && (error.status == 401 || error.status == 409)) {
+        state = state.copyWith(clearGoogle: true);
+      }
+      rethrow;
     }
-    final tokens = result.tokens;
-    if (tokens == null) throw ApiException(0, 'Неожиданный ответ сервера');
-    await _persistLogin(tokens.accessToken, tokens.refreshToken);
-    return true;
   }
 
   Future<double?> completeProfile(RegisterInput input) async {
@@ -278,6 +320,7 @@ class SessionController extends Notifier<SessionState> {
       onboardingSeen: true,
       clearPhone: true,
       clearRegistration: true,
+      clearGoogle: true,
     );
     await _write(accessToken, refreshToken);
   }

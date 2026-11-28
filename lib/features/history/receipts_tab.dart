@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
+import '../../core/formats.dart';
 import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
@@ -48,11 +49,12 @@ class _ReceiptsTabState extends ConsumerState<ReceiptsTab> {
       if (!mounted) return;
       final memberId = ref.read(meProvider).asData?.value.member.id;
       final cached = ref.read(receiptsFilterProvider.notifier).readFor(memberId);
-      _query = cached;
-      if (cached.search.isNotEmpty) {
-        _searchCtrl.text = cached.search;
+      final validFmt = parseFormat(cached.fmt) ?? '';
+      _query = cached.fmt == validFmt ? cached : cached.copyWith(fmt: validFmt);
+      if (_query.search.isNotEmpty) {
+        _searchCtrl.text = _query.search;
       }
-      _filtersOpen = cached.filterCount > 0;
+      _filtersOpen = _query.filterCount > 0;
       _initDone = true;
       _fetch(reset: true);
     });
@@ -158,6 +160,8 @@ class _ReceiptsTabState extends ConsumerState<ReceiptsTab> {
   @override
   Widget build(BuildContext context) {
     final locale = ref.watch(localeProvider);
+    final storeFormats =
+        ref.watch(meProvider).asData?.value.activeFormats ?? allStoreFormats;
     final header = _page?.header;
     final monthsByKey = {
       for (final m in _page?.months ?? const <ReceiptMonth>[]) m.month: m,
@@ -185,6 +189,7 @@ class _ReceiptsTabState extends ConsumerState<ReceiptsTab> {
           _FilterBar(
             controller: _searchCtrl,
             query: _query,
+            formats: storeFormats,
             locale: locale,
             filtersOpen: _filtersOpen,
             onToggleFilters: () => setState(() => _filtersOpen = !_filtersOpen),
@@ -470,6 +475,7 @@ class _FilterBar extends StatelessWidget {
   const _FilterBar({
     required this.controller,
     required this.query,
+    required this.formats,
     required this.locale,
     required this.filtersOpen,
     required this.onToggleFilters,
@@ -483,6 +489,7 @@ class _FilterBar extends StatelessWidget {
 
   final TextEditingController controller;
   final ReceiptsQuery query;
+  final List<String> formats;
   final String locale;
   final bool filtersOpen;
   final VoidCallback onToggleFilters;
@@ -670,44 +677,11 @@ class _FilterBar extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _FormatTile(
-                                label: tr(locale, 'receipts.fmtAll'),
-                                assetPath: 'assets/3d/receipt.webp',
-                                selected: query.fmt.isEmpty,
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  onSelectFmt('');
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: _FormatTile(
-                                label: tr(locale, 'format.SM'),
-                                assetPath: 'assets/3d/cart.webp',
-                                selected: query.fmt == 'SM',
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  onSelectFmt('SM');
-                                },
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: _FormatTile(
-                                label: tr(locale, 'format.CL'),
-                                assetPath: 'assets/3d/coat.webp',
-                                selected: query.fmt == 'CL',
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  onSelectFmt('CL');
-                                },
-                              ),
-                            ),
-                          ],
+                        _FormatFilterGrid(
+                          formats: formats,
+                          selectedFmt: query.fmt,
+                          locale: locale,
+                          onSelectFmt: onSelectFmt,
                         ),
                         if (query.isFiltered) ...[
                           const SizedBox(height: 8),
@@ -850,16 +824,105 @@ class _ReceiptsLoadingSkeleton extends StatelessWidget {
   }
 }
 
+class _FormatFilterGrid extends StatelessWidget {
+  const _FormatFilterGrid({
+    required this.formats,
+    required this.selectedFmt,
+    required this.locale,
+    required this.onSelectFmt,
+  });
+
+  final List<String> formats;
+  final String selectedFmt;
+  final String locale;
+  final ValueChanged<String> onSelectFmt;
+
+  @override
+  Widget build(BuildContext context) {
+    // Сохранённый фильтр по формату, которого магазин уже не использует, остаётся кнопкой — его можно снять.
+    final saved = parseFormat(selectedFmt);
+    final keys = saved != null && !formats.contains(saved)
+        ? [...formats, saved]
+        : formats;
+
+    final tiles = [
+      _FormatTile(
+        key: const ValueKey('receipts-fmt-all'),
+        label: tr(locale, 'receipts.fmtAll'),
+        assetPath: 'assets/3d/receipt.webp',
+        fallbackIcon: Icons.receipt_long_rounded,
+        selected: selectedFmt.isEmpty,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onSelectFmt('');
+        },
+      ),
+      for (final fmt in keys)
+        _FormatTile(
+          key: ValueKey('receipts-fmt-$fmt'),
+          label: tr(locale, 'format.$fmt'),
+          assetPath: switch (fmt) {
+            'CL' => 'assets/3d/coat.webp',
+            'RS' => 'assets/3d/plate.webp',
+            _ => 'assets/3d/cart.webp',
+          },
+          fallbackIcon: switch (fmt) {
+            'CL' => Icons.checkroom_outlined,
+            'RS' => Icons.restaurant_rounded,
+            _ => Icons.shopping_cart_outlined,
+          },
+          selected: selectedFmt == fmt,
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onSelectFmt(fmt);
+          },
+        ),
+    ];
+
+    if (tiles.length <= 3) {
+      return Row(
+        children: [
+          for (var i = 0; i < tiles.length; i++) ...[
+            if (i > 0) const SizedBox(width: 8),
+            Expanded(child: tiles[i]),
+          ],
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        for (var rowStart = 0; rowStart < tiles.length; rowStart += 2) ...[
+          if (rowStart > 0) const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(child: tiles[rowStart]),
+              const SizedBox(width: 8),
+              if (rowStart + 1 < tiles.length)
+                Expanded(child: tiles[rowStart + 1])
+              else
+                const Spacer(),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class _FormatTile extends StatelessWidget {
   const _FormatTile({
+    super.key,
     required this.label,
     required this.assetPath,
+    required this.fallbackIcon,
     required this.selected,
     required this.onTap,
   });
 
   final String label;
   final String assetPath;
+  final IconData fallbackIcon;
   final bool selected;
   final VoidCallback onTap;
 
@@ -912,6 +975,11 @@ class _FormatTile extends StatelessWidget {
                   height: 34,
                   fit: BoxFit.contain,
                   filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, _, _) => Icon(
+                    fallbackIcon,
+                    size: 24,
+                    color: selected ? PaykColors.primary : PaykColors.textMuted,
+                  ),
                 ),
               ),
             ),
@@ -1109,10 +1177,7 @@ class _ReceiptRowCard extends StatelessWidget {
     final store = (row.store != null && row.store!.trim().isNotEmpty)
         ? row.store!.trim()
         : tr(locale, 'receipts.titleShort');
-    final fmt = row.format;
-    final fmtLabel = fmt == 'SM' || fmt == 'CL'
-        ? tr(locale, 'format.short.$fmt')
-        : null;
+    final fmtLabel = formatShortName(locale, row.format);
 
     final returned = row.isReturned || row.isPartiallyReturned;
 

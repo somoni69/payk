@@ -166,9 +166,15 @@ void main() {
       });
     });
 
-    test('gift.text capitalizes and quotes Супермаркет in RU and TJ (2d058c1)', () {
-      expect(tr('ru', 'gift.text'), contains('«Супермаркете»'));
-      expect(tr('tj', 'gift.text'), contains('«Супермаркет»'));
+    test('gift.text is format-agnostic in RU and TJ (b9c6f62)', () {
+      expect(
+        tr('ru', 'gift.text'),
+        'Бонусы уже на балансе. Оплачивайте ими часть покупок — в пределах лимита вашего статуса.',
+      );
+      expect(
+        tr('tj', 'gift.text'),
+        'Бонусҳо аллакай дар тавозун ҳастанд. Бо онҳо як қисми харидро пардохт кунед — дар ҳудуди лимити статуси шумо.',
+      );
     });
 
     test('referralShareText includes only Google Play (with Install Referrer) and App Store without vercel link', () {

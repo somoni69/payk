@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/format.dart';
+import '../../core/formats.dart';
 import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
@@ -669,8 +670,9 @@ class _SpendChoiceCard extends StatelessWidget {
     final couponMins = coupon == null
         ? ''
         : [
-            '${tr(locale, 'format.CL')} — ${formatMoneyAuto(coupon.minBillCl)}',
-            '${tr(locale, 'format.SM')} — ${formatMoneyAuto(coupon.minBillSm)}',
+            for (final fmt in usedFormats(account?.formats))
+              if (couponMinBill(coupon, fmt) case final min?)
+                '${tr(locale, 'format.$fmt')} — ${formatMoneyAuto(min)}',
           ].join(', ');
 
     return Container(

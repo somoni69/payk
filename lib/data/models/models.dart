@@ -1,3 +1,4 @@
+import '../../core/formats.dart';
 import '../api/api_client.dart';
 import '../api/json_parse.dart';
 
@@ -182,16 +183,40 @@ class Rate {
 }
 
 class ProgramRates {
-  const ProgramRates({required this.supermarket, required this.clothes});
+  const ProgramRates({
+    required this.supermarket,
+    required this.clothes,
+    this.restaurant,
+  });
 
   final Rate supermarket;
   final Rate clothes;
+  final Rate? restaurant;
+
+  Rate byFormat(String format) {
+    return switch (format) {
+      'SM' => supermarket,
+      'CL' => clothes,
+      'RS' => restaurant ?? const Rate(earn: 0, burnCap: 0),
+      _ => supermarket,
+    };
+  }
+
+  Rate? rateFor(String format) {
+    return switch (format) {
+      'SM' => supermarket,
+      'CL' => clothes,
+      'RS' => restaurant,
+      _ => null,
+    };
+  }
 
   factory ProgramRates.fromJson(Object? json) {
     final map = json is Map ? asMap(json) : const <String, dynamic>{};
     return ProgramRates(
       supermarket: Rate.fromJson(map['SM']),
       clothes: Rate.fromJson(map['CL']),
+      restaurant: map['RS'] is Map ? Rate.fromJson(map['RS']) : null,
     );
   }
 }
@@ -267,19 +292,29 @@ class StoreWallet {
 }
 
 class StoreWallets {
-  const StoreWallets({required this.sm, required this.cl});
+  const StoreWallets({
+    required this.sm,
+    required this.cl,
+    this.rs = StoreWallet.empty,
+  });
 
-  static const formats = ['SM', 'CL'];
+  static const formats = ['SM', 'CL', 'RS'];
 
   final StoreWallet sm;
   final StoreWallet cl;
+  final StoreWallet rs;
 
-  StoreWallet byFormat(String format) => format == 'CL' ? cl : sm;
+  StoreWallet byFormat(String format) => switch (format) {
+    'CL' => cl,
+    'RS' => rs,
+    _ => sm,
+  };
 
   factory StoreWallets.fromJson(Map<String, dynamic> json) {
     return StoreWallets(
       sm: StoreWallet.fromJson(json['SM']),
       cl: StoreWallet.fromJson(json['CL']),
+      rs: StoreWallet.fromJson(json['RS']),
     );
   }
 }
@@ -295,6 +330,7 @@ class Wallet {
     required this.spendMonth,
     required this.spendSupermarket,
     required this.spendClothes,
+    this.spendRestaurant = 0,
     required this.daysLeft,
     required this.keep,
     required this.up,
@@ -302,6 +338,7 @@ class Wallet {
     required this.rates,
     required this.todaySupermarket,
     required this.todayClothes,
+    this.todayRestaurant = 0,
   });
 
   final int status;
@@ -312,7 +349,7 @@ class Wallet {
   final double onHold;
   final double debt;
 
-  /// Раздельные кошельки SM/CL (если сервер их вернул).
+  /// Раздельные кошельки SM/CL/RS (если сервер их вернул).
   final StoreWallets? wallets;
 
   /// Кошельки по магазинам: для старого сервера без `wallets` весь баланс — в SM.
@@ -326,11 +363,13 @@ class Wallet {
           debt: debt,
         ),
         cl: StoreWallet.empty,
+        rs: StoreWallet.empty,
       );
 
   final double spendMonth;
   final double spendSupermarket;
   final double spendClothes;
+  final double spendRestaurant;
   final int daysLeft;
   final KeepInfo? keep;
   final UpInfo? up;
@@ -338,6 +377,14 @@ class Wallet {
   final ProgramRates rates;
   final double todaySupermarket;
   final double todayClothes;
+  final double todayRestaurant;
+
+  double spendByFormat(String format) => switch (format) {
+    'SM' => spendSupermarket,
+    'CL' => spendClothes,
+    'RS' => spendRestaurant,
+    _ => 0,
+  };
 }
 
 class Account {
@@ -350,6 +397,7 @@ class Account {
     this.messagesUnread = 0,
     this.coupon,
     this.burnKeepsCashback = false,
+    this.formats,
   });
 
   final Member member;
@@ -362,6 +410,15 @@ class Account {
 
   /// Кешбэк с оплаты деньгами при любом списании (24.11.2026): на экране кода два варианта вместо трёх.
   final bool burnKeepsCashback;
+
+  /// Форматы активных касс магазина (порядок SM, CL, RS); `null` — старый сервер.
+  final List<String>? formats;
+
+  /// Форматы для отображения отделов, ставок, купона и фильтра чеков.
+  List<String> get activeFormats => resolveActiveFormats(
+    formats,
+    hasRestaurant: wallet.rates.restaurant != null,
+  );
 
   factory Account.fromJson(Map<String, dynamic> json) {
     final program = json['program'] is Map
@@ -385,6 +442,7 @@ class Account {
           ? BirthdayCoupon.fromJson(asMap(json['coupon']))
           : null,
       burnKeepsCashback: json['burn_keeps_cashback'] == true,
+      formats: parseFormatsField(json['formats']),
       wallet: Wallet(
         status: asInt(json['status']),
         balance: asMoney(json['balance']),
@@ -397,6 +455,7 @@ class Account {
         spendMonth: asMoney(json['spend_month']),
         spendSupermarket: asMoney(json['spend_sm']),
         spendClothes: asMoney(json['spend_cl']),
+        spendRestaurant: asMoney(json['spend_rs']),
         daysLeft: asInt(json['days_left']),
         keep: keep is Map ? KeepInfo.fromJson(asMap(keep)) : null,
         up: up is Map ? UpInfo.fromJson(asMap(up)) : null,
@@ -404,6 +463,7 @@ class Account {
         rates: ProgramRates.fromJson(json['rates']),
         todaySupermarket: asMoney(today['SM']),
         todayClothes: asMoney(today['CL']),
+        todayRestaurant: asMoney(today['RS']),
       ),
     );
   }
@@ -568,6 +628,7 @@ class BirthdayCoupon {
     required this.amount,
     required this.minBillSm,
     required this.minBillCl,
+    this.minBillRs,
     required this.validTo,
     this.status = 'issued',
   });
@@ -575,8 +636,19 @@ class BirthdayCoupon {
   final double amount;
   final double minBillSm;
   final double minBillCl;
+  final double? minBillRs;
   final String validTo;
   final String status;
+
+  /// Минимальный чек купона в формате; `null` — сервер не прислал значение.
+  double? minBillFor(String format) {
+    return switch (format) {
+      'SM' => minBillSm,
+      'CL' => minBillCl,
+      'RS' => minBillRs,
+      _ => null,
+    };
+  }
 
   factory BirthdayCoupon.fromJson(Map<String, dynamic> json) {
     final status = asString(json['status']);
@@ -584,11 +656,16 @@ class BirthdayCoupon {
       amount: asMoney(json['amount']),
       minBillSm: asMoney(json['min_bill_sm']),
       minBillCl: asMoney(json['min_bill_cl']),
+      minBillRs: asMoneyOrNull(json['min_bill_rs']),
       validTo: asString(json['valid_to']),
       status: status.isEmpty ? 'issued' : status,
     );
   }
 }
+
+/// Минимальный чек купона ко дню рождения в формате; `null` — сервер не прислал значение.
+double? couponMinBill(BirthdayCoupon coupon, String format) =>
+    coupon.minBillFor(format);
 
 class PendingCheck {
   const PendingCheck({
@@ -927,6 +1004,39 @@ class TierRule {
   }
 }
 
+class BirthdayRules {
+  const BirthdayRules({
+    required this.coupon,
+    required this.minBillX,
+    required this.windowBefore,
+    required this.windowAfter,
+  });
+
+  final List<double> coupon;
+  final Map<String, double> minBillX;
+  final int windowBefore;
+  final int windowAfter;
+
+  factory BirthdayRules.fromJson(Map<String, dynamic> json) {
+    final rawMinX = json['min_bill_x'];
+    final minX = <String, double>{};
+    if (rawMinX is Map) {
+      for (final entry in rawMinX.entries) {
+        final key = parseFormat(entry.key.toString());
+        if (key != null && entry.value != null) {
+          minX[key] = asMoney(entry.value);
+        }
+      }
+    }
+    return BirthdayRules(
+      coupon: asDoubleList(json['coupon']),
+      minBillX: minX,
+      windowBefore: asInt(json['window_before']),
+      windowAfter: asInt(json['window_after']),
+    );
+  }
+}
+
 class RulesInfo {
   const RulesInfo({
     required this.thresholds,
@@ -939,6 +1049,8 @@ class RulesInfo {
     this.stackAbs = 0,
     this.welcomeBonus,
     this.burnKeepsCashback = false,
+    this.formats,
+    this.birthday,
   });
 
   final List<double> thresholds;
@@ -956,6 +1068,34 @@ class RulesInfo {
   /// Кешбэк с оплаты деньгами при любом списании (24.11.2026).
   final bool burnKeepsCashback;
 
+  /// Форматы активных касс магазина; `null` — старый сервер.
+  final List<String>? formats;
+
+  /// Купоны ко дню рождения; `null`, если программа их не даёт.
+  final BirthdayRules? birthday;
+
+  /// Форматы, по которым показываются ставки и минимальные чеки купона.
+  List<String> get activeFormats => resolveActiveFormats(
+    formats,
+    hasRestaurant: statuses.any((s) => s.rates.restaurant != null),
+  );
+
+  /// Самый высокий кэшбэк по статусам в формате; без формата — по всем форматам магазина.
+  double? maxEarn({String? format}) {
+    if (statuses.isEmpty) return null;
+    final targetFormats = format != null ? [format] : activeFormats;
+    double? best;
+    for (final tier in statuses) {
+      for (final fmt in targetFormats) {
+        final earn = tier.rates.rateFor(fmt)?.earn;
+        if (earn != null && (best == null || earn > best)) {
+          best = earn;
+        }
+      }
+    }
+    return best;
+  }
+
   double get level1 => referralLevels.isEmpty ? 0 : referralLevels.first;
   double get level2 => referralLevels.length < 2 ? 0 : referralLevels[1];
 
@@ -964,6 +1104,7 @@ class RulesInfo {
     final referral = json['referral'] is Map
         ? asMap(json['referral'])
         : const <String, dynamic>{};
+    final rawBirthday = json['birthday'];
     return RulesInfo(
       thresholds: asDoubleList(json['thresholds']),
       statuses: statuses is List
@@ -977,6 +1118,10 @@ class RulesInfo {
       stackAbs: asMoney(json['stack_abs']),
       welcomeBonus: _positiveBonus(json['welcome_bonus']),
       burnKeepsCashback: json['burn_keeps_cashback'] == true,
+      formats: parseFormatsField(json['formats']),
+      birthday: rawBirthday is Map
+          ? BirthdayRules.fromJson(asMap(rawBirthday))
+          : null,
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
+import '../../core/formats.dart';
 import '../../core/i18n/locale_controller.dart';
 import '../../core/payment_choice.dart';
 import '../../core/i18n/strings.dart';
@@ -967,11 +968,7 @@ class _HistoryRow extends StatelessWidget {
     final positive = entry.amount >= 0;
     final accentColor = positive ? PaykColors.success : PaykColors.danger;
     final softBg = positive ? PaykColors.incomeSoft : PaykColors.expenseSoft;
-    final formatLabel = entry.format == 'SM'
-        ? tr(locale, 'format.SM')
-        : entry.format == 'CL'
-            ? tr(locale, 'format.CL')
-            : null;
+    final formatLabel = formatName(locale, entry.format);
     final billMeta = [
       if (entry.billExtId != null) '№ ${entry.billExtId}',
       if (entry.billAmount != null)

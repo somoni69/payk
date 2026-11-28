@@ -466,3 +466,27 @@ class Trophy3dIcon extends StatelessWidget {
     );
   }
 }
+
+/// 3D-виджет покупок (`assets/3d/bags.webp`) для секции «Покупки» в настройках.
+class Bags3dIcon extends StatelessWidget {
+  const Bags3dIcon({
+    super.key,
+    this.size = 24,
+    this.fallbackColor = PaykColors.primary,
+  });
+
+  static const assetPath = 'assets/3d/bags.webp';
+
+  final double size;
+  final Color fallbackColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Payk3dIcon(
+      assetPath: assetPath,
+      fallbackIcon: Icons.shopping_bag_outlined,
+      size: size,
+      fallbackColor: fallbackColor,
+    );
+  }
+}

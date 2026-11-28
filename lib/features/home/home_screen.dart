@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/birthday.dart';
 import '../../core/format.dart';
+import '../../core/formats.dart';
 import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
@@ -151,21 +152,17 @@ class _HomeBody extends ConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: _Notice(
                 title: tr(locale, 'home.giftTitle'),
-                body: tr(locale, 'home.giftBody', {
+                body: tr(locale, 'home.giftBodyDynamic', {
                   'amount': formatMoney(
                     gift.amount.toDouble(),
                     decimals: false,
                   ),
                   'from': formatShortDate(gift.from),
                   'until': formatShortDate(gift.until),
-                  'cl': formatMoney(
-                    gift.minClothes.toDouble(),
-                    decimals: false,
-                  ),
-                  'sm': formatMoney(
-                    gift.minSupermarket.toDouble(),
-                    decimals: false,
-                  ),
+                  'mins': [
+                    for (final fmt in account.activeFormats)
+                      '${tr(locale, 'format.$fmt')} — ${formatMoney(gift.minFor(fmt).toDouble(), decimals: false)}',
+                  ].join(', '),
                 }),
               ),
             ),
@@ -178,6 +175,7 @@ class _HomeBody extends ConsumerWidget {
               wallet: wallet,
               locale: locale,
               tiers: account.tierCount,
+              formats: account.formats,
               onTap: () => _openAlmosi(context),
             ),
           ),
@@ -201,7 +199,11 @@ class _HomeBody extends ConsumerWidget {
           if (account.coupon case final coupon?) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _BirthdayCouponCard(coupon: coupon, locale: locale),
+              child: _BirthdayCouponCard(
+                coupon: coupon,
+                formats: account.formats,
+                locale: locale,
+              ),
             ),
             const SizedBox(height: 14),
           ],
@@ -361,15 +363,25 @@ class _HomeRaffleSection extends ConsumerWidget {
 
 /// Активный купон ко дню рождения. Применяется в окне оплаты.
 class _BirthdayCouponCard extends StatelessWidget {
-  const _BirthdayCouponCard({required this.coupon, required this.locale});
+  const _BirthdayCouponCard({
+    required this.coupon,
+    required this.locale,
+    this.formats,
+  });
 
   final BirthdayCoupon coupon;
+  final List<String>? formats;
   final String locale;
 
   @override
   Widget build(BuildContext context) {
     final until = DateTime.tryParse(coupon.validTo);
+    final mins = [
+      for (final fmt in usedFormats(formats))
+        if (couponMinBill(coupon, fmt) case final value?) (fmt, value),
+    ];
     return Container(
+      key: const ValueKey('birthday-coupon-card'),
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -405,28 +417,18 @@ class _BirthdayCouponCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Text(
-            tr(locale, 'home.couponMin', {
-              'format': tr(locale, 'format.CL'),
-              'amount': formatMoney(coupon.minBillCl),
-            }),
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: PaykColors.textSecondary,
+          for (final (fmt, value) in mins)
+            Text(
+              tr(locale, 'home.couponMin', {
+                'format': tr(locale, 'format.$fmt'),
+                'amount': formatMoney(value),
+              }),
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: PaykColors.textSecondary,
+              ),
             ),
-          ),
-          Text(
-            tr(locale, 'home.couponMin', {
-              'format': tr(locale, 'format.SM'),
-              'amount': formatMoney(coupon.minBillSm),
-            }),
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: PaykColors.textSecondary,
-            ),
-          ),
           const SizedBox(height: 4),
           Text(
             tr(locale, 'home.couponHint'),
@@ -900,18 +902,39 @@ void _openCompaniesModal(BuildContext context, Account account, String locale) {
     ),
     builder: (sheetContext) {
       final wallet = account.wallet;
-      final smRate = wallet.rates.supermarket.earn > 0
-          ? wallet.rates.supermarket.earn
-          : 0.02;
-      final smBurn = wallet.rates.supermarket.burnCap > 0
-          ? wallet.rates.supermarket.burnCap
-          : 0.01;
-      final clRate = wallet.rates.clothes.earn > 0
-          ? wallet.rates.clothes.earn
-          : 0.05;
-      final clBurn = wallet.rates.clothes.burnCap > 0
-          ? wallet.rates.clothes.burnCap
-          : 0.10;
+      final formats = account.activeFormats;
+      double earnFor(String fmt) {
+        final v = wallet.rates.byFormat(fmt).earn;
+        if (v > 0) return v;
+        return switch (fmt) {
+          'CL' => 0.05,
+          'RS' => 0.07,
+          _ => 0.02,
+        };
+      }
+
+      double burnFor(String fmt) {
+        final v = wallet.rates.byFormat(fmt).burnCap;
+        if (v > 0) return v;
+        return switch (fmt) {
+          'CL' => 0.10,
+          'RS' => 0.10,
+          _ => 0.01,
+        };
+      }
+
+      String assetFor(String fmt) => switch (fmt) {
+        'CL' => 'assets/3d/tshirt.webp',
+        'RS' => 'assets/3d/plate.webp',
+        _ => 'assets/3d/cart.webp',
+      };
+
+      Color bgFor(String fmt) => switch (fmt) {
+        'CL' => const Color(0xFFEBF7EE),
+        'RS' => const Color(0xFFFFF4E8),
+        _ => const Color(0xFFF1F3F9),
+      };
+
       final bottom = MediaQuery.paddingOf(sheetContext).bottom;
 
       return Padding(
@@ -1021,34 +1044,23 @@ void _openCompaniesModal(BuildContext context, Account account, String locale) {
                 color: PaykColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 10),
-            _StoreRateCard(
-              locale: locale,
-              title: tr(locale, 'format.SM').toUpperCase(),
-              assetImage: 'assets/3d/cart.webp',
-              iconBgColor: const Color(0xFFF1F3F9),
-              cashbackPercent: formatPercent(smRate),
-              burnCapPercent: formatPercent(smBurn),
-              onTap: () {
-                HapticFeedback.lightImpact();
-                Navigator.pop(sheetContext);
-                _openDirection(context, StoreDirection.supermarket);
-              },
-            ),
-            const SizedBox(height: 10),
-            _StoreRateCard(
-              locale: locale,
-              title: tr(locale, 'format.CL').toUpperCase(),
-              assetImage: 'assets/3d/tshirt.webp',
-              iconBgColor: const Color(0xFFEBF7EE),
-              cashbackPercent: formatPercent(clRate),
-              burnCapPercent: formatPercent(clBurn),
-              onTap: () {
-                HapticFeedback.lightImpact();
-                Navigator.pop(sheetContext);
-                _openDirection(context, StoreDirection.clothes);
-              },
-            ),
+            for (final fmt in formats)
+              if (storeDirectionFromFormat(fmt) case final dir?) ...[
+                const SizedBox(height: 10),
+                _StoreRateCard(
+                  locale: locale,
+                  title: tr(locale, 'format.$fmt').toUpperCase(),
+                  assetImage: assetFor(fmt),
+                  iconBgColor: bgFor(fmt),
+                  cashbackPercent: formatPercent(earnFor(fmt)),
+                  burnCapPercent: formatPercent(burnFor(fmt)),
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    Navigator.pop(sheetContext);
+                    _openDirection(context, dir);
+                  },
+                ),
+              ],
           ],
         ),
       );
@@ -1066,12 +1078,9 @@ void _openAlmosi(BuildContext context) {
 }
 
 void _openDirection(BuildContext context, StoreDirection direction) {
-  final path = direction == StoreDirection.supermarket
-      ? '/almosi/supermarket'
-      : '/almosi/clothes';
   PaykMotion.push<void>(
     context,
-    path,
+    direction.routePath,
     fallback: () => AlmosiDirectionScreen(direction: direction),
   );
 }

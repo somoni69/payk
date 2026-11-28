@@ -15,21 +15,77 @@ import '../code/client_code_screen.dart';
 import '../home/status_growth_card.dart';
 
 /// Направление магазина «Алмоси».
-enum StoreDirection { supermarket, clothes }
+enum StoreDirection { supermarket, clothes, restaurant }
 
-/// Экран бренда «Алмоси»: подсказка по росту статуса и выбор между продуктовым
-/// магазином (супермаркет) и магазином одежды.
+/// Преобразует код формата API (`SM` / `CL` / `RS`) в [StoreDirection].
+StoreDirection? storeDirectionFromFormat(String format) {
+  return switch (format) {
+    'SM' => StoreDirection.supermarket,
+    'CL' => StoreDirection.clothes,
+    'RS' => StoreDirection.restaurant,
+    _ => null,
+  };
+}
+
+extension StoreDirectionMeta on StoreDirection {
+  String get formatCode => switch (this) {
+    StoreDirection.supermarket => 'SM',
+    StoreDirection.clothes => 'CL',
+    StoreDirection.restaurant => 'RS',
+  };
+
+  String get routePath => switch (this) {
+    StoreDirection.supermarket => '/almosi/supermarket',
+    StoreDirection.clothes => '/almosi/clothes',
+    StoreDirection.restaurant => '/almosi/restaurant',
+  };
+
+  ValueKey<String> get cardKey => switch (this) {
+    StoreDirection.supermarket => const ValueKey('direction-supermarket'),
+    StoreDirection.clothes => const ValueKey('direction-clothes'),
+    StoreDirection.restaurant => const ValueKey('direction-restaurant'),
+  };
+
+  String get titleKey => switch (this) {
+    StoreDirection.supermarket => 'store.supermarketTitle',
+    StoreDirection.clothes => 'store.clothesTitle',
+    StoreDirection.restaurant => 'store.restaurantTitle',
+  };
+
+  String get subtitleKey => switch (this) {
+    StoreDirection.supermarket => 'store.supermarketSub',
+    StoreDirection.clothes => 'store.clothesSub',
+    StoreDirection.restaurant => 'store.restaurantSub',
+  };
+
+  String get assetImage => switch (this) {
+    StoreDirection.supermarket => 'assets/3d/cart.webp',
+    StoreDirection.clothes => 'assets/3d/shirt.webp',
+    StoreDirection.restaurant => 'assets/3d/plate.webp',
+  };
+
+  IconData get fallbackIcon => switch (this) {
+    StoreDirection.supermarket => Icons.shopping_cart_outlined,
+    StoreDirection.clothes => Icons.checkroom_outlined,
+    StoreDirection.restaurant => Icons.restaurant_rounded,
+  };
+
+  Color get iconBg => switch (this) {
+    StoreDirection.supermarket => const Color(0xFFF1F3F9),
+    StoreDirection.clothes => const Color(0xFFEBF7EE),
+    StoreDirection.restaurant => const Color(0xFFFFF4E8),
+  };
+}
+
+/// Экран бренда «Алмоси»: подсказка по росту статуса и выбор отделов магазина.
 class AlmosiStoreScreen extends ConsumerWidget {
   const AlmosiStoreScreen({super.key});
 
   void _openDirection(BuildContext context, StoreDirection direction) {
     HapticFeedback.lightImpact();
-    final path = direction == StoreDirection.supermarket
-        ? '/almosi/supermarket'
-        : '/almosi/clothes';
     PaykMotion.push<void>(
       context,
-      path,
+      direction.routePath,
       fallback: () => AlmosiDirectionScreen(direction: direction),
     );
   }
@@ -75,8 +131,10 @@ class AlmosiStoreScreen extends ConsumerWidget {
         onRetry: () => ref.invalidate(meProvider),
         data: (account) {
           final wallet = account.wallet;
-          final smRate = wallet.rates.supermarket;
-          final clRate = wallet.rates.clothes;
+          final directions = [
+            for (final fmt in account.activeFormats)
+              ?storeDirectionFromFormat(fmt),
+          ];
           final bottomPad = 24.0 + MediaQuery.paddingOf(context).bottom;
 
           return RefreshIndicator(
@@ -121,32 +179,25 @@ class AlmosiStoreScreen extends ConsumerWidget {
                     color: PaykColors.textSecondary,
                   ),
                 ),
-                const SizedBox(height: 12),
-                _DirectionCard(
-                  key: const ValueKey('direction-supermarket'),
-                  title: tr(locale, 'store.supermarketTitle'),
-                  subtitle: tr(locale, 'store.supermarketSub'),
-                  assetImage: 'assets/3d/cart.webp',
-                  fallbackIcon: Icons.shopping_cart_outlined,
-                  iconBg: const Color(0xFFF1F3F9),
-                  earnPct: formatPercent(smRate.earn),
-                  burnPct: formatPercent(smRate.burnCap),
-                  locale: locale,
-                  onTap: () => _openDirection(context, StoreDirection.supermarket),
-                ),
-                const SizedBox(height: 12),
-                _DirectionCard(
-                  key: const ValueKey('direction-clothes'),
-                  title: tr(locale, 'store.clothesTitle'),
-                  subtitle: tr(locale, 'store.clothesSub'),
-                  assetImage: 'assets/3d/shirt.webp',
-                  fallbackIcon: Icons.checkroom_outlined,
-                  iconBg: const Color(0xFFEBF7EE),
-                  earnPct: formatPercent(clRate.earn),
-                  burnPct: formatPercent(clRate.burnCap),
-                  locale: locale,
-                  onTap: () => _openDirection(context, StoreDirection.clothes),
-                ),
+                for (final dir in directions) ...[
+                  const SizedBox(height: 12),
+                  _DirectionCard(
+                    key: dir.cardKey,
+                    title: tr(locale, dir.titleKey),
+                    subtitle: tr(locale, dir.subtitleKey),
+                    assetImage: dir.assetImage,
+                    fallbackIcon: dir.fallbackIcon,
+                    iconBg: dir.iconBg,
+                    earnPct: formatPercent(
+                      wallet.rates.byFormat(dir.formatCode).earn,
+                    ),
+                    burnPct: formatPercent(
+                      wallet.rates.byFormat(dir.formatCode).burnCap,
+                    ),
+                    locale: locale,
+                    onTap: () => _openDirection(context, dir),
+                  ),
+                ],
               ],
             ),
           );
@@ -321,19 +372,11 @@ class AlmosiDirectionScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(localeProvider);
-    final isSm = direction == StoreDirection.supermarket;
-    final title = tr(
-      locale,
-      isSm ? 'store.supermarketTitle' : 'store.clothesTitle',
-    );
-    final subtitle = tr(
-      locale,
-      isSm ? 'store.supermarketSub' : 'store.clothesSub',
-    );
-    final asset = isSm ? 'assets/3d/cart.webp' : 'assets/3d/shirt.webp';
-    final iconBg = isSm ? const Color(0xFFF1F3F9) : const Color(0xFFEBF7EE);
-    final fallbackIcon =
-        isSm ? Icons.shopping_cart_outlined : Icons.checkroom_outlined;
+    final title = tr(locale, direction.titleKey);
+    final subtitle = tr(locale, direction.subtitleKey);
+    final asset = direction.assetImage;
+    final iconBg = direction.iconBg;
+    final fallbackIcon = direction.fallbackIcon;
 
     return Scaffold(
       backgroundColor: PaykColors.canvas,
@@ -372,10 +415,8 @@ class AlmosiDirectionScreen extends ConsumerWidget {
         onRetry: () => ref.invalidate(meProvider),
         data: (account) {
           final wallet = account.wallet;
-          final rate = isSm ? wallet.rates.supermarket : wallet.rates.clothes;
-          final monthSpend = isSm
-              ? wallet.spendSupermarket
-              : wallet.spendClothes;
+          final rate = wallet.rates.byFormat(direction.formatCode);
+          final monthSpend = wallet.spendByFormat(direction.formatCode);
           final tierName = tierLabel(
             locale,
             wallet.status,
@@ -864,7 +905,7 @@ class _DirectionTiersCard extends StatelessWidget {
       error: (_, _) => const SizedBox.shrink(),
       data: (rules) {
         if (rules.statuses.isEmpty) return const SizedBox.shrink();
-        final isSm = direction == StoreDirection.supermarket;
+        final fmtCode = direction.formatCode;
         final totalTiers = rules.statuses.length;
 
         return Container(
@@ -897,9 +938,7 @@ class _DirectionTiersCard extends StatelessWidget {
                     tiers: totalTiers > 0 ? totalTiers : tierCount,
                   ),
                   threshold: _thresholdText(rules, rules.statuses[i]),
-                  rate: isSm
-                      ? rules.statuses[i].rates.supermarket
-                      : rules.statuses[i].rates.clothes,
+                  rate: rules.statuses[i].rates.byFormat(fmtCode),
                   isCurrent: rules.statuses[i].level == currentStatus,
                 ),
               ],

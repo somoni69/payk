@@ -284,15 +284,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        tr(locale, 'settings.purchases'),
-                        style: const TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: PaykColors.textPrimary,
-                        ),
+                      Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: PaykColors.activePill,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            alignment: Alignment.center,
+                            child: const Bags3dIcon(size: 24),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              tr(locale, 'settings.purchases'),
+                              style: const TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: PaykColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
+                      const SizedBox(height: 6),
                       _SettingSwitch(
                         title: tr(locale, 'settings.round'),
                         hint: tr(locale, 'settings.roundHint'),

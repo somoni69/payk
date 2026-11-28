@@ -240,6 +240,15 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       GoRoute(
+        path: '/almosi/restaurant',
+        pageBuilder: (context, state) => PaykMotion.buildPage(
+          state: state,
+          child: const AlmosiDirectionScreen(
+            direction: StoreDirection.restaurant,
+          ),
+        ),
+      ),
+      GoRoute(
         path: '/profile/details',
         pageBuilder: (context, state) => PaykMotion.buildPage(
           state: state,

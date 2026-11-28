@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/format.dart';
+import '../../core/formats.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
 import '../../core/theme/payk_colors.dart';
@@ -124,6 +125,7 @@ class LoyaltyCard extends StatelessWidget {
     required this.wallet,
     required this.locale,
     this.tiers = 5,
+    this.formats,
     this.onTap,
   });
 
@@ -131,6 +133,7 @@ class LoyaltyCard extends StatelessWidget {
   final Wallet wallet;
   final String locale;
   final int tiers;
+  final List<String>? formats;
   final VoidCallback? onTap;
 
   static const _radius = 26.0;
@@ -142,8 +145,13 @@ class LoyaltyCard extends StatelessWidget {
     final name = _holderName(member);
     final code = member.referralCode.trim();
 
-    final smRate = wallet.rates.supermarket;
-    final clRate = wallet.rates.clothes;
+    final activeFormats = resolveActiveFormats(
+      formats,
+      hasRestaurant: wallet.rates.restaurant != null,
+    );
+    final rateTiles = [
+      for (final fmt in activeFormats) _rateTileData(fmt),
+    ];
 
     final card = AnimatedSwitcher(
       duration: PaykMotion.duration(context, PaykMotion.page),
@@ -170,12 +178,7 @@ class LoyaltyCard extends StatelessWidget {
         brandTitle: tr(locale, 'store.brand'),
         balanceLabel: tr(locale, 'home.balance'),
         amount: formatNumber(wallet.balance),
-        smLabel: tr(locale, 'store.supermarketTitle'),
-        smEarnPct: formatPercent(smRate.earn),
-        smBurnPct: formatPercent(smRate.burnCap),
-        clLabel: tr(locale, 'store.clothesTitle'),
-        clEarnPct: formatPercent(clRate.earn),
-        clBurnPct: formatPercent(clRate.burnCap),
+        rateTiles: rateTiles,
         name: name,
         code: code,
         showChevron: onTap != null,
@@ -193,6 +196,49 @@ class LoyaltyCard extends StatelessWidget {
       ),
     );
   }
+
+  _RateTileData _rateTileData(String fmt) {
+    final rate = wallet.rates.byFormat(fmt);
+    return switch (fmt) {
+      'CL' => _RateTileData(
+        format: 'CL',
+        icon: Icons.checkroom_rounded,
+        label: tr(locale, 'store.clothesTitle'),
+        earnPct: formatPercent(rate.earn),
+        burnPct: formatPercent(rate.burnCap),
+      ),
+      'RS' => _RateTileData(
+        format: 'RS',
+        icon: Icons.restaurant_rounded,
+        label: tr(locale, 'store.restaurantTitle'),
+        earnPct: formatPercent(rate.earn),
+        burnPct: formatPercent(rate.burnCap),
+      ),
+      _ => _RateTileData(
+        format: 'SM',
+        icon: Icons.shopping_cart_outlined,
+        label: tr(locale, 'store.supermarketTitle'),
+        earnPct: formatPercent(rate.earn),
+        burnPct: formatPercent(rate.burnCap),
+      ),
+    };
+  }
+}
+
+class _RateTileData {
+  const _RateTileData({
+    required this.format,
+    required this.icon,
+    required this.label,
+    required this.earnPct,
+    required this.burnPct,
+  });
+
+  final String format;
+  final IconData icon;
+  final String label;
+  final String earnPct;
+  final String burnPct;
 }
 
 class _LoyaltyCardSurface extends StatelessWidget {
@@ -204,12 +250,7 @@ class _LoyaltyCardSurface extends StatelessWidget {
     required this.brandTitle,
     required this.balanceLabel,
     required this.amount,
-    required this.smLabel,
-    required this.smEarnPct,
-    required this.smBurnPct,
-    required this.clLabel,
-    required this.clEarnPct,
-    required this.clBurnPct,
+    required this.rateTiles,
     required this.name,
     required this.code,
     required this.showChevron,
@@ -221,12 +262,7 @@ class _LoyaltyCardSurface extends StatelessWidget {
   final String brandTitle;
   final String balanceLabel;
   final String amount;
-  final String smLabel;
-  final String smEarnPct;
-  final String smBurnPct;
-  final String clLabel;
-  final String clEarnPct;
-  final String clBurnPct;
+  final List<_RateTileData> rateTiles;
   final String name;
   final String code;
   final bool showChevron;
@@ -390,27 +426,21 @@ class _LoyaltyCardSurface extends StatelessWidget {
                     Row(
                       key: const ValueKey('loyalty-card-rates'),
                       children: [
-                        Expanded(
-                          child: _RateMiniTile(
-                            key: const ValueKey('loyalty-rate-SM'),
-                            icon: Icons.shopping_cart_outlined,
-                            label: smLabel,
-                            earnPct: smEarnPct,
-                            burnPct: smBurnPct,
-                            face: face,
+                        for (var i = 0; i < rateTiles.length; i++) ...[
+                          if (i > 0)
+                            SizedBox(width: rateTiles.length > 2 ? 6 : 8),
+                          Expanded(
+                            child: _RateMiniTile(
+                              key: ValueKey('loyalty-rate-${rateTiles[i].format}'),
+                              icon: rateTiles[i].icon,
+                              label: rateTiles[i].label,
+                              earnPct: rateTiles[i].earnPct,
+                              burnPct: rateTiles[i].burnPct,
+                              face: face,
+                              compact: rateTiles.length > 2,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _RateMiniTile(
-                            key: const ValueKey('loyalty-rate-CL'),
-                            icon: Icons.checkroom_rounded,
-                            label: clLabel,
-                            earnPct: clEarnPct,
-                            burnPct: clBurnPct,
-                            face: face,
-                          ),
-                        ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 14),
@@ -456,7 +486,7 @@ class _LoyaltyCardSurface extends StatelessWidget {
   }
 }
 
-/// Компактная плитка условий статуса («Супермаркет» / «Одежда»: кэшбэк / списание) внутри карты.
+/// Компактная плитка условий статуса («Супермаркет» / «Одежда» / «Ресторан»: кэшбэк / списание) внутри карты.
 class _RateMiniTile extends StatelessWidget {
   const _RateMiniTile({
     super.key,
@@ -465,6 +495,7 @@ class _RateMiniTile extends StatelessWidget {
     required this.earnPct,
     required this.burnPct,
     required this.face,
+    this.compact = false,
   });
 
   final IconData icon;
@@ -472,6 +503,7 @@ class _RateMiniTile extends StatelessWidget {
   final String earnPct;
   final String burnPct;
   final LoyaltyCardFace face;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -482,15 +514,15 @@ class _RateMiniTile extends StatelessWidget {
         border: Border.all(color: face.tileBorder, width: 1),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+        padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 11, vertical: 9),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(icon, size: 13, color: face.inkSoft),
-                const SizedBox(width: 5),
+                Icon(icon, size: compact ? 12 : 13, color: face.inkSoft),
+                SizedBox(width: compact ? 4 : 5),
                 Expanded(
                   child: Text(
                     label,

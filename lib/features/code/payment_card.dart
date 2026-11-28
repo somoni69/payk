@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/format.dart';
+import '../../core/formats.dart';
 import '../../core/i18n/locale_controller.dart';
 import '../../core/i18n/strings.dart';
 import '../../core/motion/payk_motion.dart';
@@ -303,7 +304,7 @@ class _PaymentCardState extends ConsumerState<PaymentCard> {
           Text(
             [
               if (check.store != null) check.store,
-              tr(locale, check.format == 'CL' ? 'format.CL' : 'format.SM'),
+              formatName(locale, check.format) ?? tr(locale, 'format.SM'),
             ].join(' · '),
             style: const TextStyle(
               color: PaykColors.muted,

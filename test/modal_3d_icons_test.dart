@@ -149,7 +149,7 @@ void main() {
     expect(_findAsset(Gem3dIcon.assetPath), findsOneWidget);
   });
 
-  testWidgets('SettingsScreen notifications section renders bell.webp', (
+  testWidgets('SettingsScreen renders language.webp, bell.webp and bags.webp', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1080, 2400);
@@ -160,12 +160,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Уведомления'), findsOneWidget);
+    expect(find.text('Покупки'), findsOneWidget);
     expect(find.byIcon(Icons.notifications_active_outlined), findsNothing);
     expect(find.byIcon(Icons.language_rounded), findsNothing);
     expect(find.byType(Language3dIcon), findsOneWidget);
     expect(_findAsset(Language3dIcon.assetPath), findsOneWidget);
     expect(find.byType(Bell3dIcon), findsOneWidget);
     expect(_findAsset(Bell3dIcon.assetPath), findsOneWidget);
+    expect(find.byType(Bags3dIcon), findsOneWidget);
+    expect(_findAsset(Bags3dIcon.assetPath), findsOneWidget);
   });
 
   testWidgets('HomeScreen renders bell.webp, qr-code.webp and ruler.webp', (

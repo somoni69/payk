@@ -5,6 +5,7 @@ class BirthdayGift {
     required this.until,
     required this.minClothes,
     required this.minSupermarket,
+    this.minRestaurant = 0,
   });
 
   final int amount;
@@ -12,6 +13,16 @@ class BirthdayGift {
   final DateTime until;
   final int minClothes;
   final int minSupermarket;
+  final int minRestaurant;
+
+  int minFor(String format) {
+    return switch (format) {
+      'SM' => minSupermarket,
+      'CL' => minClothes,
+      'RS' => minRestaurant > 0 ? minRestaurant : amount * 5,
+      _ => minSupermarket,
+    };
+  }
 }
 
 const birthdayCoupon = <int, int>{1: 20, 2: 40, 3: 80, 4: 150, 5: 250};
@@ -46,5 +57,6 @@ BirthdayGift? birthdayGift(DateTime? birth, int status, DateTime today) {
     until: chosen.add(const Duration(days: 7)),
     minClothes: amount * 5,
     minSupermarket: amount * 10,
+    minRestaurant: amount * 5,
   );
 }
